@@ -1,73 +1,114 @@
-// src/keyboard/KeyboardScreen.tsx
-//
-// PHASE 1 — Placeholder keyboard screen.
-//
-// This component renders inside KickKeyInputMethodService via ReactRootView.
-// Its sole purpose in Phase 1 is to prove that React Native renders correctly
-// inside the Android IME system.
-//
-// Phase 2 will replace this with real key rows, NativeModules wiring,
-// shift logic, and the suggestion bar.
-//
-// ⚠️  DO NOT import anything from the companion app (expo-router, zustand,
-//     AsyncStorage, settings store). This file is bundled into keyboard.bundle
-//     which must stay small (~3–5MB).
+/**
+ * PHASE 2 — Full English keyboard.
+ *
+ * - Real QWERTY keys committed via NativeModules.KickKey.commitKey()
+ * - Shift / Caps Lock state managed in useKeyboardState
+ * - Symbol panel (numbers + punctuation)
+ * - Long-press alt characters popup
+ * - Haptic feedback on every key (via Kotlin HapticManager)
+ * - Suggestion bar placeholder (wired in Phase 4)
+ * - Emoji and clipboard panels are stubs (wired in Phase 6)
+ *
+ * ⚠️ Do NOT import from companion app bundles (expo-router, zustand, AsyncStorage).
+ */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-} from 'react-native';
-import PlaceholderKey from './PlaceholderKey';
-
-// Placeholder key rows — just enough to show a keyboard shape.
-// Real layout comes in Phase 2.
-const ROW_1 = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
-const ROW_2 = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
-const ROW_3 = ['z', 'x', 'c', 'v', 'b', 'n', 'm'];
+import { View, Text, StyleSheet } from 'react-native';
+import { useKeyboardTheme }  from './hooks/useKeyboardTheme';
+import { useKeyboardState }  from './hooks/useKeyboardState';
+import KeyRow                from './KeyRow';
+import SuggestionBar         from './SuggestionBar';
+import BottomRow             from './BottomRow';
+import { ENGLISH_ROWS, SYMBOL_ROWS } from './layouts';
 
 export default function KeyboardScreen() {
+  const theme = useKeyboardTheme();
+  const {
+    language, isShift, isCapsLock, isSymbol, isEmoji, isClipboard,
+    suggestions,
+    handleKeyPress,
+    handleBackspace,
+    handleBackspaceLongPress,
+    handleBackspaceLongPressEnd,
+    handleSpace,
+    handleEnter,
+    handleShift,
+    handleLanguageSwitch,
+    handleSymbolToggle,
+    handleEmojiToggle,
+    handleClipboardToggle,
+    handleSuggestionSelect,
+  } = useKeyboardState();
+
+  const rows = isSymbol ? SYMBOL_ROWS : ENGLISH_ROWS;
+
+  // Emoji and clipboard panels are stubs in Phase 2 — wired fully in Phase 6
+  if (isEmoji) {
+    return (
+      <View style={[styles.keyboard, { backgroundColor: theme.keyboardBg }]}>
+        <Text style={[styles.stubText, { color: theme.altText }]}>
+          😊 Emoji panel coming in Phase 6
+        </Text>
+        <Text style={[styles.stubClose, { color: theme.suggestionText }]}
+          onPress={handleEmojiToggle}
+        >
+          Close
+        </Text>
+      </View>
+    );
+  }
+
+  if (isClipboard) {
+    return (
+      <View style={[styles.keyboard, { backgroundColor: theme.keyboardBg }]}>
+        <Text style={[styles.stubText, { color: theme.altText }]}>
+          📋 Clipboard panel coming in Phase 6
+        </Text>
+        <Text style={[styles.stubClose, { color: theme.suggestionText }]}
+          onPress={handleClipboardToggle}
+        >
+          Close
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.keyboard}>
-      {/* Header — shows that React Native is rendering inside the IME */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>⌨ KickKey · Phase 1 · React Native</Text>
-      </View>
+    <View style={[styles.keyboard, { backgroundColor: theme.keyboardBg }]}>
+      {/* Suggestion bar — placeholder in Phase 2, functional in Phase 4 */}
+      <SuggestionBar
+        suggestions={suggestions}
+        onSelect={handleSuggestionSelect}
+        theme={theme}
+      />
 
-      {/* Placeholder suggestion bar */}
-      <View style={styles.suggestionBar}>
-        <Text style={styles.suggestionPlaceholder}>Suggestions appear here in Phase 4</Text>
-      </View>
+      {/* Key rows (QWERTY or Symbols) */}
+      {rows.map((row, i) => (
+        <KeyRow
+          key={i}
+          keys={row}
+          theme={theme}
+          isShift={isShift}
+          isCapsLock={isCapsLock}
+          onKeyPress={handleKeyPress}
+          onBackspace={handleBackspace}
+          onBackspaceLongPress={handleBackspaceLongPress}
+          onBackspaceLongPressEnd={handleBackspaceLongPressEnd}
+          onShift={handleShift}
+        />
+      ))}
 
-      {/* Key rows */}
-      <View style={styles.row}>
-        {ROW_1.map((key) => (
-          <PlaceholderKey key={key} label={key} />
-        ))}
-      </View>
-
-      <View style={styles.row}>
-        {ROW_2.map((key) => (
-          <PlaceholderKey key={key} label={key} />
-        ))}
-      </View>
-
-      <View style={styles.row}>
-        <PlaceholderKey label="⇧" flex={1.5} />
-        {ROW_3.map((key) => (
-          <PlaceholderKey key={key} label={key} />
-        ))}
-        <PlaceholderKey label="⌫" flex={1.5} />
-      </View>
-
-      {/* Bottom row */}
-      <View style={styles.row}>
-        <PlaceholderKey label="!#1" flex={1.5} />
-        <PlaceholderKey label="🌐" flex={1} />
-        <PlaceholderKey label="space" flex={5} />
-        <PlaceholderKey label="↵" flex={1.5} />
-      </View>
+      {/* Bottom row: symbols, language, space, emoji, enter */}
+      <BottomRow
+        theme={theme}
+        language={language}
+        isSymbol={isSymbol}
+        onSpace={handleSpace}
+        onEnter={handleEnter}
+        onLanguageSwitch={handleLanguageSwitch}
+        onSymbolToggle={handleSymbolToggle}
+        onEmojiToggle={handleEmojiToggle}
+      />
     </View>
   );
 }
@@ -75,37 +116,17 @@ export default function KeyboardScreen() {
 const styles = StyleSheet.create({
   keyboard: {
     width: '100%',
-    backgroundColor: '#0d0d1a',
-    paddingBottom: 8,
+    paddingBottom: 6,
   },
-  header: {
-    backgroundColor: '#1a1a2e',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    alignItems: 'center',
+  stubText: {
+    textAlign: 'center',
+    padding: 40,
+    fontSize: 14,
   },
-  headerText: {
-    color: '#00BCD4',
-    fontSize: 11,
+  stubClose: {
+    textAlign: 'center',
+    paddingBottom: 16,
+    fontSize: 14,
     fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  suggestionBar: {
-    height: 36,
-    backgroundColor: '#12122a',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a3e',
-  },
-  suggestionPlaceholder: {
-    color: '#444',
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  row: {
-    flexDirection: 'row',
-    paddingHorizontal: 4,
-    justifyContent: 'center',
   },
 });
