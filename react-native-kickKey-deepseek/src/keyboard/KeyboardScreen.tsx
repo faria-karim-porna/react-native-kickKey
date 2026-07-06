@@ -23,7 +23,7 @@ export default function KeyboardScreen() {
   const theme = useKeyboardTheme();
   const {
     language, isShift, isCapsLock, isSymbol, isEmoji, isClipboard,
-    suggestions, composingText,
+    suggestions, composingText, currentWord,
     handleKeyPress, handleBackspace, handleBackspaceLongPress,
     handleBackspaceLongPressEnd,
     handleSpace, handleEnter, handleShift, handleLanguageSwitch,
@@ -71,9 +71,10 @@ export default function KeyboardScreen() {
         composingText={composingText}
       />
 
-      {/* Suggestion bar — placeholder until Phase 4 */}
+      {/* Suggestion bar — Phase 4: real suggestion chips */}
       <SuggestionBar
         suggestions={suggestions}
+        currentWord={currentWord}
         onSelect={handleSuggestionSelect}
         theme={theme}
       />

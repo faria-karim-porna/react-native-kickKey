@@ -1,42 +1,91 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import type { Theme } from './types';
 
 interface SuggestionBarProps {
   suggestions: string[];
+  currentWord: string;
   onSelect: (word: string) => void;
   theme: Theme;
 }
 
-function SuggestionBar({ suggestions, onSelect, theme }: SuggestionBarProps) {
+function SuggestionBar({ suggestions, currentWord, onSelect, theme }: SuggestionBarProps) {
+  const handleSelect = useCallback(
+    (word: string) => () => onSelect(word),
+    [onSelect]
+  );
+
+  if (suggestions.length === 0) {
+    return (
+      <View style={[styles.bar, { backgroundColor: theme.suggestionBg }]}>
+        {currentWord.length > 0 && (
+          <View style={styles.content}>
+            <Text
+              style={[styles.echoText, { color: theme.altText }]}
+              numberOfLines={1}
+            >
+              {currentWord}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.bar, { backgroundColor: theme.suggestionBg }]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="always"
       >
-        {suggestions.length === 0 ? (
-          <Text style={[styles.placeholder, { color: theme.altText }]}>
-            {/* Empty in Phase 2 — suggestions wired in Phase 4 */}
-          </Text>
-        ) : (
-          suggestions.map((word, i) => (
-            <React.Fragment key={word}>
-              {i > 0 && (
-                <View style={[styles.divider, { backgroundColor: theme.suggestionDivider }]} />
+        {suggestions.map((word, idx) => {
+          // First chip is the autocorrect candidate
+          const isAutoCorrect = idx === 0;
+
+          return (
+            <React.Fragment key={word + idx}>
+              {idx > 0 && (
+                <View
+                  style={[
+                    styles.divider,
+                    { backgroundColor: theme.suggestionDivider },
+                  ]}
+                />
               )}
               <TouchableOpacity
-                style={styles.chip}
-                onPress={() => onSelect(word)}
+                style={[
+                  styles.chip,
+                  isAutoCorrect && styles.chipHighlighted,
+                ]}
+                onPress={handleSelect(word)}
+                activeOpacity={0.65}
               >
-                <Text style={[styles.chipText, { color: theme.suggestionText }]}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    {
+                      color: isAutoCorrect
+                        ? theme.suggestionText
+                        : theme.keyText,
+                      fontWeight: isAutoCorrect ? '600' : '400',
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
                   {word}
                 </Text>
               </TouchableOpacity>
             </React.Fragment>
-          ))
-        )}
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -44,6 +93,7 @@ function SuggestionBar({ suggestions, onSelect, theme }: SuggestionBarProps) {
 
 export default React.memo(SuggestionBar, (prev, next) =>
   JSON.stringify(prev.suggestions) === JSON.stringify(next.suggestions) &&
+  prev.currentWord === next.currentWord &&
   prev.theme === next.theme
 );
 
@@ -52,31 +102,40 @@ const styles = StyleSheet.create({
     height: 40,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#2a2a3e',
+    justifyContent: 'center',
   },
   content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  scroll: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 4,
     minHeight: 40,
   },
-  placeholder: {
-    fontSize: 12,
-    paddingHorizontal: 12,
-  },
   chip: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
+    minWidth: 64,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 60,
+  },
+  chipHighlighted: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#00BCD4',
   },
   chipText: {
     fontSize: 14,
-    fontWeight: '500',
   },
   divider: {
     width: StyleSheet.hairlineWidth,
-    height: 24,
+    height: 20,
     alignSelf: 'center',
+  },
+  echoText: {
+    fontSize: 13,
+    fontStyle: 'italic',
   },
 });

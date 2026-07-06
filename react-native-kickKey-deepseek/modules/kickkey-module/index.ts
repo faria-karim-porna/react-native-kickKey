@@ -16,19 +16,17 @@ export default {
   getPreferences:  (): Promise<Record<string, any>>               => KickKey.getPreferences(),
   savePreferences: (p: Record<string, any>): Promise<void>        => KickKey.savePreferences(p),
 
-  // ── Phase 3 (new) ─────────────────────────────────────────────────────────
+  // ── Phase 3 ───────────────────────────────────────────────────────────────
+  flushBanglaBuffer: (): Promise<void>              => KickKey.flushBanglaBuffer(),
+  setBanglaEnabled:  (e: boolean): Promise<void>    => KickKey.setBanglaEnabled(e),
+
+  // ── Phase 4 (new) ─────────────────────────────────────────────────────────
 
   /**
-   * Commit any Roman characters buffered in BanglaInputEngine as plain text.
-   * Call before: language switch, field focus change, emoji/symbol panel open.
+   * Replaces the current partial word with [word] + space.
+   * Records the choice in UserWordModel for future frequency boosting.
+   * Called when the user taps a suggestion chip in SuggestionBar.
    */
-  flushBanglaBuffer: (): Promise<void> =>
-    KickKey.flushBanglaBuffer(),
-
-  /**
-   * Enable or disable the Bangla phonetic engine.
-   * When disabled, commitKey in 'bn' mode falls back to direct text commit.
-   */
-  setBanglaEnabled: (enabled: boolean): Promise<void> =>
-    KickKey.setBanglaEnabled(enabled),
+  commitSuggestion: (word: string): Promise<void> =>
+    KickKey.commitSuggestion(word),
 };

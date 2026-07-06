@@ -11,15 +11,16 @@ class KickKeyModule : Module() {
     companion object {
         var activeInputConnection: InputConnection? = null
         var hapticManager: HapticManager? = null
-
-        // ── NEW in Phase 3 ────────────────────────────────────────────────
         var banglaEngine: BanglaInputEngine? = null
+
+        // ── NEW in Phase 4 ────────────────────────────────────────────────
+        var suggestionEngine: SuggestionEngine? = null
     }
 
     override fun definition() = ModuleDefinition {
         Name("KickKey")
 
-        // ── UPDATED: commitKey now routes through Bangla engine ───────────
+        // ── UPDATED: commitKey notifies suggestion engine ─────────────────
 
         Function("commitKey") { code: String, language: String ->
             val ic = activeInputConnection ?: return@Function
@@ -31,46 +32,92 @@ class KickKeyModule : Module() {
                     ic.beginBatchEdit()
                     ic.commitText(banglaResult, 1)
                     ic.endBatchEdit()
+                    suggestionEngine?.onCharacterTyped()   // ← NEW
                 }
-                // If banglaResult is empty, the engine is buffering
             } else if (code.isNotEmpty()) {
                 // English — commit directly
                 ic.beginBatchEdit()
                 ic.commitText(code, 1)
                 ic.endBatchEdit()
+                suggestionEngine?.onCharacterTyped()       // ← NEW
             }
 
             hapticManager?.vibrate()
         }
 
-        // ── UPDATED: sendBackspace checks Bangla buffer first ─────────────
+        // ── UPDATED: sendBackspace notifies suggestion engine ─────────────
 
         Function("sendBackspace") {
             val engine = banglaEngine
             val consumedByBuffer = engine?.onBackspace() ?: false
             if (!consumedByBuffer) {
                 activeInputConnection?.deleteSurroundingText(1, 0)
+                suggestionEngine?.onBackspace()    // notify after actual delete
             }
+            // When Bangla buffer consumed the backspace, no text was deleted
+            // from InputConnection, so skip suggestion recomputation
             hapticManager?.vibrate()
         }
 
-        // ── UPDATED: commitSpace flushes the Bangla buffer first ─────────
+        // ── UPDATED: commitSpace auto-corrects with top suggestion ────────
 
         Function("commitSpace") {
             val ic = activeInputConnection ?: return@Function
+
+            // Flush Bangla buffer first (Phase 3)
             val pending = banglaEngine?.flush() ?: ""
             if (pending.isNotEmpty()) {
                 ic.beginBatchEdit()
                 ic.commitText(pending, 1)
                 ic.endBatchEdit()
+                suggestionEngine?.onCharacterTyped()
             }
+
             ic.beginBatchEdit()
-            ic.commitText(" ", 1)
+
+            // Phase 4: auto-correct with top suggestion if available
+            val top = suggestionEngine?.getTopSuggestion()
+            if (top != null) {
+                val currentWord = suggestionEngine!!.getCurrentWord()
+                if (currentWord.isNotEmpty() && currentWord != top) {
+                    // Replace current partial word with the suggestion
+                    ic.deleteSurroundingText(currentWord.length, 0)
+                    ic.commitText("$top ", 1)
+                    suggestionEngine?.onWordCommitted(top)
+                } else {
+                    ic.commitText(" ", 1)
+                }
+            } else {
+                ic.commitText(" ", 1)
+            }
+
             ic.endBatchEdit()
             hapticManager?.vibrate()
         }
 
-        // ── NEW: flush the Bangla buffer explicitly ───────────────────────
+        // ── NEW: commitSuggestion — user tapped a chip ─────────────────────
+
+        Function("commitSuggestion") { word: String ->
+            val ic = activeInputConnection ?: return@Function
+            val currentWord = suggestionEngine?.getCurrentWord() ?: ""
+
+            ic.beginBatchEdit()
+
+            // Delete the partially typed word
+            if (currentWord.isNotEmpty()) {
+                ic.deleteSurroundingText(currentWord.length, 0)
+            }
+            // Commit the chosen suggestion + trailing space
+            ic.commitText("$word ", 1)
+
+            ic.endBatchEdit()
+
+            // Record in user model; clear suggestions
+            suggestionEngine?.onWordCommitted(word)
+            hapticManager?.vibrate()
+        }
+
+        // ── Phase 3: flush the Bangla buffer ──────────────────────────────
 
         Function("flushBanglaBuffer") {
             val ic = activeInputConnection ?: return@Function
@@ -98,6 +145,9 @@ class KickKeyModule : Module() {
             }
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_ENTER))
+
+            // Clear suggestions on new line
+            suggestionEngine?.onWordCommitted(suggestionEngine?.getCurrentWord() ?: "")
             hapticManager?.vibrate()
         }
 

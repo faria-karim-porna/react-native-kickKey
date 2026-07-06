@@ -14,6 +14,7 @@ export interface KeyboardState {
   isClipboard: boolean;
   suggestions: string[];
   composingText: string;
+  currentWord: string;             // ← NEW Phase 4
   handleKeyPress: (key: KeyDef) => void;
   handleBackspace: () => void;
   handleBackspaceLongPress: () => void;
@@ -37,6 +38,7 @@ export function useKeyboardState(): KeyboardState {
   const [isClipboard, setIsClipboard]   = useState(false);
   const [suggestions, setSuggestions]   = useState<string[]>([]);
   const [composingText, setComposing]   = useState('');
+  const [currentWord, setCurrentWord]   = useState('');   // ← NEW Phase 4
 
   const backspacePressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -45,6 +47,7 @@ export function useKeyboardState(): KeyboardState {
   useEffect(() => {
     const subSuggestions = emitter.addListener('onSuggestionsUpdated', (data) => {
       setSuggestions(data.suggestions ?? []);
+      setCurrentWord(data.currentWord ?? '');   // ← NEW Phase 4
     });
 
     const subInput = emitter.addListener('onInputStarted', (data) => {
@@ -54,12 +57,14 @@ export function useKeyboardState(): KeyboardState {
       setIsEmoji(false);
       setIsClipboard(false);
       setComposing('');
+      setCurrentWord('');                        // ← NEW Phase 4
     });
 
     const subHidden = emitter.addListener('onKeyboardHidden', () => {
       setIsEmoji(false);
       setIsClipboard(false);
       setComposing('');
+      setCurrentWord('');                        // ← NEW Phase 4
     });
 
     // Kotlin engine can emit composing text for the header indicator
@@ -97,7 +102,6 @@ export function useKeyboardState(): KeyboardState {
   }, [language, isShift, isCapsLock]);
 
   const handleBackspace = useCallback(() => {
-    // sendBackspace checks Bangla buffer first (updated in Phase 3)
     KickKey.sendBackspace();
   }, []);
 
@@ -116,14 +120,13 @@ export function useKeyboardState(): KeyboardState {
   }, []);
 
   const handleSpace = useCallback(() => {
-    // commitSpace flushes Bangla buffer before inserting space (Phase 3)
+    // commitSpace flushes Bangla buffer & autocorrects (Phase 4)
     KickKey.commitSpace();
     setComposing('');
     if (language === 'en' && isShift && !isCapsLock) setIsShift(false);
   }, [language, isShift, isCapsLock]);
 
   const handleEnter = useCallback(() => {
-    // sendEnter also flushes Bangla buffer (Phase 3)
     KickKey.sendEnter();
     setComposing('');
   }, []);
@@ -134,12 +137,12 @@ export function useKeyboardState(): KeyboardState {
     else                              { setIsShift(false); setIsCapsLock(false); }
   }, [isShift, isCapsLock]);
 
-  // UPDATED in Phase 3: flush Bangla buffer before switching language
   const handleLanguageSwitch = useCallback(() => {
     KickKey.flushBanglaBuffer().catch(() => {});
     setComposing('');
     setLanguage(l => l === 'en' ? 'bn' : 'en');
     setSuggestions([]);
+    setCurrentWord('');                       // ← NEW Phase 4
     setIsShift(false);
     setIsCapsLock(false);
   }, []);
@@ -166,15 +169,19 @@ export function useKeyboardState(): KeyboardState {
     setComposing('');
   }, [language]);
 
+  // ── UPDATED Phase 4: commitSuggestion via native module ────────────────
+
   const handleSuggestionSelect = useCallback((word: string) => {
-    KickKey.commitKey(word, 'en');
+    KickKey.commitSuggestion(word);   // ← CHANGED from commitKey
     setSuggestions([]);
+    setCurrentWord('');               // ← NEW Phase 4
     setComposing('');
   }, []);
 
   return {
     language, isShift, isCapsLock, isSymbol, isEmoji, isClipboard,
     suggestions, composingText,
+    currentWord,                     // ← NEW Phase 4
     handleKeyPress, handleBackspace, handleBackspaceLongPress,
     handleBackspaceLongPressEnd,
     handleSpace, handleEnter, handleShift, handleLanguageSwitch,
