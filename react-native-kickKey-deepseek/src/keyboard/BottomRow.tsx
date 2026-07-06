@@ -23,103 +23,88 @@ export default function BottomRow({
   onSymbolToggle,
   onEmojiToggle,
 }: BottomRowProps) {
-  const specialStyle = {
+  const special = {
     backgroundColor: theme.specialKeyBg,
     borderRadius: theme.keyBorderRadius,
     marginHorizontal: theme.keyMargin,
     height: theme.keyHeight,
   };
 
-  const spaceStyle = {
-    backgroundColor: theme.keyBg,
-    borderRadius: theme.keyBorderRadius,
-    marginHorizontal: theme.keyMargin,
-    height: theme.keyHeight,
-  };
+  const langLabel = language === 'en' ? '🌐 EN' : '🌐 বাং';
+  const spaceLabel = language === 'en' ? 'space' : 'স্পেস';
 
   return (
     <View style={styles.row}>
-      {/* Symbols toggle */}
+      {/* Symbols / ABC toggle */}
       <TouchableOpacity
-        style={[styles.specialKey, specialStyle, { flex: 1.5 }]}
+        style={[styles.key, special, { flex: 1.5 }]}
         onPress={onSymbolToggle}
         activeOpacity={0.55}
       >
-        <Text style={[styles.specialLabel, { color: theme.specialKeyText, fontSize: 13 }]}>
+        <Text style={[styles.label, { color: theme.specialKeyText, fontSize: 13 }]}>
           {isSymbol ? 'ABC' : '!#1'}
         </Text>
       </TouchableOpacity>
 
-      {/* Language switch */}
+      {/* Language switch — tap to toggle EN/BN */}
       <TouchableOpacity
-        style={[styles.specialKey, specialStyle, { flex: 1 }]}
+        style={[styles.key, special, { flex: 1.2 }]}
         onPress={onLanguageSwitch}
+        onLongPress={() => {
+          // Phase 5 will show a full language picker here
+          onLanguageSwitch();
+        }}
+        delayLongPress={600}
         activeOpacity={0.55}
       >
-        <Text style={[styles.specialLabel, { color: theme.specialKeyText, fontSize: 12 }]}>
-          {language === 'en' ? '🌐 EN' : '🌐 বাং'}
+        <Text style={[styles.label, { color: theme.specialKeyText, fontSize: 11 }]}
+          numberOfLines={1} adjustsFontSizeToFit>
+          {langLabel}
         </Text>
       </TouchableOpacity>
 
       {/* Spacebar */}
       <TouchableOpacity
-        style={[styles.spaceKey, spaceStyle, { flex: 5 }]}
+        style={[styles.key, {
+          flex: 4.8,
+          backgroundColor: theme.keyBg,
+          borderRadius: theme.keyBorderRadius,
+          marginHorizontal: theme.keyMargin,
+          height: theme.keyHeight,
+        }]}
         onPress={onSpace}
         activeOpacity={0.7}
       >
         <Text style={[styles.spaceLabel, { color: theme.altText }]}>
-          space
+          {spaceLabel}
         </Text>
       </TouchableOpacity>
 
       {/* Emoji toggle */}
       <TouchableOpacity
-        style={[styles.specialKey, specialStyle, { flex: 1 }]}
+        style={[styles.key, special, { flex: 1 }]}
         onPress={onEmojiToggle}
         activeOpacity={0.55}
       >
-        <Text style={styles.emojiLabel}>😊</Text>
+        <Text style={styles.emoji}>😊</Text>
       </TouchableOpacity>
 
       {/* Enter */}
       <TouchableOpacity
-        style={[styles.specialKey, specialStyle, { flex: 1.5 }]}
+        style={[styles.key, special, { flex: 1.5 }]}
         onPress={onEnter}
         activeOpacity={0.55}
       >
-        <Text style={[styles.specialLabel, { color: theme.specialKeyText, fontSize: 18 }]}>
-          ↵
-        </Text>
+        <Text style={[styles.label, { color: theme.specialKeyText, fontSize: 18 }]}>↵</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    paddingHorizontal: 4,
-    justifyContent: 'center',
-    marginVertical: 4,
-  },
-  specialKey: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 2,
-  },
-  spaceKey: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 2,
-  },
-  specialLabel: {
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  spaceLabel: {
-    fontSize: 13,
-  },
-  emojiLabel: {
-    fontSize: 20,
-  },
+  row:        { flexDirection: 'row', paddingHorizontal: 4, justifyContent: 'center', marginVertical: 4 },
+  key:        { justifyContent: 'center', alignItems: 'center', elevation: 2 },
+  label:      { fontWeight: '500', textAlign: 'center' },
+  spaceLabel: { fontSize: 12 },
+  emoji:      { fontSize: 20 },
 });

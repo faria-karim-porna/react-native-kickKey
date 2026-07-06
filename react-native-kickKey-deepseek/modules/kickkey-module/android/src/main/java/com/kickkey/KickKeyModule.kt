@@ -9,65 +9,93 @@ import expo.modules.kotlin.modules.ModuleDefinition
 class KickKeyModule : Module() {
 
     companion object {
-        /**
-         * Set by KickKeyInputMethodService.onStartInputView().
-         * Cleared by onFinishInput().
-         * All commitKey / sendBackspace calls use this reference.
-         */
         var activeInputConnection: InputConnection? = null
-
-        /**
-         * Holds a reference to HapticManager so commitKey can trigger vibration.
-         * Set by KickKeyInputMethodService.onCreate().
-         */
         var hapticManager: HapticManager? = null
+
+        // ── NEW in Phase 3 ────────────────────────────────────────────────
+        var banglaEngine: BanglaInputEngine? = null
     }
 
     override fun definition() = ModuleDefinition {
         Name("KickKey")
 
-        // ── Core text input ──────────────────────────────────────────────────
+        // ── UPDATED: commitKey now routes through Bangla engine ───────────
 
-        /**
-         * Commits a single character to the focused text field.
-         * For Phase 2 English only — Bangla routing added in Phase 3.
-         *
-         * Called from useKeyboardState.handleKeyPress() in TypeScript.
-         */
-        Function("commitKey") { code: String, _language: String ->
+        Function("commitKey") { code: String, language: String ->
             val ic = activeInputConnection ?: return@Function
-            if (code.isNotEmpty()) {
+
+            if (language == "bn" && code.isNotEmpty()) {
+                // Route through Bangla phonetic engine
+                val banglaResult = banglaEngine?.processKey(code) ?: code
+                if (banglaResult.isNotEmpty()) {
+                    ic.beginBatchEdit()
+                    ic.commitText(banglaResult, 1)
+                    ic.endBatchEdit()
+                }
+                // If banglaResult is empty, the engine is buffering
+            } else if (code.isNotEmpty()) {
+                // English — commit directly
                 ic.beginBatchEdit()
                 ic.commitText(code, 1)
                 ic.endBatchEdit()
             }
+
             hapticManager?.vibrate()
         }
 
-        /**
-         * Deletes the character immediately before the cursor.
-         * Equivalent to pressing the physical Backspace key.
-         */
+        // ── UPDATED: sendBackspace checks Bangla buffer first ─────────────
+
         Function("sendBackspace") {
-            activeInputConnection?.deleteSurroundingText(1, 0)
+            val engine = banglaEngine
+            val consumedByBuffer = engine?.onBackspace() ?: false
+            if (!consumedByBuffer) {
+                activeInputConnection?.deleteSurroundingText(1, 0)
+            }
             hapticManager?.vibrate()
         }
 
-        /**
-         * Commits a space character.
-         * Phase 4 will upgrade this to auto-commit the top suggestion.
-         */
+        // ── UPDATED: commitSpace flushes the Bangla buffer first ─────────
+
         Function("commitSpace") {
-            activeInputConnection?.commitText(" ", 1)
+            val ic = activeInputConnection ?: return@Function
+            val pending = banglaEngine?.flush() ?: ""
+            if (pending.isNotEmpty()) {
+                ic.beginBatchEdit()
+                ic.commitText(pending, 1)
+                ic.endBatchEdit()
+            }
+            ic.beginBatchEdit()
+            ic.commitText(" ", 1)
+            ic.endBatchEdit()
             hapticManager?.vibrate()
         }
 
-        /**
-         * Sends an Enter key event to the focused field.
-         * Works across all apps (chat, forms, search bars).
-         */
+        // ── NEW: flush the Bangla buffer explicitly ───────────────────────
+
+        Function("flushBanglaBuffer") {
+            val ic = activeInputConnection ?: return@Function
+            val pending = banglaEngine?.flush() ?: ""
+            if (pending.isNotEmpty()) {
+                ic.beginBatchEdit()
+                ic.commitText(pending, 1)
+                ic.endBatchEdit()
+            }
+        }
+
+        Function("setBanglaEnabled") { enabled: Boolean ->
+            if (!enabled) banglaEngine?.reset()
+        }
+
+        // ── UPDATED: sendEnter flushes Bangla buffer first ────────────────
+
         Function("sendEnter") {
             val ic = activeInputConnection ?: return@Function
+            val pending = banglaEngine?.flush() ?: ""
+            if (pending.isNotEmpty()) {
+                ic.beginBatchEdit()
+                ic.commitText(pending, 1)
+                ic.endBatchEdit()
+            }
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_ENTER))
             hapticManager?.vibrate()
@@ -75,10 +103,6 @@ class KickKeyModule : Module() {
 
         // ── Preferences ──────────────────────────────────────────────────────
 
-        /**
-         * Returns the current keyboard preferences from SharedPreferences.
-         * Called by useKeyboardTheme.ts on mount to set colors and dimensions.
-         */
         Function("getPreferences") {
             val context = appContext.reactContext ?: return@Function emptyMap<String, Any>()
             val prefs = context.getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
@@ -101,10 +125,6 @@ class KickKeyModule : Module() {
             )
         }
 
-        /**
-         * Writes preferences set by the companion app (Phase 5).
-         * The keyboard reads these on next open via getPreferences().
-         */
         Function("savePreferences") { prefMap: Map<String, Any> ->
             val context = appContext.reactContext ?: return@Function
             val editor = context
@@ -148,8 +168,5 @@ class KickKeyModule : Module() {
             ).apply { flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK }
             context.startActivity(intent)
         }
-
-        // ── Phase 4+ stubs (do not implement yet) ────────────────────────────
-        // commitSuggestion, getClipboardHistory
     }
 }
