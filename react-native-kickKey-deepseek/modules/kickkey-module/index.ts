@@ -20,7 +20,7 @@ export default {
   flushBanglaBuffer: (): Promise<void>              => KickKey.flushBanglaBuffer(),
   setBanglaEnabled:  (e: boolean): Promise<void>    => KickKey.setBanglaEnabled(e),
 
-  // ── Phase 4 (new) ─────────────────────────────────────────────────────────
+  // ── Phase 4 ───────────────────────────────────────────────────────────────
 
   /**
    * Replaces the current partial word with [word] + space.
@@ -29,4 +29,18 @@ export default {
    */
   commitSuggestion: (word: string): Promise<void> =>
     KickKey.commitSuggestion(word),
+
+  // ── Phase 5: Custom dictionary ─────────────────────────────────────────────
+
+  /** Replaces the entire custom dictionary with [words]. */
+  setDictionaryWords: (words: string[]): Promise<void> =>
+    KickKey.setDictionaryWords(words),
+
+  /** Returns the current custom dictionary word list. */
+  getDictionaryWords: (): Promise<string[]> =>
+    KickKey.getDictionaryWords(),
+
+  /** Removes a single word from the custom dictionary. */
+  removeDictionaryWord: (word: string): Promise<void> =>
+    KickKey.removeDictionaryWord(word),
 };

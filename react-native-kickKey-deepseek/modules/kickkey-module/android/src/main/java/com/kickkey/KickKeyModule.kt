@@ -151,6 +151,32 @@ class KickKeyModule : Module() {
             hapticManager?.vibrate()
         }
 
+        // ── Phase 5: Custom dictionary management ──────────────────────────────
+
+        Function("setDictionaryWords") { words: List<String> ->
+            val context = appContext.reactContext ?: return@Function
+            val serialized = words.joinToString("\n")
+            context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+                .edit()
+                .putString("custom_words", serialized)
+                .apply()
+        }
+
+        Function("getDictionaryWords") {
+            val context = appContext.reactContext ?: return@Function emptyList<String>()
+            val raw = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+                .getString("custom_words", "") ?: ""
+            if (raw.isEmpty()) emptyList() else raw.split("\n")
+        }
+
+        Function("removeDictionaryWord") { word: String ->
+            val context = appContext.reactContext ?: return@Function
+            val prefs = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+            val raw = prefs.getString("custom_words", "") ?: ""
+            val updated = raw.split("\n").filter { it != word && it.isNotBlank() }
+            prefs.edit().putString("custom_words", updated.joinToString("\n")).apply()
+        }
+
         // ── Preferences ──────────────────────────────────────────────────────
 
         Function("getPreferences") {
