@@ -178,6 +178,23 @@ class KickKeyModule : Module() {
             clipboardHandler?.recordEmojiUsed(emoji)
         }
 
+        // ── Phase 7: Sound feedback ────────────────────────────────────────────────
+
+        Function("playKeySound") {
+            val context = appContext.reactContext ?: return@Function
+            val soundEnabled = context
+                .getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+                .getBoolean("soundEnabled", false)
+            if (!soundEnabled) return@Function
+            try {
+                val am = context.getSystemService(android.content.Context.AUDIO_SERVICE)
+                        as android.media.AudioManager
+                am.playSoundEffect(android.media.AudioManager.FX_KEYPRESS_STANDARD, -1f)
+            } catch (e: Exception) {
+                android.util.Log.w("KickKeyModule", "Sound effect failed: ${e.message}")
+            }
+        }
+
         // ── Phase 5: Custom dictionary management ──────────────────────────────
 
         Function("setDictionaryWords") { words: List<String> ->

@@ -92,9 +92,11 @@ function SuggestionBar({ suggestions, currentWord, onSelect, theme }: Suggestion
 }
 
 export default React.memo(SuggestionBar, (prev, next) =>
-  JSON.stringify(prev.suggestions) === JSON.stringify(next.suggestions) &&
+  prev.suggestions.length === next.suggestions.length &&
+  prev.suggestions.every((s, i) => s === next.suggestions[i]) &&
   prev.currentWord === next.currentWord &&
-  prev.theme === next.theme
+  prev.theme       === next.theme      &&
+  prev.onSelect    === next.onSelect
 );
 
 const styles = StyleSheet.create({

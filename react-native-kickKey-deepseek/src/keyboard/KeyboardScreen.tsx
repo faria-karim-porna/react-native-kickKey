@@ -1,11 +1,11 @@
 /**
- * PHASE 6 — Real emoji and clipboard panels replace the Phase 2 stubs.
+ * PHASE 7 — Input type adaptation, number layouts, performance polish.
  *
- * Changes from Phase 5:
- *   - isEmoji renders <EmojiPanel /> instead of a placeholder Text block
- *   - isClipboard renders <ClipboardPanel /> instead of a placeholder Text block
- *   - Both panels' onClose props route back to setIsEmoji(false) / setIsClipboard(false)
- *     via the existing handleEmojiToggle / handleClipboardToggle from useKeyboardState
+ * Changes from Phase 6:
+ *   - Renders NUMBER_ROWS or PHONE_ROWS based on input field type
+ *   - Hides SuggestionBar in password fields
+ *   - Passes imeAction to BottomRow for dynamic Enter key label
+ *   - Wraps callbacks with useCallback for React.memo compatibility
  */
 
 import React from 'react';
@@ -18,13 +18,14 @@ import SuggestionBar                 from './SuggestionBar';
 import BottomRow                     from './BottomRow';
 import EmojiPanel                    from './EmojiPanel';
 import ClipboardPanel                from './ClipboardPanel';
-import { ENGLISH_ROWS, BANGLA_ROWS, SYMBOL_ROWS } from './layouts';
+import { ENGLISH_ROWS, BANGLA_ROWS, SYMBOL_ROWS, NUMBER_ROWS, PHONE_ROWS } from './layouts';
 
 export default function KeyboardScreen() {
   const theme = useKeyboardTheme();
   const {
     language, isShift, isCapsLock, isSymbol, isEmoji, isClipboard,
     suggestions, composingText, currentWord,
+    isPassword, isNumber, isPhone, imeAction,
     handleKeyPress, handleBackspace, handleBackspaceLongPress,
     handleBackspaceLongPressEnd,
     handleSpace, handleEnter, handleShift, handleLanguageSwitch,
@@ -32,13 +33,16 @@ export default function KeyboardScreen() {
     handleSuggestionSelect,
   } = useKeyboardState();
 
-  const rows = isSymbol
-    ? SYMBOL_ROWS
-    : language === 'bn'
-    ? BANGLA_ROWS
-    : ENGLISH_ROWS;
+  // Phase 7: pick the active row set based on input type
+  const rows = (() => {
+    if (isPhone)  return PHONE_ROWS;
+    if (isNumber) return NUMBER_ROWS;
+    if (isSymbol) return SYMBOL_ROWS;
+    if (language === 'bn') return BANGLA_ROWS;
+    return ENGLISH_ROWS;
+  })();
 
-  // ── Emoji panel (real, replaces Phase 2 stub) ──────────────────────────────
+  // ── Emoji panel ──────────────────────────────────────────────────────────
   if (isEmoji) {
     return (
       <View style={[styles.keyboard, { backgroundColor: theme.keyboardBg }]}>
@@ -51,7 +55,7 @@ export default function KeyboardScreen() {
     );
   }
 
-  // ── Clipboard panel (real, replaces Phase 2 stub) ──────────────────────────
+  // ── Clipboard panel ──────────────────────────────────────────────────────
   if (isClipboard) {
     return (
       <View style={[styles.keyboard, { backgroundColor: theme.keyboardBg }]}>
@@ -64,7 +68,7 @@ export default function KeyboardScreen() {
     );
   }
 
-  // ── Standard QWERTY / Bangla / Symbols layout (unchanged from Phase 5) ────
+  // ── Standard keyboard layout ─────────────────────────────────────────────
   return (
     <View style={[styles.keyboard, { backgroundColor: theme.keyboardBg }]}>
       <KeyboardHeader
@@ -73,12 +77,15 @@ export default function KeyboardScreen() {
         composingText={composingText}
       />
 
-      <SuggestionBar
-        suggestions={suggestions}
-        currentWord={currentWord}
-        onSelect={handleSuggestionSelect}
-        theme={theme}
-      />
+      {/* Phase 7: hide suggestions in password fields */}
+      {!isPassword && (
+        <SuggestionBar
+          suggestions={suggestions}
+          currentWord={currentWord}
+          onSelect={handleSuggestionSelect}
+          theme={theme}
+        />
+      )}
 
       {rows.map((row, i) => (
         <KeyRow
@@ -99,6 +106,7 @@ export default function KeyboardScreen() {
         theme={theme}
         language={language}
         isSymbol={isSymbol}
+        imeAction={imeAction}
         onSpace={handleSpace}
         onEnter={handleEnter}
         onLanguageSwitch={handleLanguageSwitch}

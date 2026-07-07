@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { NativeModules, NativeEventEmitter } from 'react-native';
 import type { KeyDef } from '../types';
+import { playKeySound } from '../data/soundManager';
 
 const { KickKey } = NativeModules;
 const emitter = new NativeEventEmitter(KickKey);
@@ -14,7 +15,13 @@ export interface KeyboardState {
   isClipboard: boolean;
   suggestions: string[];
   composingText: string;
-  currentWord: string;             // ← NEW Phase 4
+  currentWord: string;
+  isPassword: boolean;
+  isNumber: boolean;
+  isPhone: boolean;
+  isUrl: boolean;
+  isEmail: boolean;
+  imeAction: string;
   handleKeyPress: (key: KeyDef) => void;
   handleBackspace: () => void;
   handleBackspaceLongPress: () => void;
@@ -38,7 +45,15 @@ export function useKeyboardState(): KeyboardState {
   const [isClipboard, setIsClipboard]   = useState(false);
   const [suggestions, setSuggestions]   = useState<string[]>([]);
   const [composingText, setComposing]   = useState('');
-  const [currentWord, setCurrentWord]   = useState('');   // ← NEW Phase 4
+  const [currentWord, setCurrentWord]   = useState('');
+
+  // ── Phase 7: Input type adaptation ────────────────────────────────────────
+  const [isPassword, setIsPassword]     = useState(false);
+  const [isNumber, setIsNumber]         = useState(false);
+  const [isPhone, setIsPhone]           = useState(false);
+  const [isUrl, setIsUrl]               = useState(false);
+  const [isEmail, setIsEmail]           = useState(false);
+  const [imeAction, setImeAction]       = useState<string>('return');
 
   const backspacePressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -47,27 +62,33 @@ export function useKeyboardState(): KeyboardState {
   useEffect(() => {
     const subSuggestions = emitter.addListener('onSuggestionsUpdated', (data) => {
       setSuggestions(data.suggestions ?? []);
-      setCurrentWord(data.currentWord ?? '');   // ← NEW Phase 4
+      setCurrentWord(data.currentWord ?? '');
     });
 
     const subInput = emitter.addListener('onInputStarted', (data) => {
-      const inputType: number = data.inputType ?? 0;
-      if ((inputType & 0x80) !== 0) setSuggestions([]);
+      // Phase 7: populate input-type fields
+      setIsPassword(data.isPassword ?? false);
+      setIsNumber(data.isNumber   ?? false);
+      setIsPhone(data.isPhone     ?? false);
+      setIsUrl(data.isUrl         ?? false);
+      setIsEmail(data.isEmail     ?? false);
+      setImeAction(data.imeAction ?? 'return');
+
+      if (data.isPassword) setSuggestions([]);
       setIsSymbol(false);
       setIsEmoji(false);
       setIsClipboard(false);
       setComposing('');
-      setCurrentWord('');                        // ← NEW Phase 4
+      setCurrentWord('');
     });
 
     const subHidden = emitter.addListener('onKeyboardHidden', () => {
       setIsEmoji(false);
       setIsClipboard(false);
       setComposing('');
-      setCurrentWord('');                        // ← NEW Phase 4
+      setCurrentWord('');
     });
 
-    // Kotlin engine can emit composing text for the header indicator
     const subComposing = emitter.addListener('onComposingChanged', (data) => {
       setComposing(data.text ?? '');
     });
@@ -91,10 +112,9 @@ export function useKeyboardState(): KeyboardState {
   const handleKeyPress = useCallback((key: KeyDef) => {
     if (!key.code) return;
 
-    // commitKey routes through BanglaInputEngine in Kotlin when language='bn'
     KickKey.commitKey(key.code, language);
+    playKeySound();
 
-    // In English mode, reset composing immediately
     if (language === 'en') {
       setComposing('');
       if (isShift && !isCapsLock) setIsShift(false);
@@ -103,6 +123,7 @@ export function useKeyboardState(): KeyboardState {
 
   const handleBackspace = useCallback(() => {
     KickKey.sendBackspace();
+    playKeySound();
   }, []);
 
   const handleBackspaceLongPress = useCallback(() => {
@@ -120,14 +141,15 @@ export function useKeyboardState(): KeyboardState {
   }, []);
 
   const handleSpace = useCallback(() => {
-    // commitSpace flushes Bangla buffer & autocorrects (Phase 4)
     KickKey.commitSpace();
+    playKeySound();
     setComposing('');
     if (language === 'en' && isShift && !isCapsLock) setIsShift(false);
   }, [language, isShift, isCapsLock]);
 
   const handleEnter = useCallback(() => {
     KickKey.sendEnter();
+    playKeySound();
     setComposing('');
   }, []);
 
@@ -142,7 +164,7 @@ export function useKeyboardState(): KeyboardState {
     setComposing('');
     setLanguage(l => l === 'en' ? 'bn' : 'en');
     setSuggestions([]);
-    setCurrentWord('');                       // ← NEW Phase 4
+    setCurrentWord('');
     setIsShift(false);
     setIsCapsLock(false);
   }, []);
@@ -169,19 +191,20 @@ export function useKeyboardState(): KeyboardState {
     setComposing('');
   }, [language]);
 
-  // ── UPDATED Phase 4: commitSuggestion via native module ────────────────
+  // ── Phase 4: commitSuggestion via native module ──────────────────────────
 
   const handleSuggestionSelect = useCallback((word: string) => {
-    KickKey.commitSuggestion(word);   // ← CHANGED from commitKey
+    KickKey.commitSuggestion(word);
     setSuggestions([]);
-    setCurrentWord('');               // ← NEW Phase 4
+    setCurrentWord('');
     setComposing('');
   }, []);
 
   return {
     language, isShift, isCapsLock, isSymbol, isEmoji, isClipboard,
     suggestions, composingText,
-    currentWord,                     // ← NEW Phase 4
+    currentWord,
+    isPassword, isNumber, isPhone, isUrl, isEmail, imeAction,
     handleKeyPress, handleBackspace, handleBackspaceLongPress,
     handleBackspaceLongPressEnd,
     handleSpace, handleEnter, handleShift, handleLanguageSwitch,

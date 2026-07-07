@@ -98,10 +98,15 @@ function KeyRow({
 }
 
 export default React.memo(KeyRow, (prev, next) =>
-  prev.keys       === next.keys    &&
-  prev.isShift    === next.isShift &&
-  prev.isCapsLock === next.isCapsLock &&
-  prev.theme      === next.theme
+  prev.keys           === next.keys       &&
+  prev.isShift        === next.isShift    &&
+  prev.isCapsLock     === next.isCapsLock &&
+  prev.theme          === next.theme      &&
+  prev.onKeyPress         === next.onKeyPress         &&
+  prev.onBackspace        === next.onBackspace        &&
+  prev.onBackspaceLongPress    === next.onBackspaceLongPress    &&
+  prev.onBackspaceLongPressEnd === next.onBackspaceLongPressEnd &&
+  prev.onShift            === next.onShift
 );
 
 const styles = StyleSheet.create({

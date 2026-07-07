@@ -6,16 +6,17 @@ interface BottomRowProps {
   theme: Theme;
   language: 'en' | 'bn';
   isSymbol: boolean;
+  imeAction: string;                // ← NEW Phase 7
   onSpace: () => void;
   onEnter: () => void;
   onLanguageSwitch: () => void;
   onSymbolToggle: () => void;
   onEmojiToggle: () => void;
-  onClipboardToggle: () => void;   // ← NEW Phase 6
+  onClipboardToggle: () => void;
 }
 
 export default function BottomRow({
-  theme, language, isSymbol,
+  theme, language, isSymbol, imeAction,
   onSpace, onEnter, onLanguageSwitch, onSymbolToggle, onEmojiToggle, onClipboardToggle,
 }: BottomRowProps) {
   const special = {
@@ -27,6 +28,13 @@ export default function BottomRow({
 
   const langLabel  = language === 'en' ? '🌐 EN' : '🌐 বাং';
   const spaceLabel = language === 'en' ? 'space' : 'স্পেস';
+
+  const enterLabel = imeAction === 'search' ? '🔍'
+    : imeAction === 'send'   ? '➤'
+    : imeAction === 'done'   ? '✓'
+    : imeAction === 'next'   ? '→'
+    : imeAction === 'go'     ? 'Go'
+    : '↵';
 
   return (
     <View style={styles.row}>
@@ -63,7 +71,6 @@ export default function BottomRow({
         <Text style={[styles.spaceLabel, { color: theme.altText }]}>{spaceLabel}</Text>
       </TouchableOpacity>
 
-      {/* NEW in Phase 6: clipboard button */}
       <TouchableOpacity style={[styles.key, special, { flex: 1 }]} onPress={onClipboardToggle} activeOpacity={0.55}>
         <Text style={styles.iconEmoji}>📋</Text>
       </TouchableOpacity>
@@ -73,7 +80,9 @@ export default function BottomRow({
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.key, special, { flex: 1.3 }]} onPress={onEnter} activeOpacity={0.55}>
-        <Text style={[styles.label, { color: theme.specialKeyText, fontSize: 18 }]}>↵</Text>
+        <Text style={[styles.label, { color: theme.specialKeyText, fontSize: imeAction === 'return' ? 18 : 11 }]}>
+          {enterLabel}
+        </Text>
       </TouchableOpacity>
     </View>
   );
