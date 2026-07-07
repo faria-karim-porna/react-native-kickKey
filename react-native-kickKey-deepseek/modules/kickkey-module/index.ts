@@ -43,4 +43,26 @@ export default {
   /** Removes a single word from the custom dictionary. */
   removeDictionaryWord: (word: string): Promise<void> =>
     KickKey.removeDictionaryWord(word),
+
+  // ── Phase 6: Clipboard & Emoji history ───────────────────────────────────────
+
+  /** Returns clipboard history, most recent first. */
+  getClipboardHistory: (): Promise<string[]> =>
+    KickKey.getClipboardHistory(),
+
+  /** Clears the entire clipboard history. */
+  clearClipboardHistory: (): Promise<void> =>
+    KickKey.clearClipboardHistory(),
+
+  /** Removes a single clipboard history entry. */
+  removeClipboardItem: (text: string): Promise<void> =>
+    KickKey.removeClipboardItem(text),
+
+  /** Returns the recently used emoji list, most recent first. */
+  getRecentEmojis: (): Promise<string[]> =>
+    KickKey.getRecentEmojis(),
+
+  /** Records that the user selected an emoji, for recent-tray ordering. */
+  recordEmojiUsed: (emoji: string): Promise<void> =>
+    KickKey.recordEmojiUsed(emoji),
 };

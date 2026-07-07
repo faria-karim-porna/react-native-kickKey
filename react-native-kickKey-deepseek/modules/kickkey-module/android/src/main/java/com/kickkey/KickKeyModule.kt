@@ -15,6 +15,9 @@ class KickKeyModule : Module() {
 
         // ── NEW in Phase 4 ────────────────────────────────────────────────
         var suggestionEngine: SuggestionEngine? = null
+
+        // ── NEW in Phase 6 ────────────────────────────────────────────────
+        var clipboardHandler: ClipboardHandler? = null
     }
 
     override fun definition() = ModuleDefinition {
@@ -149,6 +152,30 @@ class KickKeyModule : Module() {
             // Clear suggestions on new line
             suggestionEngine?.onWordCommitted(suggestionEngine?.getCurrentWord() ?: "")
             hapticManager?.vibrate()
+        }
+
+        // ── Phase 6: Clipboard ──────────────────────────────────────────────────
+
+        Function("getClipboardHistory") {
+            clipboardHandler?.getHistory() ?: emptyList<String>()
+        }
+
+        Function("clearClipboardHistory") {
+            clipboardHandler?.clearHistory()
+        }
+
+        Function("removeClipboardItem") { text: String ->
+            clipboardHandler?.removeItem(text)
+        }
+
+        // ── Phase 6: Recent emojis ──────────────────────────────────────────────
+
+        Function("getRecentEmojis") {
+            clipboardHandler?.getRecentEmojis() ?: emptyList<String>()
+        }
+
+        Function("recordEmojiUsed") { emoji: String ->
+            clipboardHandler?.recordEmojiUsed(emoji)
         }
 
         // ── Phase 5: Custom dictionary management ──────────────────────────────

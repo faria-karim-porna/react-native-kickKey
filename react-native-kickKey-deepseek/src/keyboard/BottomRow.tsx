@@ -11,17 +11,12 @@ interface BottomRowProps {
   onLanguageSwitch: () => void;
   onSymbolToggle: () => void;
   onEmojiToggle: () => void;
+  onClipboardToggle: () => void;   // ← NEW Phase 6
 }
 
 export default function BottomRow({
-  theme,
-  language,
-  isSymbol,
-  onSpace,
-  onEnter,
-  onLanguageSwitch,
-  onSymbolToggle,
-  onEmojiToggle,
+  theme, language, isSymbol,
+  onSpace, onEnter, onLanguageSwitch, onSymbolToggle, onEmojiToggle, onClipboardToggle,
 }: BottomRowProps) {
   const special = {
     backgroundColor: theme.specialKeyBg,
@@ -30,43 +25,33 @@ export default function BottomRow({
     height: theme.keyHeight,
   };
 
-  const langLabel = language === 'en' ? '🌐 EN' : '🌐 বাং';
+  const langLabel  = language === 'en' ? '🌐 EN' : '🌐 বাং';
   const spaceLabel = language === 'en' ? 'space' : 'স্পেস';
 
   return (
     <View style={styles.row}>
-      {/* Symbols / ABC toggle */}
-      <TouchableOpacity
-        style={[styles.key, special, { flex: 1.5 }]}
-        onPress={onSymbolToggle}
-        activeOpacity={0.55}
-      >
+      <TouchableOpacity style={[styles.key, special, { flex: 1.3 }]} onPress={onSymbolToggle} activeOpacity={0.55}>
         <Text style={[styles.label, { color: theme.specialKeyText, fontSize: 13 }]}>
           {isSymbol ? 'ABC' : '!#1'}
         </Text>
       </TouchableOpacity>
 
-      {/* Language switch — tap to toggle EN/BN */}
       <TouchableOpacity
-        style={[styles.key, special, { flex: 1.2 }]}
+        style={[styles.key, special, { flex: 1.1 }]}
         onPress={onLanguageSwitch}
-        onLongPress={() => {
-          // Phase 5 will show a full language picker here
-          onLanguageSwitch();
-        }}
+        onLongPress={onLanguageSwitch}
         delayLongPress={600}
         activeOpacity={0.55}
       >
-        <Text style={[styles.label, { color: theme.specialKeyText, fontSize: 11 }]}
+        <Text style={[styles.label, { color: theme.specialKeyText, fontSize: 10 }]}
           numberOfLines={1} adjustsFontSizeToFit>
           {langLabel}
         </Text>
       </TouchableOpacity>
 
-      {/* Spacebar */}
       <TouchableOpacity
         style={[styles.key, {
-          flex: 4.8,
+          flex: 3.6,
           backgroundColor: theme.keyBg,
           borderRadius: theme.keyBorderRadius,
           marginHorizontal: theme.keyMargin,
@@ -75,26 +60,19 @@ export default function BottomRow({
         onPress={onSpace}
         activeOpacity={0.7}
       >
-        <Text style={[styles.spaceLabel, { color: theme.altText }]}>
-          {spaceLabel}
-        </Text>
+        <Text style={[styles.spaceLabel, { color: theme.altText }]}>{spaceLabel}</Text>
       </TouchableOpacity>
 
-      {/* Emoji toggle */}
-      <TouchableOpacity
-        style={[styles.key, special, { flex: 1 }]}
-        onPress={onEmojiToggle}
-        activeOpacity={0.55}
-      >
-        <Text style={styles.emoji}>😊</Text>
+      {/* NEW in Phase 6: clipboard button */}
+      <TouchableOpacity style={[styles.key, special, { flex: 1 }]} onPress={onClipboardToggle} activeOpacity={0.55}>
+        <Text style={styles.iconEmoji}>📋</Text>
       </TouchableOpacity>
 
-      {/* Enter */}
-      <TouchableOpacity
-        style={[styles.key, special, { flex: 1.5 }]}
-        onPress={onEnter}
-        activeOpacity={0.55}
-      >
+      <TouchableOpacity style={[styles.key, special, { flex: 1 }]} onPress={onEmojiToggle} activeOpacity={0.55}>
+        <Text style={styles.iconEmoji}>😊</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[styles.key, special, { flex: 1.3 }]} onPress={onEnter} activeOpacity={0.55}>
         <Text style={[styles.label, { color: theme.specialKeyText, fontSize: 18 }]}>↵</Text>
       </TouchableOpacity>
     </View>
@@ -106,5 +84,5 @@ const styles = StyleSheet.create({
   key:        { justifyContent: 'center', alignItems: 'center', elevation: 2 },
   label:      { fontWeight: '500', textAlign: 'center' },
   spaceLabel: { fontSize: 12 },
-  emoji:      { fontSize: 20 },
+  iconEmoji:  { fontSize: 18 },
 });

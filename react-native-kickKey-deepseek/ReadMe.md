@@ -12,4 +12,6 @@ React Native + Expo SDK 57 Android custom keyboard app.
 
 **Phase 5 (Companion App):** Expo Router navigation (app/) replacing App.tsx. 3-step onboarding wizard (enable → set default → done) with auto-advance polling. 5-tab layout: Home (live setup status + try-it text field), Settings (haptic/sound/autocorrect toggles), Themes (Dark/Light/AMOLED presets + key height/radius/font sliders), Language (English/Bangla selector), Dictionary (custom word list editor). Zustand store with AsyncStorage persistence. useSettingsSync writes Zustand → SharedPreferences with 300ms debounce. KickKeyModule.kt gains setDictionaryWords/getDictionaryWords/removeDictionaryWord. TypeScript 0 errors.
 
+**Phase 6 (Emoji & Clipboard):** EmojiPanel with 8 category tabs + recent-emoji tray (MRU 30, persisted via SharedPreferences). ClipboardPanel with tap-to-paste, long-press-to-remove, and Clear All. ClipboardHandler.kt captures system clipboard during onStartInputView() (the sole Android-sanctioned moment on 10+). Password fields skip clipboard capture. BottomRow gains 📋 clipboard button. 5 new native functions (getClipboardHistory, clearClipboardHistory, removeClipboardItem, getRecentEmojis, recordEmojiUsed). TypeScript 0 errors.
+
 **Build:** `python3 scripts/compile_dictionaries.py && eas build --platform android --profile development`

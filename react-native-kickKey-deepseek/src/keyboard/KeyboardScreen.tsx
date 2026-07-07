@@ -1,22 +1,23 @@
 /**
- * PHASE 3 — Adds Bangla phonetic input.
+ * PHASE 6 — Real emoji and clipboard panels replace the Phase 2 stubs.
  *
- * Changes from Phase 2:
- *   - KeyboardHeader shows current language
- *   - BANGLA_ROWS imported and used when language === 'bn'
- *   - Emoji/clipboard stubs remain (Phase 6)
- *
- * ⚠️ Do NOT import from companion app bundles (expo-router, zustand, AsyncStorage).
+ * Changes from Phase 5:
+ *   - isEmoji renders <EmojiPanel /> instead of a placeholder Text block
+ *   - isClipboard renders <ClipboardPanel /> instead of a placeholder Text block
+ *   - Both panels' onClose props route back to setIsEmoji(false) / setIsClipboard(false)
+ *     via the existing handleEmojiToggle / handleClipboardToggle from useKeyboardState
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useKeyboardTheme }          from './hooks/useKeyboardTheme';
 import { useKeyboardState }          from './hooks/useKeyboardState';
 import KeyboardHeader                from './KeyboardHeader';
 import KeyRow                        from './KeyRow';
 import SuggestionBar                 from './SuggestionBar';
 import BottomRow                     from './BottomRow';
+import EmojiPanel                    from './EmojiPanel';
+import ClipboardPanel                from './ClipboardPanel';
 import { ENGLISH_ROWS, BANGLA_ROWS, SYMBOL_ROWS } from './layouts';
 
 export default function KeyboardScreen() {
@@ -31,47 +32,47 @@ export default function KeyboardScreen() {
     handleSuggestionSelect,
   } = useKeyboardState();
 
-  // Pick active layout
   const rows = isSymbol
     ? SYMBOL_ROWS
     : language === 'bn'
     ? BANGLA_ROWS
     : ENGLISH_ROWS;
 
+  // ── Emoji panel (real, replaces Phase 2 stub) ──────────────────────────────
   if (isEmoji) {
     return (
       <View style={[styles.keyboard, { backgroundColor: theme.keyboardBg }]}>
-        <Text style={[styles.stub, { color: theme.altText }]}>
-          😊 Emoji panel — Phase 6
-        </Text>
-        <Text style={[styles.stubClose, { color: theme.suggestionText }]}
-          onPress={handleEmojiToggle}>Close</Text>
+        <EmojiPanel
+          theme={theme}
+          onEmojiSelect={(emoji) => handleKeyPress({ label: emoji, code: emoji })}
+          onClose={handleEmojiToggle}
+        />
       </View>
     );
   }
 
+  // ── Clipboard panel (real, replaces Phase 2 stub) ──────────────────────────
   if (isClipboard) {
     return (
       <View style={[styles.keyboard, { backgroundColor: theme.keyboardBg }]}>
-        <Text style={[styles.stub, { color: theme.altText }]}>
-          📋 Clipboard panel — Phase 6
-        </Text>
-        <Text style={[styles.stubClose, { color: theme.suggestionText }]}
-          onPress={handleClipboardToggle}>Close</Text>
+        <ClipboardPanel
+          theme={theme}
+          onPaste={(text) => handleKeyPress({ label: text, code: text })}
+          onClose={handleClipboardToggle}
+        />
       </View>
     );
   }
 
+  // ── Standard QWERTY / Bangla / Symbols layout (unchanged from Phase 5) ────
   return (
     <View style={[styles.keyboard, { backgroundColor: theme.keyboardBg }]}>
-      {/* Language indicator — NEW in Phase 3 */}
       <KeyboardHeader
         language={language}
         theme={theme}
         composingText={composingText}
       />
 
-      {/* Suggestion bar — Phase 4: real suggestion chips */}
       <SuggestionBar
         suggestions={suggestions}
         currentWord={currentWord}
@@ -79,7 +80,6 @@ export default function KeyboardScreen() {
         theme={theme}
       />
 
-      {/* Key rows — QWERTY, Bangla, or Symbols */}
       {rows.map((row, i) => (
         <KeyRow
           key={i}
@@ -104,13 +104,12 @@ export default function KeyboardScreen() {
         onLanguageSwitch={handleLanguageSwitch}
         onSymbolToggle={handleSymbolToggle}
         onEmojiToggle={handleEmojiToggle}
+        onClipboardToggle={handleClipboardToggle}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboard:   { width: '100%', paddingBottom: 6 },
-  stub:       { textAlign: 'center', padding: 40, fontSize: 14 },
-  stubClose:  { textAlign: 'center', paddingBottom: 16, fontSize: 14, fontWeight: '600' },
+  keyboard: { width: '100%', paddingBottom: 6 },
 });
