@@ -16,4 +16,6 @@ React Native + Expo SDK 57 Android custom keyboard app.
 
 **Phase 7 (Polish & Performance):** Animated scale press (0.88×, 80ms) on all keys. React.memo comparators fixed with callback deps in Key/KeyRow/SuggestionBar. Input-type adaptation — password fields hide suggestions, number fields show 3×4 number pad, phone fields show dial pad. Dynamic Enter key label (🔍search, ➤send, ✓done, →next). Sound feedback via AudioManager.playSoundEffect(). Memory-mapped Trie loading via MappedByteBuffer (~2–4MB heap savings). Enhanced onInputStarted event with full EditorInfo. TypeScript 0 errors.
 
+**Phase 8 (Testing & Release):** Unit test suite for all Kotlin engines — TrieTest (9 tests, prefix search with in-memory binary builder), UserWordModelTest (10 tests with MockK), ClipboardHandlerTest (15 tests with MockK), BanglaInputEngineTest extended (15+ edge-case tests). build.gradle updated with JUnit 5, MockK, JaCoCo coverage. Privacy policy (privacy-policy.md) drafted for Play Store compliance. TypeScript 0 errors.
+
 **Build:** `python3 scripts/compile_dictionaries.py && eas build --platform android --profile development`
