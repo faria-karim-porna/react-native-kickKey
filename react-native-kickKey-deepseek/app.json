@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
     "android": {
       "package": "com.kickkey",
       "minSdkVersion": 26,
@@ -34,6 +36,12 @@
       "./plugins/withImeService",
       "./plugins/withKeyboardBundle"
     ],
-    "jsEngine": "hermes"
+    "jsEngine": "hermes",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "db91290f-a8b8-4578-81cc-8e880913b9dc"
+      }
+    }
   }
 }
