@@ -11,9 +11,6 @@
     ],
     "android": {
       "package": "com.kickkey",
-      "minSdkVersion": 26,
-      "targetSdkVersion": 34,
-      "compileSdkVersion": 34,
       "permissions": [
         "android.permission.VIBRATE"
       ],
@@ -36,11 +33,10 @@
       "./plugins/withImeService",
       "./plugins/withKeyboardBundle"
     ],
-    "jsEngine": "hermes",
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "db91290f-a8b8-4578-81cc-8e880913b9dc"
+        "projectId": "a6989519-e807-4b78-aa6b-1ebea4907550"
       }
     }
   }
