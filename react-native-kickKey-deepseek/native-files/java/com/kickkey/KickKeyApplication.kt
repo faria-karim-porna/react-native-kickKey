@@ -153,9 +153,4 @@ class KickKeyApplication : Application(), ReactApplication {
         super.onConfigurationChanged(newConfig)
         ApplicationLifecycleDispatcher.onConfigurationChanged(this, newConfig)
     }
-
-    override fun onTerminate() {
-        super.onTerminate()
-        ApplicationLifecycleDispatcher.onApplicationTerminate(this)
-    }
 }

@@ -4,9 +4,9 @@ import android.inputmethodservice.InputMethodService
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
-import com.facebook.react.ReactRootView
 import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.DeviceEventManagerModule
+import com.facebook.react.interfaces.fabric.ReactSurface
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class KickKeyInputMethodService : InputMethodService() {
 
@@ -14,7 +14,7 @@ class KickKeyInputMethodService : InputMethodService() {
         private const val TAG = "KickKeyIME"
     }
 
-    private var reactRootView: ReactRootView? = null
+    private var reactSurface: ReactSurface? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -24,7 +24,6 @@ class KickKeyInputMethodService : InputMethodService() {
         KickKeyModule.clipboardHandler  = ClipboardHandler(this)
         Log.i(TAG, "IME created — all handlers ready")
 
-        // Pre-load sound pool for low-latency key-click sounds
         try {
             val am = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
             am.loadSoundEffects()
@@ -38,9 +37,10 @@ class KickKeyInputMethodService : InputMethodService() {
         val app = application as? KickKeyApplication ?: run {
             Log.e(TAG, "KickKeyApplication not found"); return View(this)
         }
-        reactRootView = ReactRootView(this)
-        reactRootView!!.startReactApplication(app.keyboardReactHost, "KickKeyKeyboard", null)
-        return reactRootView!!
+        val surface = app.keyboardReactHost.createSurface(this, "KickKeyKeyboard", null)
+        surface.start()
+        reactSurface = surface
+        return surface.view ?: View(this)
     }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
@@ -58,7 +58,6 @@ class KickKeyInputMethodService : InputMethodService() {
 
         KickKeyModule.suggestionEngine?.setEnabled(!isPassword)
 
-        // Capture clipboard only on a fresh focus, not on keyboard re-show
         if (!isPassword && !restarting) {
             KickKeyModule.clipboardHandler?.captureCurrentClipboard()
         }
@@ -116,8 +115,8 @@ class KickKeyInputMethodService : InputMethodService() {
     }
 
     override fun onDestroy() {
-        reactRootView?.unmountReactApplication()
-        reactRootView = null
+        reactSurface?.stop()
+        reactSurface = null
         KickKeyModule.hapticManager    = null
         KickKeyModule.banglaEngine     = null
         KickKeyModule.suggestionEngine = null

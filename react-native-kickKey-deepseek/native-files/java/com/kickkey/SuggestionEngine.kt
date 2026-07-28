@@ -5,7 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.DeviceEventManagerModule
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 /**
  * Suggestion engine for KickKey.

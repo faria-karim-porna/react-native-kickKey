@@ -1,73 +1,69 @@
 package com.kickkey
 
 import android.content.Context
+import android.media.AudioManager
+import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.InputConnection
-import expo.modules.kotlin.modules.Module
-import expo.modules.kotlin.modules.ModuleDefinition
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
+import com.facebook.react.bridge.ReadableMap
 
-class KickKeyModule : Module() {
+class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
     companion object {
         var activeInputConnection: InputConnection? = null
         var hapticManager: HapticManager? = null
         var banglaEngine: BanglaInputEngine? = null
-
-        // ── NEW in Phase 4 ────────────────────────────────────────────────
         var suggestionEngine: SuggestionEngine? = null
-
-        // ── NEW in Phase 6 ────────────────────────────────────────────────
         var clipboardHandler: ClipboardHandler? = null
     }
 
-    override fun definition() = ModuleDefinition {
-        Name("KickKey")
+    override fun getName(): String = "KickKey"
 
-        // ── UPDATED: commitKey notifies suggestion engine ─────────────────
-
-        Function("commitKey") { code: String, language: String ->
-            val ic = activeInputConnection ?: return@Function
-
+    @ReactMethod
+    fun commitKey(code: String, language: String, promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
             if (language == "bn" && code.isNotEmpty()) {
-                // Route through Bangla phonetic engine
                 val banglaResult = banglaEngine?.processKey(code) ?: code
                 if (banglaResult.isNotEmpty()) {
                     ic.beginBatchEdit()
                     ic.commitText(banglaResult, 1)
                     ic.endBatchEdit()
-                    suggestionEngine?.onCharacterTyped()   // ← NEW
+                    suggestionEngine?.onCharacterTyped()
                 }
             } else if (code.isNotEmpty()) {
-                // English — commit directly
                 ic.beginBatchEdit()
                 ic.commitText(code, 1)
                 ic.endBatchEdit()
-                suggestionEngine?.onCharacterTyped()       // ← NEW
+                suggestionEngine?.onCharacterTyped()
             }
-
             hapticManager?.vibrate()
         }
+        promise.resolve(null)
+    }
 
-        // ── UPDATED: sendBackspace notifies suggestion engine ─────────────
-
-        Function("sendBackspace") {
-            val engine = banglaEngine
-            val consumedByBuffer = engine?.onBackspace() ?: false
-            if (!consumedByBuffer) {
-                activeInputConnection?.deleteSurroundingText(1, 0)
-                suggestionEngine?.onBackspace()    // notify after actual delete
-            }
-            // When Bangla buffer consumed the backspace, no text was deleted
-            // from InputConnection, so skip suggestion recomputation
-            hapticManager?.vibrate()
+    @ReactMethod
+    fun sendBackspace(promise: Promise) {
+        val engine = banglaEngine
+        val consumedByBuffer = engine?.onBackspace() ?: false
+        if (!consumedByBuffer) {
+            activeInputConnection?.deleteSurroundingText(1, 0)
+            suggestionEngine?.onBackspace()
         }
+        hapticManager?.vibrate()
+        promise.resolve(null)
+    }
 
-        // ── UPDATED: commitSpace auto-corrects with top suggestion ────────
-
-        Function("commitSpace") {
-            val ic = activeInputConnection ?: return@Function
-
-            // Flush Bangla buffer first (Phase 3)
+    @ReactMethod
+    fun commitSpace(promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
             val pending = banglaEngine?.flush() ?: ""
             if (pending.isNotEmpty()) {
                 ic.beginBatchEdit()
@@ -77,13 +73,10 @@ class KickKeyModule : Module() {
             }
 
             ic.beginBatchEdit()
-
-            // Phase 4: auto-correct with top suggestion if available
             val top = suggestionEngine?.getTopSuggestion()
             if (top != null) {
                 val currentWord = suggestionEngine!!.getCurrentWord()
                 if (currentWord.isNotEmpty() && currentWord != top) {
-                    // Replace current partial word with the suggestion
                     ic.deleteSurroundingText(currentWord.length, 0)
                     ic.commitText("$top ", 1)
                     suggestionEngine?.onWordCommitted(top)
@@ -93,37 +86,34 @@ class KickKeyModule : Module() {
             } else {
                 ic.commitText(" ", 1)
             }
-
             ic.endBatchEdit()
             hapticManager?.vibrate()
         }
+        promise.resolve(null)
+    }
 
-        // ── NEW: commitSuggestion — user tapped a chip ─────────────────────
-
-        Function("commitSuggestion") { word: String ->
-            val ic = activeInputConnection ?: return@Function
+    @ReactMethod
+    fun commitSuggestion(word: String, promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
             val currentWord = suggestionEngine?.getCurrentWord() ?: ""
-
             ic.beginBatchEdit()
-
-            // Delete the partially typed word
             if (currentWord.isNotEmpty()) {
                 ic.deleteSurroundingText(currentWord.length, 0)
             }
-            // Commit the chosen suggestion + trailing space
             ic.commitText("$word ", 1)
-
             ic.endBatchEdit()
 
-            // Record in user model; clear suggestions
             suggestionEngine?.onWordCommitted(word)
             hapticManager?.vibrate()
         }
+        promise.resolve(null)
+    }
 
-        // ── Phase 3: flush the Bangla buffer ──────────────────────────────
-
-        Function("flushBanglaBuffer") {
-            val ic = activeInputConnection ?: return@Function
+    @ReactMethod
+    fun flushBanglaBuffer(promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
             val pending = banglaEngine?.flush() ?: ""
             if (pending.isNotEmpty()) {
                 ic.beginBatchEdit()
@@ -131,15 +121,19 @@ class KickKeyModule : Module() {
                 ic.endBatchEdit()
             }
         }
+        promise.resolve(null)
+    }
 
-        Function("setBanglaEnabled") { enabled: Boolean ->
-            if (!enabled) banglaEngine?.reset()
-        }
+    @ReactMethod
+    fun setBanglaEnabled(enabled: Boolean, promise: Promise) {
+        if (!enabled) banglaEngine?.reset()
+        promise.resolve(null)
+    }
 
-        // ── UPDATED: sendEnter flushes Bangla buffer first ────────────────
-
-        Function("sendEnter") {
-            val ic = activeInputConnection ?: return@Function
+    @ReactMethod
+    fun sendEnter(promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
             val pending = banglaEngine?.flush() ?: ""
             if (pending.isNotEmpty()) {
                 ic.beginBatchEdit()
@@ -149,144 +143,173 @@ class KickKeyModule : Module() {
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_ENTER))
 
-            // Clear suggestions on new line
             suggestionEngine?.onWordCommitted(suggestionEngine?.getCurrentWord() ?: "")
             hapticManager?.vibrate()
         }
+        promise.resolve(null)
+    }
 
-        // ── Phase 6: Clipboard ──────────────────────────────────────────────────
+    @ReactMethod
+    fun getClipboardHistory(promise: Promise) {
+        val history = clipboardHandler?.getHistory() ?: emptyList()
+        val array = Arguments.createArray()
+        history.forEach { array.pushString(it) }
+        promise.resolve(array)
+    }
 
-        Function("getClipboardHistory") {
-            clipboardHandler?.getHistory() ?: emptyList<String>()
-        }
+    @ReactMethod
+    fun clearClipboardHistory(promise: Promise) {
+        clipboardHandler?.clearHistory()
+        promise.resolve(null)
+    }
 
-        Function("clearClipboardHistory") {
-            clipboardHandler?.clearHistory()
-        }
+    @ReactMethod
+    fun removeClipboardItem(text: String, promise: Promise) {
+        clipboardHandler?.removeItem(text)
+        promise.resolve(null)
+    }
 
-        Function("removeClipboardItem") { text: String ->
-            clipboardHandler?.removeItem(text)
-        }
+    @ReactMethod
+    fun getRecentEmojis(promise: Promise) {
+        val list = clipboardHandler?.getRecentEmojis() ?: emptyList()
+        val array = Arguments.createArray()
+        list.forEach { array.pushString(it) }
+        promise.resolve(array)
+    }
 
-        // ── Phase 6: Recent emojis ──────────────────────────────────────────────
+    @ReactMethod
+    fun recordEmojiUsed(emoji: String, promise: Promise) {
+        clipboardHandler?.recordEmojiUsed(emoji)
+        promise.resolve(null)
+    }
 
-        Function("getRecentEmojis") {
-            clipboardHandler?.getRecentEmojis() ?: emptyList<String>()
-        }
-
-        Function("recordEmojiUsed") { emoji: String ->
-            clipboardHandler?.recordEmojiUsed(emoji)
-        }
-
-        // ── Phase 7: Sound feedback ────────────────────────────────────────────────
-
-        Function("playKeySound") {
-            val context = appContext.reactContext ?: return@Function
-            val soundEnabled = context
-                .getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
-                .getBoolean("soundEnabled", false)
-            if (!soundEnabled) return@Function
+    @ReactMethod
+    fun playKeySound(promise: Promise) {
+        val context = reactApplicationContext
+        val soundEnabled = context
+            .getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+            .getBoolean("soundEnabled", false)
+        if (soundEnabled) {
             try {
-                val am = context.getSystemService(android.content.Context.AUDIO_SERVICE)
-                        as android.media.AudioManager
-                am.playSoundEffect(android.media.AudioManager.FX_KEYPRESS_STANDARD, -1f)
+                val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                am.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, -1f)
             } catch (e: Exception) {
-                android.util.Log.w("KickKeyModule", "Sound effect failed: ${e.message}")
+                Log.w("KickKeyModule", "Sound effect failed: ${e.message}")
             }
         }
+        promise.resolve(null)
+    }
 
-        // ── Phase 5: Custom dictionary management ──────────────────────────────
-
-        Function("setDictionaryWords") { words: List<String> ->
-            val context = appContext.reactContext ?: return@Function
-            val serialized = words.joinToString("\n")
-            context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
-                .edit()
-                .putString("custom_words", serialized)
-                .apply()
+    @ReactMethod
+    fun setDictionaryWords(words: ReadableArray, promise: Promise) {
+        val context = reactApplicationContext
+        val list = mutableListOf<String>()
+        for (i in 0 until words.size()) {
+            words.getString(i)?.let { list.add(it) }
         }
+        val serialized = list.joinToString("\n")
+        context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+            .edit()
+            .putString("custom_words", serialized)
+            .apply()
+        promise.resolve(null)
+    }
 
-        Function("getDictionaryWords") {
-            val context = appContext.reactContext ?: return@Function emptyList<String>()
-            val raw = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
-                .getString("custom_words", "") ?: ""
-            if (raw.isEmpty()) emptyList() else raw.split("\n")
+    @ReactMethod
+    fun getDictionaryWords(promise: Promise) {
+        val context = reactApplicationContext
+        val raw = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+            .getString("custom_words", "") ?: ""
+        val array = Arguments.createArray()
+        if (raw.isNotEmpty()) {
+            raw.split("\n").forEach { array.pushString(it) }
         }
+        promise.resolve(array)
+    }
 
-        Function("removeDictionaryWord") { word: String ->
-            val context = appContext.reactContext ?: return@Function
-            val prefs = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
-            val raw = prefs.getString("custom_words", "") ?: ""
-            val updated = raw.split("\n").filter { it != word && it.isNotBlank() }
-            prefs.edit().putString("custom_words", updated.joinToString("\n")).apply()
+    @ReactMethod
+    fun removeDictionaryWord(word: String, promise: Promise) {
+        val context = reactApplicationContext
+        val prefs = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+        val raw = prefs.getString("custom_words", "") ?: ""
+        val updated = raw.split("\n").filter { it != word && it.isNotBlank() }
+        prefs.edit().putString("custom_words", updated.joinToString("\n")).apply()
+        promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun getPreferences(promise: Promise) {
+        val context = reactApplicationContext
+        val prefs = context.getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+        val map = Arguments.createMap().apply {
+            putString("language",        prefs.getString("language",        "en")      ?: "en")
+            putString("theme",           prefs.getString("theme",           "dark")    ?: "dark")
+            putString("keyboardBg",      prefs.getString("keyboardBg",      "#0d0d1a") ?: "#0d0d1a")
+            putString("themeKeyBg",      prefs.getString("themeKeyBg",      "#1e1e2e") ?: "#1e1e2e")
+            putString("themeKeyText",    prefs.getString("themeKeyText",    "#ffffff") ?: "#ffffff")
+            putString("specialKeyBg",    prefs.getString("specialKeyBg",   "#2a2a40") ?: "#2a2a40")
+            putString("themePrimary",    prefs.getString("themePrimary",   "#00BCD4") ?: "#00BCD4")
+            putInt("keyHeight",          prefs.getInt("keyHeight",        48))
+            putInt("keyBorderRadius",     prefs.getInt("keyBorderRadius",   6))
+            putInt("fontSize",          prefs.getInt("fontSize",          16))
+            putInt("keyMargin",          prefs.getInt("keyMargin",          3))
+            putBoolean("hapticEnabled",   prefs.getBoolean("hapticEnabled",  true))
+            putBoolean("soundEnabled",    prefs.getBoolean("soundEnabled",   false))
+            putBoolean("autoCorrect",     prefs.getBoolean("autoCorrect",    true))
+            putBoolean("showSuggestions", prefs.getBoolean("showSuggestions",true))
         }
+        promise.resolve(map)
+    }
 
-        // ── Preferences ──────────────────────────────────────────────────────
+    @ReactMethod
+    fun savePreferences(prefMap: ReadableMap, promise: Promise) {
+        val context = reactApplicationContext
+        val editor = context
+            .getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+            .edit()
 
-        Function("getPreferences") {
-            val context = appContext.reactContext ?: return@Function emptyMap<String, Any>()
-            val prefs = context.getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
-            mapOf(
-                "language"        to (prefs.getString("language",        "en")      ?: "en"),
-                "theme"           to (prefs.getString("theme",           "dark")    ?: "dark"),
-                "keyboardBg"      to (prefs.getString("keyboardBg",      "#0d0d1a") ?: "#0d0d1a"),
-                "themeKeyBg"      to (prefs.getString("themeKeyBg",      "#1e1e2e") ?: "#1e1e2e"),
-                "themeKeyText"    to (prefs.getString("themeKeyText",    "#ffffff") ?: "#ffffff"),
-                "specialKeyBg"    to (prefs.getString("specialKeyBg",   "#2a2a40") ?: "#2a2a40"),
-                "themePrimary"    to (prefs.getString("themePrimary",   "#00BCD4") ?: "#00BCD4"),
-                "keyHeight"       to prefs.getInt("keyHeight",        48),
-                "keyBorderRadius" to prefs.getInt("keyBorderRadius",   6),
-                "fontSize"        to prefs.getInt("fontSize",          16),
-                "keyMargin"       to prefs.getInt("keyMargin",          3),
-                "hapticEnabled"   to prefs.getBoolean("hapticEnabled",  true),
-                "soundEnabled"    to prefs.getBoolean("soundEnabled",   false),
-                "autoCorrect"     to prefs.getBoolean("autoCorrect",    true),
-                "showSuggestions" to prefs.getBoolean("showSuggestions",true)
-            )
-        }
-
-        Function("savePreferences") { prefMap: Map<String, Any> ->
-            val context = appContext.reactContext ?: return@Function
-            val editor = context
-                .getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
-                .edit()
-            prefMap.forEach { (key, value) ->
-                when (value) {
-                    is String  -> editor.putString(key, value)
-                    is Boolean -> editor.putBoolean(key, value)
-                    is Int     -> editor.putInt(key, value)
-                    is Double  -> editor.putFloat(key, value.toFloat())
-                }
+        val entryIterator = prefMap.entryIterator
+        while (entryIterator.hasNext()) {
+            val entry = entryIterator.next()
+            val key = entry.key
+            when (val value = entry.value) {
+                is String  -> editor.putString(key, value)
+                is Boolean -> editor.putBoolean(key, value)
+                is Double  -> editor.putInt(key, value.toInt())
+                is Int     -> editor.putInt(key, value)
             }
-            editor.apply()
         }
+        editor.apply()
+        promise.resolve(null)
+    }
 
-        // ── IME status (carried over from Phase 1) ────────────────────────────
+    @ReactMethod
+    fun isDefaultKeyboard(promise: Promise) {
+        val context = reactApplicationContext
+        val current = android.provider.Settings.Secure.getString(
+            context.contentResolver,
+            android.provider.Settings.Secure.DEFAULT_INPUT_METHOD
+        )
+        promise.resolve(current?.contains(context.packageName) ?: false)
+    }
 
-        Function("isDefaultKeyboard") {
-            val context = appContext.reactContext ?: return@Function false
-            val current = android.provider.Settings.Secure.getString(
-                context.contentResolver,
-                android.provider.Settings.Secure.DEFAULT_INPUT_METHOD
-            )
-            current?.contains(context.packageName) ?: false
-        }
+    @ReactMethod
+    fun isKeyboardEnabled(promise: Promise) {
+        val context = reactApplicationContext
+        val enabled = android.provider.Settings.Secure.getString(
+            context.contentResolver,
+            android.provider.Settings.Secure.ENABLED_INPUT_METHODS
+        ) ?: ""
+        promise.resolve(enabled.contains(context.packageName))
+    }
 
-        Function("isKeyboardEnabled") {
-            val context = appContext.reactContext ?: return@Function false
-            val enabled = android.provider.Settings.Secure.getString(
-                context.contentResolver,
-                android.provider.Settings.Secure.ENABLED_INPUT_METHODS
-            ) ?: ""
-            enabled.contains(context.packageName)
-        }
-
-        Function("openKeyboardSettings") {
-            val context = appContext.reactContext ?: return@Function
-            val intent = android.content.Intent(
-                android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS
-            ).apply { flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK }
-            context.startActivity(intent)
-        }
+    @ReactMethod
+    fun openKeyboardSettings(promise: Promise) {
+        val context = reactApplicationContext
+        val intent = android.content.Intent(
+            android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS
+        ).apply { flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK }
+        context.startActivity(intent)
+        promise.resolve(null)
     }
 }
