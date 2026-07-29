@@ -83,14 +83,42 @@ function withNativeSourceCopy(config) {
         }
       }
 
-      // 4. Fix build.gradle if tasks.withType<Test> is present
+      // 4. Copy ProGuard rules file to prevent R8 stripping custom classes
+      const srcProGuard = path.join(nativeFilesDir, 'proguard-rules.pro');
+      const targetProGuard = path.join(
+        projectRoot,
+        'android',
+        'app',
+        'proguard-rules.pro'
+      );
+      if (fs.existsSync(srcProGuard)) {
+        fs.mkdirSync(path.dirname(targetProGuard), { recursive: true });
+        fs.copyFileSync(srcProGuard, targetProGuard);
+        console.log('[withImeService] Copied proguard-rules.pro');
+      }
+
+      // 5. Fix build.gradle — tasks.withType syntax + proguard integration
       const buildGradlePath = path.join(projectRoot, 'android', 'app', 'build.gradle');
       if (fs.existsSync(buildGradlePath)) {
         let content = fs.readFileSync(buildGradlePath, 'utf8');
+
+        // Fix tasks.withType<Test> → tasks.withType(Test) for Groovy compatibility
         if (content.includes('tasks.withType<Test>')) {
           content = content.replace('tasks.withType<Test>', 'tasks.withType(Test)');
-          fs.writeFileSync(buildGradlePath, content, 'utf8');
           console.log('[withImeService] Fixed tasks.withType in android/app/build.gradle');
+        }
+
+        // Ensure proguard-rules.pro is referenced in the release build type
+        // so the R8 keep rules are actually applied during minification
+        const proguardRefExists = content.includes("'proguard-rules.pro'") || content.includes('"proguard-rules.pro"');
+        if (!proguardRefExists) {
+          // Add proguard-rules.pro to the proguardFiles line in the release block
+          content = content.replace(
+            /(proguardFiles\s+getDefaultProguardFile\([^)]+\))/g,
+            "$1, 'proguard-rules.pro'"
+          );
+          fs.writeFileSync(buildGradlePath, content, 'utf8');
+          console.log('[withImeService] Added proguard-rules.pro reference in build.gradle');
         }
       }
 

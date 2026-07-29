@@ -6,6 +6,7 @@ import android.util.Log
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
+import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.ReactPackage
 import com.facebook.react.ReactPackageTurboModuleManagerDelegate
 import com.facebook.react.bridge.JSBundleLoader
@@ -30,20 +31,17 @@ class KickKeyApplication : Application(), ReactApplication {
         private const val TAG = "KickKeyApplication"
     }
 
-    // Mutex for thread-safe keyboard host initialization
-    private val keyboardInitLock = Any()
-
     // ── Main ReactHost (managed by Expo, uses main bundle) ──────────
     override val reactHost: ReactHost by lazy {
         ExpoReactHostFactory.getDefaultReactHost(
             context = applicationContext,
             packageList = PackageList(this).packages.apply {
-                // Auto-linked packages are handled by Expo
+                add(KickKeyPackage())
             }
         )
     }
 
-    // ── Keyboard ReactHost (pre-warmed, uses keyboard.bundle) ────────────────
+    // ── Keyboard ReactHost (lazily initialized, uses keyboard.bundle) ──────────
     @Volatile
     private var _keyboardReactHost: ReactHost? = null
 
@@ -57,40 +55,49 @@ class KickKeyApplication : Application(), ReactApplication {
         get() {
             val host = _keyboardReactHost
             if (host != null) return host
-            // Synchronous fallback: initialize on caller's thread
-            // This should only happen on very first app launch before pre-warm completes
-            initKeyboardRuntime()
-            return _keyboardReactHost!!
+            // Synchronous initialization on caller's thread (IME service thread)
+            try {
+                initKeyboardRuntime()
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to init keyboard ReactHost synchronously", e)
+            }
+            return _keyboardReactHost ?: throw IllegalStateException(
+                "Keyboard ReactHost failed to initialize. See log for details."
+            )
         }
 
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize Expo module lifecycle
-        ApplicationLifecycleDispatcher.onApplicationCreate(this)
-
-        // Set release level for React Native
+        // ── Set the React Native release level (matches MainApplication.kt) ──
+        // Required by DefaultNewArchitectureEntryPoint for proper Fabric setup.
         DefaultNewArchitectureEntryPoint.releaseLevel = try {
             ReleaseLevel.valueOf(BuildConfig.REACT_NATIVE_RELEASE_LEVEL.uppercase())
         } catch (e: IllegalArgumentException) {
             ReleaseLevel.STABLE
         }
 
-        // Pre-warm the keyboard JS runtime on a background thread.
-        // This runs at app start so that by the time the user taps any
-        // text field, Hermes + keyboard.bundle are already loaded.
-        Thread {
-            try {
-                initKeyboardRuntime()
-                Log.i(TAG, "Keyboard ReactHost pre-warm complete")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to pre-warm keyboard ReactHost", e)
-            }
-        }.apply {
-            name = "KickKey-PreWarm"
-            isDaemon = true
-            start()
-        }
+        // ── Initialize React Native runtime ──
+        // This is the canonical React Native 0.86 initialization call.
+        // It handles:
+        //   - SoLoader.init() (native library loader)
+        //   - Fabric / New Architecture runtime setup
+        //   - Hermes engine registration
+        //   - All native library loading paths
+        //
+        // This MUST be called before ExpoReactHostFactory or ComponentFactory
+        // are touched, as ComponentFactory.<clinit> calls
+        // FabricSoLoader.staticInit() → SoLoader.loadLibrary("fabricjni").
+        loadReactNative(this)
+
+        // ── Initialize Expo module lifecycle ──
+        ApplicationLifecycleDispatcher.onApplicationCreate(this)
+
+        // NOTE: Keyboard ReactHost is NOT pre-warmed at app startup.
+        // Pre-warming triggered SoLoader.loadLibrary() in ComponentFactory.<clinit>
+        // before SoLoader was initialized, causing a race condition.
+        // The keyboard ReactHost is instead initialized lazily when the
+        // keyboard is first opened (via keyboardReactHost getter).
     }
 
     @OptIn(UnstableReactNativeAPI::class)
@@ -98,7 +105,8 @@ class KickKeyApplication : Application(), ReactApplication {
         // Thread-safe single initialization
         if (_keyboardReactHost != null) return
 
-        synchronized(keyboardInitLock) {
+        val initLock = Any()
+        synchronized(initLock) {
             if (_keyboardReactHost != null) return
 
             val keyboardDelegate = object : ReactHostDelegate {

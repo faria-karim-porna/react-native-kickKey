@@ -40,11 +40,14 @@ module.exports = function withKeyboardBundle(config) {
       console.log('[withKeyboardBundle] Building keyboard.bundle...');
 
       try {
+        // React Native 0.86 uses 'npx react-native bundle' for bundle building
         execSync(
           [
-            'npx metro build',
-            'keyboard.index.js',
-            `--out "${tempOutputPath}"`,
+            'npx',
+            'react-native',
+            'bundle',
+            `--entry-file "${path.join(projectRoot, 'keyboard.index.js')}"`,
+            `--bundle-output "${tempOutputPath}"`,
             '--platform android',
             '--dev false',
           ].join(' '),

@@ -1,23 +1,28 @@
 import { NativeModules } from 'react-native';
 
 const { KickKey } = NativeModules;
+const isAvailable = !!KickKey;
 
 export function useKickKeyBridge() {
   return {
-    isDefaultKeyboard: (): Promise<boolean> => KickKey.isDefaultKeyboard(),
-    isKeyboardEnabled: (): Promise<boolean> => KickKey.isKeyboardEnabled(),
-    openKeyboardSettings: (): void => KickKey.openKeyboardSettings(),
+    isDefaultKeyboard: (): Promise<boolean> =>
+      isAvailable ? KickKey.isDefaultKeyboard() : Promise.resolve(false),
+    isKeyboardEnabled: (): Promise<boolean> =>
+      isAvailable ? KickKey.isKeyboardEnabled() : Promise.resolve(false),
+    openKeyboardSettings: (): void => {
+      if (isAvailable) KickKey.openKeyboardSettings();
+    },
 
     savePreferences: (prefs: Record<string, any>): Promise<void> =>
-      KickKey.savePreferences(prefs),
+      isAvailable ? KickKey.savePreferences(prefs) : Promise.resolve(),
     getPreferences: (): Promise<Record<string, any>> =>
-      KickKey.getPreferences(),
+      isAvailable ? KickKey.getPreferences() : Promise.resolve({}),
 
     setDictionaryWords: (words: string[]): Promise<void> =>
-      KickKey.setDictionaryWords(words),
+      isAvailable ? KickKey.setDictionaryWords(words) : Promise.resolve(),
     getDictionaryWords: (): Promise<string[]> =>
-      KickKey.getDictionaryWords(),
+      isAvailable ? KickKey.getDictionaryWords() : Promise.resolve([]),
     removeDictionaryWord: (word: string): Promise<void> =>
-      KickKey.removeDictionaryWord(word),
+      isAvailable ? KickKey.removeDictionaryWord(word) : Promise.resolve(),
   };
 }
