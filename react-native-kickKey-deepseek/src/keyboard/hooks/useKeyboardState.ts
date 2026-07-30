@@ -3,8 +3,27 @@ import { NativeModules, NativeEventEmitter } from 'react-native';
 import type { KeyDef } from '../types';
 import { playKeySound } from '../data/soundManager';
 
-const { KickKey } = NativeModules;
-const emitter = new NativeEventEmitter(KickKey);
+// Lazy-init — avoids crash at module scope if KickKey is not yet available
+let _KickKey: any = null;
+let _emitter: any = null;
+
+function getKickKey() {
+  if (!_KickKey) _KickKey = NativeModules.KickKey;
+  return _KickKey;
+}
+
+function getEmitter() {
+  if (!_emitter) {
+    try {
+      _emitter = new NativeEventEmitter(getKickKey());
+    } catch (e) {
+      console.warn('[KickKey] NativeEventEmitter init failed:', e);
+      // Return a stub emitter that does nothing
+      _emitter = { addListener: () => ({ remove: () => {} }), removeListeners: () => {} };
+    }
+  }
+  return _emitter;
+}
 
 export interface KeyboardState {
   language: 'en' | 'bn';
@@ -60,12 +79,13 @@ export function useKeyboardState(): KeyboardState {
   // ── Native event listeners ───────────────────────────────────────────────
 
   useEffect(() => {
-    const subSuggestions = emitter.addListener('onSuggestionsUpdated', (data) => {
+    const emitter = getEmitter();
+    const subSuggestions = emitter.addListener('onSuggestionsUpdated', (data: any) => {
       setSuggestions(data.suggestions ?? []);
       setCurrentWord(data.currentWord ?? '');
     });
 
-    const subInput = emitter.addListener('onInputStarted', (data) => {
+    const subInput = emitter.addListener('onInputStarted', (data: any) => {
       // Phase 7: populate input-type fields
       setIsPassword(data.isPassword ?? false);
       setIsNumber(data.isNumber   ?? false);
@@ -89,7 +109,7 @@ export function useKeyboardState(): KeyboardState {
       setCurrentWord('');
     });
 
-    const subComposing = emitter.addListener('onComposingChanged', (data) => {
+    const subComposing = emitter.addListener('onComposingChanged', (data: any) => {
       setComposing(data.text ?? '');
     });
 
@@ -112,7 +132,8 @@ export function useKeyboardState(): KeyboardState {
   const handleKeyPress = useCallback((key: KeyDef) => {
     if (!key.code) return;
 
-    KickKey.commitKey(key.code, language);
+    const KickKey = getKickKey();
+    KickKey?.commitKey(key.code, language);
     playKeySound();
 
     if (language === 'en') {
@@ -122,14 +143,14 @@ export function useKeyboardState(): KeyboardState {
   }, [language, isShift, isCapsLock]);
 
   const handleBackspace = useCallback(() => {
-    KickKey.sendBackspace();
+    getKickKey()?.sendBackspace();
     playKeySound();
   }, []);
 
   const handleBackspaceLongPress = useCallback(() => {
     if (backspacePressRef.current) return;
     backspacePressRef.current = setInterval(() => {
-      KickKey.sendBackspace();
+      getKickKey()?.sendBackspace();
     }, 80);
   }, []);
 
@@ -141,14 +162,14 @@ export function useKeyboardState(): KeyboardState {
   }, []);
 
   const handleSpace = useCallback(() => {
-    KickKey.commitSpace();
+    getKickKey()?.commitSpace();
     playKeySound();
     setComposing('');
     if (language === 'en' && isShift && !isCapsLock) setIsShift(false);
   }, [language, isShift, isCapsLock]);
 
   const handleEnter = useCallback(() => {
-    KickKey.sendEnter();
+    getKickKey()?.sendEnter();
     playKeySound();
     setComposing('');
   }, []);
@@ -160,7 +181,7 @@ export function useKeyboardState(): KeyboardState {
   }, [isShift, isCapsLock]);
 
   const handleLanguageSwitch = useCallback(() => {
-    KickKey.flushBanglaBuffer().catch(() => {});
+    getKickKey()?.flushBanglaBuffer().catch(() => {});
     setComposing('');
     setLanguage(l => l === 'en' ? 'bn' : 'en');
     setSuggestions([]);
@@ -170,7 +191,7 @@ export function useKeyboardState(): KeyboardState {
   }, []);
 
   const handleSymbolToggle = useCallback(() => {
-    if (language === 'bn') KickKey.flushBanglaBuffer().catch(() => {});
+    if (language === 'bn') getKickKey()?.flushBanglaBuffer().catch(() => {});
     setIsSymbol(s => !s);
     setIsShift(false);
     setIsCapsLock(false);
@@ -178,14 +199,14 @@ export function useKeyboardState(): KeyboardState {
   }, [language]);
 
   const handleEmojiToggle = useCallback(() => {
-    if (language === 'bn') KickKey.flushBanglaBuffer().catch(() => {});
+    if (language === 'bn') getKickKey()?.flushBanglaBuffer().catch(() => {});
     setIsEmoji(e => !e);
     setIsClipboard(false);
     setComposing('');
   }, [language]);
 
   const handleClipboardToggle = useCallback(() => {
-    if (language === 'bn') KickKey.flushBanglaBuffer().catch(() => {});
+    if (language === 'bn') getKickKey()?.flushBanglaBuffer().catch(() => {});
     setIsClipboard(c => !c);
     setIsEmoji(false);
     setComposing('');
@@ -194,7 +215,7 @@ export function useKeyboardState(): KeyboardState {
   // ── Phase 4: commitSuggestion via native module ──────────────────────────
 
   const handleSuggestionSelect = useCallback((word: string) => {
-    KickKey.commitSuggestion(word);
+    getKickKey()?.commitSuggestion(word);
     setSuggestions([]);
     setCurrentWord('');
     setComposing('');

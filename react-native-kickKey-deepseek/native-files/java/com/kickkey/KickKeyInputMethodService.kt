@@ -4,6 +4,7 @@ import android.inputmethodservice.InputMethodService
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.widget.FrameLayout
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.interfaces.fabric.ReactSurface
 import com.facebook.react.modules.core.DeviceEventManagerModule
@@ -12,9 +13,12 @@ class KickKeyInputMethodService : InputMethodService() {
 
     companion object {
         private const val TAG = "KickKeyIME"
+        // Standard keyboard height in pixels (~280dp at 2.75 density)
+        private const val KEYBOARD_HEIGHT_PX = 770
     }
 
     private var reactSurface: ReactSurface? = null
+    private var keyboardContainer: FrameLayout? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -34,13 +38,87 @@ class KickKeyInputMethodService : InputMethodService() {
 
     override fun onCreateInputView(): View {
         Log.i(TAG, "onCreateInputView")
-        val app = application as? KickKeyApplication ?: run {
-            Log.e(TAG, "KickKeyApplication not found"); return View(this)
+
+        // Dispose previous surface if any
+        disposeSurface()
+
+        try {
+            val app = application as? KickKeyApplication ?: run {
+                Log.e(TAG, "KickKeyApplication not found"); return createFallbackView("KickKeyApplication not found")
+            }
+            Log.i(TAG, "Accessing keyboardReactHost...")
+            val host = app.keyboardReactHost
+            Log.i(TAG, "Creating React surface...")
+            val surface = host.createSurface(this, "KickKeyKeyboard", null)
+            Log.i(TAG, "Starting React surface...")
+            surface.start()
+            reactSurface = surface
+
+            val surfaceView = surface.view
+            if (surfaceView != null) {
+                Log.i(TAG, "Keyboard surface view created — wrapping in FrameLayout")
+
+                // Wrap the React surface in a FrameLayout with explicit height.
+                // The IME framework needs the view to report a non-zero height
+                // during onMeasure, otherwise it shows an empty shadow window.
+                val container = FrameLayout(this).apply {
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    // Set minHeight so the container never collapses to 0
+                    minimumHeight = KEYBOARD_HEIGHT_PX
+                    setBackgroundColor(0x00000000) // Transparent - React surface will render its own bg
+                }
+                container.addView(surfaceView, FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                ))
+                keyboardContainer = container
+
+                Log.i(TAG, "Keyboard view created successfully — returning container")
+                return container
+            } else {
+                Log.e(TAG, "surface.view is null — returning fallback")
+                return createFallbackView("surface.view is null")
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "onCreateInputView FAILED", e)
+            return createFallbackView("Exception: ${e.message}")
         }
-        val surface = app.keyboardReactHost.createSurface(this, "KickKeyKeyboard", null)
-        surface.start()
-        reactSurface = surface
-        return surface.view ?: View(this)
+    }
+
+    private fun createFallbackView(message: String): View {
+        Log.e(TAG, "FALLBACK VIEW SHOWN: $message")
+        val tv = android.widget.TextView(this).apply {
+            text = "KickKey Error: $message\n\nCheck logcat: adb logcat | grep KickKey"
+            setTextColor(0xFFFFFFFF.toInt())
+            textSize = 12f
+            setPadding(24, 24, 24, 24)
+            setBackgroundColor(0xFF1A1A2E.toInt()) // Dark background so text is visible
+        }
+        return FrameLayout(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                KEYBOARD_HEIGHT_PX
+            )
+            setBackgroundColor(0xFF1A1A2E.toInt()) // Dark background
+            addView(tv, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ))
+        }
+    }
+
+    private fun disposeSurface() {
+        try {
+            reactSurface?.stop()
+            reactSurface = null
+            keyboardContainer?.removeAllViews()
+            keyboardContainer = null
+        } catch (e: Exception) {
+            Log.w(TAG, "disposeSurface error: ${e.message}")
+        }
     }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
@@ -115,8 +193,7 @@ class KickKeyInputMethodService : InputMethodService() {
     }
 
     override fun onDestroy() {
-        reactSurface?.stop()
-        reactSurface = null
+        disposeSurface()
         KickKeyModule.hapticManager    = null
         KickKeyModule.banglaEngine     = null
         KickKeyModule.suggestionEngine = null

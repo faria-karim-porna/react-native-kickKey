@@ -9,7 +9,10 @@ import {
 } from 'react-native';
 import type { Theme } from './types';
 
-const { KickKey } = NativeModules;
+// Lazy-init — avoids crash at module scope if KickKey is not yet available
+function getKickKey() {
+  return NativeModules.KickKey;
+}
 
 interface ClipboardPanelProps {
   theme: Theme;
@@ -23,7 +26,7 @@ export default function ClipboardPanel({ theme, onPaste, onClose }: ClipboardPan
 
   const loadHistory = useCallback(() => {
     setLoading(true);
-    KickKey.getClipboardHistory()
+    getKickKey()?.getClipboardHistory()
       .then((history: string[]) => setItems(history))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
@@ -39,12 +42,12 @@ export default function ClipboardPanel({ theme, onPaste, onClose }: ClipboardPan
 
   const handleRemove = useCallback((text: string) => {
     setItems((prev) => prev.filter((i) => i !== text));
-    KickKey.removeClipboardItem(text).catch(() => {});
+    getKickKey()?.removeClipboardItem(text).catch(() => {});
   }, []);
 
   const handleClearAll = useCallback(() => {
     setItems([]);
-    KickKey.clearClipboardHistory().catch(() => {});
+    getKickKey()?.clearClipboardHistory().catch(() => {});
   }, []);
 
   const renderItem = useCallback(
