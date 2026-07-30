@@ -48,6 +48,9 @@ class KickKeyApplication : Application(), ReactApplication {
     @Volatile
     private var _keyboardHostReady: Boolean = false
 
+    // Class-level lock for keyboard ReactHost initialization
+    private val keyboardInitLock = Any()
+
     val isKeyboardHostReady: Boolean
         get() = _keyboardHostReady
 
@@ -58,12 +61,15 @@ class KickKeyApplication : Application(), ReactApplication {
             // Synchronous initialization on caller's thread (IME service thread)
             try {
                 initKeyboardRuntime()
-            } catch (e: Throwable) {
-                Log.e(TAG, "Failed to init keyboard ReactHost synchronously", e)
-            }
-            return _keyboardReactHost ?: throw IllegalStateException(
-                "Keyboard ReactHost failed to initialize. See log for details."
-            )
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to init keyboard ReactHost synchronously", e)
+            Log.e(TAG, "This usually means keyboard.bundle is missing or corrupt in the APK.", e)
+        }
+        return _keyboardReactHost ?: throw IllegalStateException(
+            "Keyboard ReactHost failed to initialize. " +
+            "Likely cause: keyboard.bundle not found in assets. " +
+            "Run 'expo prebuild' and verify keyboard.bundle exists in android/app/src/main/assets/"
+        )
         }
 
     override fun onCreate() {
@@ -105,9 +111,11 @@ class KickKeyApplication : Application(), ReactApplication {
         // Thread-safe single initialization
         if (_keyboardReactHost != null) return
 
-        val initLock = Any()
-        synchronized(initLock) {
+        // Use class-level lock, not a local variable!
+        synchronized(keyboardInitLock) {
             if (_keyboardReactHost != null) return
+
+            Log.i(TAG, "Initializing keyboard ReactHost...")
 
             val keyboardDelegate = object : ReactHostDelegate {
                 override val jsMainModulePath: String = "keyboard.index"
@@ -137,9 +145,11 @@ class KickKeyApplication : Application(), ReactApplication {
                 }
             }
 
+            Log.i(TAG, "Creating ComponentFactory...")
             val componentFactory = ComponentFactory()
             DefaultComponentsRegistry.register(componentFactory)
 
+            Log.i(TAG, "Creating ReactHostImpl for keyboard...")
             val keyboardHost = ReactHostImpl(
                 this,
                 delegate = keyboardDelegate,
@@ -152,8 +162,10 @@ class KickKeyApplication : Application(), ReactApplication {
 
             // Start loading JS — this is the expensive step (~200-500ms first time)
             // After this, keyboard opens in ~50-80ms
+            Log.i(TAG, "Starting keyboard ReactHost...")
             keyboardHost.start()
             _keyboardHostReady = true
+            Log.i(TAG, "Keyboard ReactHost initialized successfully — JS bundle loaded from assets://keyboard.bundle")
         }
     }
 

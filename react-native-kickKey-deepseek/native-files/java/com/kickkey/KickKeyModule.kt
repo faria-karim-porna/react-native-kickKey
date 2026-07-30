@@ -25,6 +25,17 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
 
     override fun getName(): String = "KickKey"
 
+    // Required by NativeEventEmitter in React Native
+    @ReactMethod
+    fun addListener(eventType: String) {
+        Log.d("KickKeyModule", "addListener: $eventType")
+    }
+
+    @ReactMethod
+    fun removeListeners(count: Int) {
+        Log.d("KickKeyModule", "removeListeners: $count")
+    }
+
     @ReactMethod
     fun commitKey(code: String, language: String, promise: Promise) {
         val ic = activeInputConnection

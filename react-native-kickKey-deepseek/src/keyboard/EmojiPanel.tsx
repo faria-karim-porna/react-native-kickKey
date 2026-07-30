@@ -11,7 +11,10 @@ import {
 import { EMOJI_CATEGORIES, DEFAULT_CATEGORY_ID } from './data/emojiData';
 import type { Theme } from './types';
 
-const { KickKey } = NativeModules;
+// Lazy-init — avoids crash at module scope if KickKey is not yet available
+function getKickKey() {
+  return NativeModules.KickKey;
+}
 const RECENT_TAB_ID = 'recent';
 const COLUMNS = 8;
 
@@ -29,7 +32,7 @@ export default function EmojiPanel({ theme, onEmojiSelect, onClose }: EmojiPanel
   // If the list is empty (first ever use), default to the Smileys tab
   // instead of showing an empty Recent screen.
   useEffect(() => {
-    KickKey.getRecentEmojis()
+    getKickKey()?.getRecentEmojis()
       .then((emojis: string[]) => {
         setRecentEmojis(emojis);
         if (emojis.length === 0) setActiveTab(DEFAULT_CATEGORY_ID);
@@ -44,7 +47,7 @@ export default function EmojiPanel({ theme, onEmojiSelect, onClose }: EmojiPanel
     // Optimistically update the local recent list so the UI feels instant,
     // without waiting for a round-trip read from native.
     setRecentEmojis((prev) => [emoji, ...prev.filter((e) => e !== emoji)].slice(0, 30));
-    KickKey.recordEmojiUsed(emoji).catch(() => {});
+    getKickKey()?.recordEmojiUsed(emoji).catch(() => {});
   }, [onEmojiSelect]);
 
   const currentEmojis: string[] =
