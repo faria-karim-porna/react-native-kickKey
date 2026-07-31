@@ -84,7 +84,12 @@ function buildKeyboardBundle(projectRoot) {
 
   console.log(`[build-keyboard-bundle] Using hermesc: ${hermesc}`);
   const hermescCmd = path.isAbsolute(hermesc) ? `"${hermesc}"` : hermesc;
-  const compileCmd = `${hermescCmd} -emit-binary -out "${hbcBundlePath}" "${jsBundlePath}"`;
+  // -Wno-undefined-variable silences Hermes warnings about globals provided by
+  // the RN runtime at load time (setTimeout, performance, AbortSignal, Blob,
+  // XMLHttpRequest, etc.). The keyboard bundle is strict-mode JS and would
+  // otherwise emit a wall of "the variable X was not declared" warnings on
+  // every EAS build.
+  const compileCmd = `${hermescCmd} -emit-binary -Wno-undefined-variable -out "${hbcBundlePath}" "${jsBundlePath}"`;
   execSync(compileCmd, { cwd: projectRoot, stdio: 'inherit' });
 
   // Remove temporary JS bundle
