@@ -42,6 +42,16 @@ class KickKeyInputMethodService : InputMethodService() {
         // Dispose previous surface if any
         disposeSurface()
 
+        // Fail fast with a VISIBLE error instead of a silent blank keyboard if
+        // the keyboard JS bundle is missing or corrupt in the APK. Previously a
+        // missing assets://keyboard.bundle produced an empty transparent area
+        // with no explanation.
+        val bundleProblem = verifyKeyboardBundle()
+        if (bundleProblem != null) {
+            Log.e(TAG, "keyboard.bundle problem: $bundleProblem")
+            return createFallbackView(bundleProblem)
+        }
+
         try {
             val app = application as? KickKeyApplication ?: run {
                 Log.e(TAG, "KickKeyApplication not found"); return createFallbackView("KickKeyApplication not found")
@@ -85,6 +95,29 @@ class KickKeyInputMethodService : InputMethodService() {
         } catch (e: Throwable) {
             Log.e(TAG, "onCreateInputView FAILED", e)
             return createFallbackView("Exception: ${e.message}")
+        }
+    }
+
+    /**
+     * Verifies assets://keyboard.bundle exists and looks like Hermes bytecode
+     * (magic bytes \u00C6\u001F\u00BC\u0003). Returns null when OK, otherwise a
+     * human-readable reason for the fallback error view.
+     */
+    private fun verifyKeyboardBundle(): String? {
+        return try {
+            assets.open("keyboard.bundle").use { input ->
+                val header = ByteArray(4)
+                val read = input.read(header)
+                if (read < 4) "keyboard.bundle is truncated (${read} bytes read)"
+                else if (!(header[0] == 0xC6.toByte() && header[1] == 0x1F.toByte() &&
+                           header[2] == 0xBC.toByte() && header[3] == 0x03.toByte()))
+                    "keyboard.bundle is not Hermes bytecode (magic ${header.joinToString { "%02X".format(it.toInt() and 0xFF) }})"
+                else null
+            }
+        } catch (e: java.io.FileNotFoundException) {
+            "keyboard.bundle is MISSING from APK assets — run 'node scripts/build-keyboard-bundle.js' and rebuild"
+        } catch (e: Exception) {
+            "keyboard.bundle unreadable: ${e.message}"
         }
     }
 

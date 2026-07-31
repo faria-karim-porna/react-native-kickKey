@@ -1,5 +1,5 @@
 // plugins/withKeyboardBundle.js
-const { withDangerousMod } = require('@expo/config-plugins');
+const { withDangerousMod, withAppBuildGradle } = require('@expo/config-plugins');
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -101,9 +101,81 @@ function isHermesBytecode(filePath) {
  *   2. hermesc compiles keyboard.bundle.js -> keyboard.bundle (Hermes bytecode)
  *
  * This runs during `expo prebuild` and `eas build`.
+ *
+ * The Gradle task injected below (withAppBuildGradle) is the reliability net:
+ * even if the prebuild step is cached or the plugin is skipped on the EAS
+ * worker, the keyboard bundle is (re)built inside assembleRelease itself,
+ * so the APK always ships with a valid Hermes bytecode bundle — instead of
+ * silently shipping a blank keyboard.
  */
-module.exports = function withKeyboardBundle(config) {
-  return withDangerousMod(config, [
+
+// Markers used to find and remove a previously-injected snippet, so a stale
+// (or broken) version never survives a re-run or cached prebuild.
+// The start marker includes the leading newline so removal is idempotent.
+const KEYBOARD_BUNDLE_GRADLE_TASK_START_MARKER = '\n// ── KickKey: keyboard bundle Gradle task';
+const KEYBOARD_BUNDLE_GRADLE_TASK_END_MARKER =
+  'tasks.matching { it.name == "mergeReleaseAssets" || it.name == "mergeDebugAssets" }.configureEach {';
+
+// Groovy snippet appended to android/app/build.gradle. Rebuilds
+// keyboard.bundle (via scripts/build-keyboard-bundle.js) before assets are
+// merged/packaged, and fails the build LOUDLY if it cannot be produced.
+const KEYBOARD_BUNDLE_GRADLE_TASK = `
+// ── KickKey: keyboard bundle Gradle task (injected by plugins/withKeyboardBundle.js) ──
+// Rebuilds keyboard.bundle (Hermes bytecode) inside the Gradle build so the
+// IME always ships with a valid bundle, even when EAS reuses a cached prebuild
+// that skipped the config plugin. Previously a missing bundle shipped a
+// silent blank keyboard — now the build fails instead.
+//
+// v2: Uses the built-in Exec task type. The previous version called
+// project.exec {} which was REMOVED in Gradle 9 and broke the build with
+// "Could not find method exec() ... on project ':app'" on Gradle 9.3.1.
+def kickkeyKeyboardBundleScript = new File(projectRoot, "scripts/build-keyboard-bundle.js")
+def kickkeyKeyboardBundleOut  = new File(projectRoot, "android/app/src/main/assets/keyboard.bundle")
+def kickkeyKeyboardBundleTask = tasks.register("createKeyboardBundleReleaseJsAndAssets", Exec) {
+    group = "react"
+    description = "Builds keyboard.bundle (Hermes bytecode) for the KickKey IME"
+    inputs.file(kickkeyKeyboardBundleScript)
+    inputs.file(new File(projectRoot, "keyboard.index.js"))
+    inputs.dir(new File(projectRoot, "src/keyboard"))
+    outputs.file(kickkeyKeyboardBundleOut)
+    workingDir projectRoot
+    commandLine "node", kickkeyKeyboardBundleScript.absolutePath
+    doFirst {
+        if (!kickkeyKeyboardBundleScript.exists()) {
+            throw new GradleException("[withKeyboardBundle] FATAL: scripts/build-keyboard-bundle.js not found")
+        }
+    }
+    doLast {
+        if (!kickkeyKeyboardBundleOut.exists() || kickkeyKeyboardBundleOut.length() < 100) {
+            throw new GradleException("[withKeyboardBundle] FATAL: keyboard.bundle was not produced — the keyboard will show BLANK")
+        }
+        println "[withKeyboardBundle] OK keyboard.bundle size = " + (kickkeyKeyboardBundleOut.length() / 1024) + " KB"
+    }
+}
+tasks.matching { it.name == "mergeReleaseAssets" || it.name == "mergeDebugAssets" }.configureEach {
+    dependsOn kickkeyKeyboardBundleTask
+}
+`;
+
+/**
+ * Appends the current Gradle snippet to android/app/build.gradle contents,
+ * first removing any previously-injected (possibly stale or broken) snippet.
+ * Idempotent — safe to run on every prebuild.
+ */
+function injectKeyboardBundleGradleTask(contents) {
+  const startIdx = contents.indexOf(KEYBOARD_BUNDLE_GRADLE_TASK_START_MARKER);
+  if (startIdx !== -1) {
+    const endIdx = contents.indexOf(KEYBOARD_BUNDLE_GRADLE_TASK_END_MARKER, startIdx);
+    const searchFrom = endIdx !== -1 ? endIdx : startIdx;
+    const blockEnd = contents.indexOf('\n}\n', searchFrom);
+    const removeTo = blockEnd !== -1 ? blockEnd + 3 : contents.length;
+    contents = contents.slice(0, startIdx) + contents.slice(removeTo);
+  }
+  return contents + KEYBOARD_BUNDLE_GRADLE_TASK;
+}
+
+const withKeyboardBundle = function withKeyboardBundle(config) {
+  config = withDangerousMod(config, [
     'android',
     async (config) => {
       const projectRoot = config.modRequest.projectRoot;
@@ -180,8 +252,13 @@ module.exports = function withKeyboardBundle(config) {
       if (hermesc) {
         try {
           const hermescCmd = path.isAbsolute(hermesc) ? `"${hermesc}"` : hermesc;
+          // -Wno-undefined-variable silences Hermes warnings about globals
+          // provided by the RN runtime at load time (setTimeout, performance,
+          // AbortSignal, Blob, XMLHttpRequest, etc.). The keyboard bundle is
+          // strict-mode JS and would otherwise emit a wall of "the variable X
+          // was not declared" warnings on every EAS build.
           execSync(
-            `${hermescCmd} -emit-binary -out "${hbcBundlePath}" "${jsBundlePath}"`,
+            `${hermescCmd} -emit-binary -Wno-undefined-variable -out "${hbcBundlePath}" "${jsBundlePath}"`,
             {
               cwd: projectRoot,
               stdio: 'inherit',
@@ -238,4 +315,16 @@ module.exports = function withKeyboardBundle(config) {
       return config;
     },
   ]);
+
+  // Reliability net: inject a Gradle task so keyboard.bundle is (re)built
+  // during assembleRelease on the EAS worker, independent of prebuild caching.
+  config = withAppBuildGradle(config, (config) => {
+    config.modResults.contents = injectKeyboardBundleGradleTask(config.modResults.contents);
+    return config;
+  });
+
+  return config;
 };
+
+module.exports = withKeyboardBundle;
+module.exports.injectKeyboardBundleGradleTask = injectKeyboardBundleGradleTask;
