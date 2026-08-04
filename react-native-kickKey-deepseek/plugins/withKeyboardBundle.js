@@ -111,14 +111,27 @@ function isHermesBytecode(filePath) {
 
 // Markers used to find and remove a previously-injected snippet, so a stale
 // (or broken) version never survives a re-run or cached prebuild.
-// The start marker includes the leading newline so removal is idempotent.
-const KEYBOARD_BUNDLE_GRADLE_TASK_START_MARKER = '\n// ── KickKey: keyboard bundle Gradle task';
+const KEYBOARD_BUNDLE_GRADLE_TASK_START_MARKER =
+  '// ── KickKey: keyboard bundle Gradle task (injected by plugins/withKeyboardBundle.js) ──';
 const KEYBOARD_BUNDLE_GRADLE_TASK_END_MARKER =
+  '// ── END KickKey: keyboard bundle Gradle task ──';
+// Legacy v2 snippet ended with this line (no END comment marker).
+const KEYBOARD_BUNDLE_GRADLE_TASK_LEGACY_END =
   'tasks.matching { it.name == "mergeReleaseAssets" || it.name == "mergeDebugAssets" }.configureEach {';
 
 // Groovy snippet appended to android/app/build.gradle. Rebuilds
 // keyboard.bundle (via scripts/build-keyboard-bundle.js) before assets are
 // merged/packaged, and fails the build LOUDLY if it cannot be produced.
+//
+// v3: Asset-merge AND AGP lint tasks both read android/app/src/main/assets.
+// Gradle 9 errors on implicit dependencies (two tasks sharing a directory
+// without a dependency edge), which broke `eas build` with:
+//   "Task ':app:generateReleaseLintVitalReportModel' uses this output of task
+//    ':app:createKeyboardBundleReleaseJsAndAssets' without declaring an
+//    explicit or implicit dependency."
+// So the keyboard bundle task is now wired into:
+//   * mergeReleaseAssets / mergeDebugAssets  (ships the bundle in the APK)
+//   * every *lint* task (e.g. generateReleaseLintVitalReportModel, lintVital*)
 const KEYBOARD_BUNDLE_GRADLE_TASK = `
 // ── KickKey: keyboard bundle Gradle task (injected by plugins/withKeyboardBundle.js) ──
 // Rebuilds keyboard.bundle (Hermes bytecode) inside the Gradle build so the
@@ -152,9 +165,14 @@ def kickkeyKeyboardBundleTask = tasks.register("createKeyboardBundleReleaseJsAnd
         println "[withKeyboardBundle] OK keyboard.bundle size = " + (kickkeyKeyboardBundleOut.length() / 1024) + " KB"
     }
 }
-tasks.matching { it.name == "mergeReleaseAssets" || it.name == "mergeDebugAssets" }.configureEach {
+// Merge tasks ship the bundle in the APK; lint tasks read src/main/assets, so
+// they must run AFTER the bundle task (explicit dependency, see comment above).
+tasks.matching {
+    it.name == "mergeReleaseAssets" || it.name == "mergeDebugAssets" || it.name.toLowerCase().contains("lint")
+}.configureEach {
     dependsOn kickkeyKeyboardBundleTask
 }
+// ── END KickKey: keyboard bundle Gradle task ──
 `;
 
 /**
@@ -165,13 +183,26 @@ tasks.matching { it.name == "mergeReleaseAssets" || it.name == "mergeDebugAssets
 function injectKeyboardBundleGradleTask(contents) {
   const startIdx = contents.indexOf(KEYBOARD_BUNDLE_GRADLE_TASK_START_MARKER);
   if (startIdx !== -1) {
-    const endIdx = contents.indexOf(KEYBOARD_BUNDLE_GRADLE_TASK_END_MARKER, startIdx);
-    const searchFrom = endIdx !== -1 ? endIdx : startIdx;
-    const blockEnd = contents.indexOf('\n}\n', searchFrom);
-    const removeTo = blockEnd !== -1 ? blockEnd + 3 : contents.length;
-    contents = contents.slice(0, startIdx) + contents.slice(removeTo);
+    // Remove from the start marker through the end marker, both inclusive.
+    let endIdx = contents.indexOf(KEYBOARD_BUNDLE_GRADLE_TASK_END_MARKER, startIdx);
+    if (endIdx !== -1) {
+      endIdx += KEYBOARD_BUNDLE_GRADLE_TASK_END_MARKER.length;
+    } else {
+      // Legacy v2 snippet has no END comment marker — fall back to its final
+      // `tasks.matching {...}.configureEach {` line and consume through the
+      // first "\n}\n" (the configureEach block's closing brace) after it.
+      const legacyEndIdx = contents.indexOf(KEYBOARD_BUNDLE_GRADLE_TASK_LEGACY_END, startIdx);
+      if (legacyEndIdx !== -1) {
+        const blockEnd = contents.indexOf('\n}\n', legacyEndIdx);
+        endIdx = blockEnd !== -1 ? blockEnd + 3 : contents.length;
+      } else {
+        endIdx = contents.length;
+      }
+    }
+    contents = contents.slice(0, startIdx) + contents.slice(endIdx);
   }
-  return contents + KEYBOARD_BUNDLE_GRADLE_TASK;
+  // Trim trailing whitespace so repeated injections don't accumulate blank lines.
+  return contents.replace(/\s+$/, '') + '\n' + KEYBOARD_BUNDLE_GRADLE_TASK;
 }
 
 const withKeyboardBundle = function withKeyboardBundle(config) {
