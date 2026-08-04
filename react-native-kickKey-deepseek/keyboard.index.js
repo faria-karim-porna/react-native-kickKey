@@ -6,7 +6,8 @@
 // ⚠️  This file MUST remain .js — React Native's bundler resolves
 //     keyboard.index.js as the entry file for the keyboard bundle.
 
-import { AppRegistry, LogBox } from 'react-native';
+import React, { useEffect } from 'react';
+import { AppRegistry, LogBox, NativeModules } from 'react-native';
 import KeyboardScreen from './src/keyboard/KeyboardScreen';
 
 // Suppress non-critical warnings in the keyboard bundle
@@ -38,9 +39,25 @@ if (global.HermesInternal == null) {
   }
 }
 
+function KickKeyKeyboardRoot() {
+  // Tell the native IME service that the JS keyboard actually mounted and is
+  // rendering. The native watchdog uses this to distinguish a working keyboard
+  // from a surface that started but never mounted (blank keyboard).
+  useEffect(() => {
+    try {
+      const p = NativeModules.KickKey?.keyboardReady?.();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch (e) {
+      console.warn('[KickKey] keyboardReady failed:', e);
+    }
+  }, []);
+
+  return <KeyboardScreen />;
+}
+
 /**
  * Register the keyboard UI component.
  * The name 'KickKeyKeyboard' MUST match the second argument of
  * host.createSurface() in KickKeyInputMethodService.kt
  */
-AppRegistry.registerComponent('KickKeyKeyboard', () => KeyboardScreen);
+AppRegistry.registerComponent('KickKeyKeyboard', () => KickKeyKeyboardRoot);

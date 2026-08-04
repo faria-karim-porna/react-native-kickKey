@@ -21,6 +21,14 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         var banglaEngine: BanglaInputEngine? = null
         var suggestionEngine: SuggestionEngine? = null
         var clipboardHandler: ClipboardHandler? = null
+
+        // Set to true when the keyboard JS calls keyboardReady() after mounting.
+        // Used by the IME service's startup watchdog to distinguish "rendering OK"
+        // from "surface started but JS never mounted".
+        // @Volatile: written on the native-modules thread (ReactMethod) and read
+        // on the main thread (IME watchdog) — needs cross-thread visibility.
+        @Volatile
+        var keyboardJsReady: Boolean = false
     }
 
     override fun getName(): String = "KickKey"
@@ -34,6 +42,13 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun removeListeners(count: Int) {
         Log.d("KickKeyModule", "removeListeners: $count")
+    }
+
+    @ReactMethod
+    fun keyboardReady(promise: Promise) {
+        keyboardJsReady = true
+        Log.i("KickKeyModule", "JS keyboard mounted and ready — React surface is rendering")
+        promise.resolve(null)
     }
 
     @ReactMethod

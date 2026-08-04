@@ -334,3 +334,135 @@ eas build --platform android --profile production
 unzip -l app-release.apk | grep keyboard.bundle        # expect assets/keyboard.bundle
 unzip -p app-release.apk assets/keyboard.bundle | file - # expect 'Hermes JavaScript bytecode, version 98'
 ```
+
+---
+
+## 12. Actual root cause found (2026-08-04) — surface sized 0×0 by Fabric
+
+Despite the bundle being present and valid, the keyboard stayed blank. The
+real bug was on the **rendering side**, not the bundle:
+
+### 12.1 The bug
+
+`ReactSurfaceView.onMeasure()` (RN 0.86, `ReactAndroid/.../ReactSurfaceView.kt`)
+only uses the measured spec size when the measure mode is `EXACTLY`:
+
+```kotlin
+if (widthMode == MeasureSpec.AT_MOST || widthMode == MeasureSpec.UNSPECIFIED) {
+  width  = max over children   // ← 0 until React mounts
+  height = max over children
+} else {
+  width  = MeasureSpec.getSize(widthMeasureSpec)  // EXACTLY → real size
+  height = MeasureSpec.getSize(heightMeasureSpec)
+}
+```
+
+The IME window measures its input view with **`AT_MOST`/`UNSPECIFIED`** specs
+(the window height is derived from the content, not fixed). The old container
+was `WRAP_CONTENT` + `minimumHeight=770` and the surface view was `MATCH_PARENT`
+— so the surface view measured **0×0**, and Fabric laid the entire keyboard out
+at 0×0. The window still took the expected 770px, but every key (and even the
+keyboard background) rendered into an invisible zero-sized view → *blank
+keyboard with correct height*, exactly the reported symptom.
+
+### 12.2 The fix (`KickKeyInputMethodService.kt`)
+
+- Container is now a **fixed size** `MATCH_PARENT × 770` (was `WRAP_CONTENT` +
+  `minimumHeight`).
+- The `ReactSurfaceView` is added with **fixed** `MATCH_PARENT × 770` layout
+  params. A fixed-size child in a fixed-size parent always receives **`EXACTLY`**
+  measure specs, so `ReactSurfaceView.onMeasure` uses the real size and Fabric
+  lays the keyboard out at full size → **keys render**.
+- Container background is now the dark default (`#0D0D1A`) instead of
+  transparent, avoiding a see-through flash while React loads.
+
+### 12.3 No more silent failures
+
+Previously every failure in the async host/surface startup chain was silent
+(Bolts `Task`s fault without throwing to the caller), so any error produced an
+undiagnosable blank area. Now:
+
+- `KickKeyApplication` keeps the `TaskInterface` from `keyboardHost.start()` in
+  `keyboardStartTask` so failures can be inspected.
+- The IME service keeps the `surface.start()` task and runs a **watchdog**
+  (8 s): if the surface isn't running, it swaps the keyboard for a **visible
+  error view** with the actual exception message / status.
+- The keyboard JS calls `NativeModules.KickKey.keyboardReady()` after mounting
+  (`keyboard.index.js` + new `KickKeyModule.keyboardReady()`), giving the
+  watchdog a positive “JS is rendering” signal and a logcat confirmation.
+
+### 12.4 How to verify
+
+```sh
+# 1. Rebuild & install (debug is fastest):
+npx expo run:android
+
+# 2. Open any text field → keys should appear immediately.
+
+# 3. If anything is still wrong, the keyboard now shows a VISIBLE error
+#    message instead of a blank area, and logcat pinpoints the stage:
+adb logcat | grep -E 'KickKey|ReactHost|ReactNative'
+#    Expect: 'Keyboard ReactHost start() invoked...' →
+#            'Watchdog: surface running, jsReady=true — keyboard OK'
+```
+
+---
+
+## 13. Watchdog false-positive — replaced a WORKING keyboard with the error view (2026-08-04)
+
+### 13.1 The symptom
+
+User report: after installing and setting KickKey as default, opening a text
+field showed the fallback error instead of the keyboard:
+
+```
+KickKey Error: Keyboard did not start within 8s — isRunning=false jsReady=true
+```
+
+### 13.2 The contradiction that gave it away
+
+`jsReady=true` is set ONLY by the keyboard JS calling `keyboardReady()` from
+`useEffect` after its React root mounts and commits a frame. That can only
+happen after `ReactInstance` is created, the bundle executed and the surface
+started — i.e. **the keyboard WAS on screen and working**. Yet the watchdog
+tore the surface out of the container and showed the error because
+`ReactSurface.isRunning` reported `false`.
+
+`isRunning` is not authoritative here:
+
+- it can transiently read `false` after a surface stop/recreate within the same
+  session while the JS tree keeps rendering;
+- the native getter can throw mid-check, which `safeIsRunning()` swallows as
+  `false`;
+- the first cold start after install can exceed the old fixed 8 s timeout.
+
+### 13.3 The fix (`KickKeyInputMethodService.kt`)
+
+- **`keyboardJsReady` is now the authoritative success signal.** The watchdog
+  checks it FIRST — if the JS mounted **and** the surface is alive (running or
+  its view still attached to the window), the keyboard is on screen and the
+  watchdog exits without touching the container. The view-attached clause
+  covers the exact reported case where `isRunning` transiently read `false`
+  while the keyboard was rendering.
+- **Retry instead of fail-fast.** First check at 8 s, then re-check every 3 s up
+  to 4 attempts (~17 s total) before declaring failure, covering slow cold
+  starts. A transient exception inside a check also reschedules rather than
+  silently killing the watchdog.
+- **`disposeSurface()` resets `keyboardJsReady = false`** so a stale flag from a
+  previous surface/session can never mask a genuinely dead keyboard in the next
+  open cycle (the reset in `onCreateInputView` remains as a second layer).
+- **Post-mount crashes are still detected.** Because success requires the
+  surface/view to be alive, a keyboard whose JS mounted but whose host then
+  died (view detached/stopped) still falls through to the fault checks instead
+  of being silently accepted.
+
+### 13.4 How to verify
+
+```sh
+# Rebuild & install (native change — prebuild + gradle):
+npx expo run:android
+
+# Open any text field. Expect the keyboard immediately, no error view.
+# Logcat should show:
+#   Watchdog: keyboard JS mounted & rendering — keyboard OK
+```

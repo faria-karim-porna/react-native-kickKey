@@ -11,6 +11,7 @@ import com.facebook.react.ReactPackage
 import com.facebook.react.ReactPackageTurboModuleManagerDelegate
 import com.facebook.react.bridge.JSBundleLoader
 import com.facebook.react.common.ReleaseLevel
+import com.facebook.react.interfaces.TaskInterface
 import com.facebook.react.common.build.ReactBuildConfig
 import com.facebook.react.common.annotations.UnstableReactNativeAPI
 import com.facebook.react.defaults.DefaultComponentsRegistry
@@ -47,6 +48,12 @@ class KickKeyApplication : Application(), ReactApplication {
 
     @Volatile
     private var _keyboardHostReady: Boolean = false
+
+    // The async Task returned by keyboardHost.start(). Lets the IME service check
+    // whether React initialization actually succeeded instead of silently showing
+    // a blank keyboard when it fails.
+    @Volatile
+    var keyboardStartTask: TaskInterface<Void>? = null
 
     // Class-level lock for keyboard ReactHost initialization
     private val keyboardInitLock = Any()
@@ -161,11 +168,13 @@ class KickKeyApplication : Application(), ReactApplication {
             _keyboardReactHost = keyboardHost
 
             // Start loading JS — this is the expensive step (~200-500ms first time)
-            // After this, keyboard opens in ~50-80ms
-            Log.i(TAG, "Starting keyboard ReactHost...")
-            keyboardHost.start()
+            // NOTE: start() is ASYNC — it returns immediately and loads the JS
+            // bundle in the background. The Task is kept so the IME service can
+            // detect failures and show a visible error instead of a blank keyboard.
+            Log.i(TAG, "Starting keyboard ReactHost (async)...")
+            keyboardStartTask = keyboardHost.start()
             _keyboardHostReady = true
-            Log.i(TAG, "Keyboard ReactHost initialized successfully — JS bundle loaded from assets://keyboard.bundle")
+            Log.i(TAG, "Keyboard ReactHost start() invoked — JS bundle loading from assets://keyboard.bundle")
         }
     }
 
