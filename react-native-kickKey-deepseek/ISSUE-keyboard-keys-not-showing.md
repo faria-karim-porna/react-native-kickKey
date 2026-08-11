@@ -466,3 +466,446 @@ npx expo run:android
 # Logcat should show:
 #   Watchdog: keyboard JS mounted & rendering — keyboard OK
 ```
+
+---
+
+## 14. Round 3 (2026-08-10) — framework re-parenting + watchdog hardening
+
+Still reported after §13: **black keyboard area, no keys, no error text.** Two
+new findings, both confirmed against the actual platform/framework sources:
+
+### 14.1 The framework discards the fixed-size container
+
+`InputMethodService.setInputView()` (android-36 source,
+`android/inputmethodservice/InputMethodService.java`):
+
+```java
+public void setInputView(View view) {
+    mInputFrame.removeAllViews();
+    mInputFrame.addView(view, new FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
+    mInputView = view;
+}
+```
+
+The view returned by `onCreateInputView()` is **removed from our tree and
+re-added with `MATCH_PARENT × WRAP_CONTENT` params**, silently discarding the
+fixed `770px` height set in `KickKeyInputMethodService.kt`. In practice the
+fixed height on the *child* `ReactSurfaceView` still propagates through a
+WRAP_CONTENT parent, but only while the measure chain is fully exercised. If
+any link in that chain measures `AT_MOST`/`UNSPECIFIED` while React hasn't
+mounted yet, `ReactSurfaceView.onMeasure()` sizes itself from its (empty)
+children → **0×0** → Fabric lays the whole keyboard out at 0×0: the window
+keeps the expected height but every key is invisible.
+
+**Fix applied:** after creating the container, `container.post { ... }`
+**re-asserts** `MATCH_PARENT × 770` (and `minimumHeight = 770`, a View
+property that survives re-parenting) on the next layout pass — so the
+container and the ReactSurfaceView always receive **EXACT** measure specs.
+
+### 14.2 Watchdog can still tear down a working keyboard
+
+The last observed failure (`isRunning=false jsReady=true`) proves the JS
+mounted and the surface started. `ReactSurface.isRunning` and
+`isAttachedToWindow` are both unreliable mid-session signals in Fabric
+(transient false reads, surface stop/recreate, throwing getters). The §13
+fix still required `surfaceIsAlive()` on top of `jsReady`, which can read
+false while the keyboard is actually on screen → the watchdog swaps a
+working keyboard for the dark error view → user sees a black area.
+
+**Fix applied:** `keyboardJsReady` is now the **sole** success signal. If the
+keyboard JS signalled readiness (only possible after the React root mounted
+and committed a frame), the watchdog exits and NEVER touches the container,
+regardless of `isRunning`. Post-mount JS crashes are surfaced by the bundle's
+own `ErrorBoundary`, so no failure mode becomes silent.
+
+### 14.3 Diagnostics added
+
+`KickKeyInputMethodService.kt` now logs the actual laid-out surface size:
+
+```
+KickKeyIME: Surface view laid out: 1080×770 attached=true isRunning=...
+```
+
+`0×0` here = sizing regression; full size = sizing is healthy and the
+problem (if any) is elsewhere.
+
+### 14.4 How to verify
+
+```sh
+# Rebuild & install (native change):
+npx expo run:android   # or a fresh EAS production build
+
+# Open any text field → keys must appear immediately.
+# Logcat (adb logcat | grep -E 'KickKey|ReactHost|ReactNative'):
+#   KickKeyIME: Surface view laid out: <W>×770 attached=true
+#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+```
+
+---
+
+## 15. Round 4 (2026-08-10) — deterministic EXACT sizing + no more silent black (REAL FIX)
+
+Still reported after §14: **black keyboard area, no keys, no error text, forever.**
+Re-verified every claim against the ACTUAL RN 0.86.2 sources installed in
+`node_modules` (`ReactAndroid/.../runtime/ReactSurfaceView.kt`, `ReactSurfaceImpl.kt`,
+`ReactHostImpl.kt`, `FabricUIManager.java`) and the android-36 `InputMethodService`.
+
+### 15.1 Why §14's `post {}` re-assert was not reliable
+
+`container.post {}` re-sets the container's `LayoutParams`, but:
+
+- the runnable only runs on the next message/RunQueue drain — timing-dependent;
+- the framework can re-replace the params afterwards (`setInputView` re-parents
+  with `MATCH_PARENT × WRAP_CONTENT`);
+- even when it works, it relies on a *second* measure pass happening — there is
+  no guarantee the IME window re-measures the input view after the re-assert.
+
+### 15.2 Why `jsReady=true` + black meant “silent forever”
+
+`keyboardReady()` fires from React `useEffect` — which runs as soon as the
+React root **commits a frame**, regardless of the view's size. So a keyboard
+rendered into a 0×0 view reports `jsReady=true`, the watchdog (since §14) treats
+that as SUCCESS and never touches the container → **black keyboard, no error,
+forever**. `isRunning`/`isAttachedToWindow` cannot detect this either.
+
+### 15.3 The fix (`KickKeyInputMethodService.kt`)
+
+**A. Deterministic EXACT measure specs.**
+
+Instead of layout-params tricks, the container is now an anonymous
+`FrameLayout` subclass whose `onMeasure()` **forces** every measure pass to
+`EXACTLY(windowWidth, keyboardHeightPx)`:
+
+```kotlin
+val container = object : FrameLayout(this) {
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        var width = MeasureSpec.getSize(widthMeasureSpec)
+        if (width <= 0) width = resources.displayMetrics.widthPixels // defensive
+        super.onMeasure(
+            MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(keyboardHeightPx, MeasureSpec.EXACTLY)
+        )
+    }
+}
+```
+
+The `ReactSurfaceView` (now `MATCH_PARENT × MATCH_PARENT`) therefore ALWAYS
+receives `EXACTLY` specs → `ReactSurfaceView.onMeasure()` uses the real size
+→ `updateLayoutSpecs()` sends EXACT constraints to Fabric → the keyboard is
+laid out at full size. No `post`, no timing, no second-measure assumption.
+
+**B. Density-aware height (was hardcoded 770px).**
+
+770px is only ~280dp at 2.75x density — SHORTER than the actual JS keyboard
+content (~354dp default: header 28 + suggestion 40 + 4 rows × (48+8) + bottom
+row 56 + padding 6; up to ~414dp at the 60dp key-height slider max). The native
+height is now `400dp × density` (capped at ~90% of the display height for
+landscape/short screens) so the whole keyboard always fits.
+
+**B2. Diagnostics log every layout (first 3 passes).** The old one-shot
+`surfaceView.post` log could show a misleading `0×0` when the first layout pass
+preceded the forced measure. A bounded `OnGlobalLayoutListener` now logs the
+surface size/children/attach state until it stabilises.
+
+**C. Watchdog can no longer leave a black keyboard silent.**
+
+Success now requires **all three**: `jsReady=true` AND the surface view has a
+real size (`>0 × >0`) AND Fabric mounted content into it (`childCount > 0`).
+If JS mounted but the view is still 0×0/empty after the full retry window, the
+watchdog shows a visible error:
+
+```
+KickKey Error: Keyboard mounted but not visible — jsReady=true view=0×0 children=0 ...
+```
+
+so a sizing regression can never again manifest as an un-diagnosable black area.
+
+### 15.4 How to verify
+
+```sh
+# Rebuild & install (native change — prebuild + gradle):
+npx expo run:android    # or: eas build --platform android --profile production
+
+# Open any text field → keys appear immediately, full height.
+# Logcat:
+#   KickKeyIME: Keyboard view created (keyboardHeightPx=1100)   ← 400dp × density
+#   KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+#
+# If sizing ever regresses again, the user sees an error TEXT, never a black area:
+#   KickKey Error: Keyboard mounted but not visible — ...
+```
+
+---
+
+## 16. Round 5 (2026-08-11) — THE REAL ROOT CAUSE: ReactHost never resumed, so Fabric never mounts (REAL FIX)
+
+Still reported after §15: **black keyboard area, no keys, then the §15 watchdog error:**
+
+```
+KickKey Error: Keyboard mounted but not visible — jsReady=true view=1080×1100 children=0 after ~17s — measure-spec regression; ...
+```
+
+The **critical new datum** in this error: `view=1080×1100 children=0`.
+
+The §15 EXACT-sizing fix **worked** (the surface view is now really 1080×1100),
+and the JS bundle **mounted and committed a frame** (`jsReady=true`), but Fabric
+**never attached any content** to the surface view (`children=0`). This is NOT a
+sizing problem — the mount pipeline itself never ran. Verified line-by-line
+against RN 0.86.2 sources in `node_modules`:
+
+### 16.1 The mount pipeline is gated on the host lifecycle being RESUMED
+
+When the JS bundle renders, C++ calls `FabricUIManager.scheduleMountItem()`,
+which only **queues** a `BatchMountItem` in `MountItemDispatcher`:
+
+```java
+// FabricUIManager.java
+if (shouldSchedule) {
+  mMountItemDispatcher.addMountItem(mountItem);   // ← queued, NOT executed
+  if (UiThreadUtil.isOnUiThread()) {
+    ...mMountItemDispatcher.tryDispatchMountItems();  // ← only if commit was sync on UI thread
+  }
+}
+```
+
+Async commits (the normal case) are dispatched later by the UI frame callback:
+
+```java
+// FabricUIManager.java — DispatchUIFrameCallback
+void resume() {
+  mShouldSchedule = true;
+  schedule();   // posts doFrameGuarded → tryDispatchMountItems() → views attached
+}
+```
+
+`resume()` is called **only** from `FabricUIManager.onHostResume()`, which is a
+`LifecycleEventListener` fired by `ReactContext.onHostResume()` — and
+`ReactContext.onHostResume()` is called **only when the ReactHost lifecycle is
+RESUMED** (`ReactLifecycleStateManager.resumeReactContextIfHostResumed` /
+`moveToOnHostResume`).
+
+### 16.2 Nothing ever resumed the keyboard ReactHost
+
+A normal RN app reaches `LifecycleState.RESUMED` because its **Activity** calls
+`ReactHost.onHostResume()` in `onResume`. The keyboard ReactHost runs inside an
+**InputMethodService — which is NOT an Activity and never calls it.**
+
+- `ReactLifecycleStateManager` initialises `state = BEFORE_CREATE`.
+- `KickKeyApplication.initKeyboardRuntime()` calls `keyboardHost.start()` only.
+- `ReactHostImpl.getOrCreateReactInstanceTask()` resumes the ReactContext only
+  if the manager is already RESUMED (`resumeReactContextIfHostResumed`) or on a
+  reload (`isReloading`) — neither ever happens here.
+- Result: lifecycle stays **BEFORE_CREATE forever** → `DispatchUIFrameCallback`
+  is never scheduled → mount items pile up in `MountItemDispatcher` forever →
+  the `ReactSurfaceView` (a `FrameLayout`, verified) never gets any children →
+  **black keyboard with JS happily mounted at full size.**
+
+This also explains every previous round:
+- §12/§14 “0×0 sizing”: a *visible* side effect of the same stall on early
+  code (and the AT_MOST/UNSPECIFIED measure chain); §15 fixed the measure side
+  but the mount stall remained, so the watchdog now reported `1080×1100 children=0`.
+- §13 “watchdog tearing down a working keyboard”: `jsReady=true` was a real
+  mount signal, but the *pipeline* still stalled for a different reason there.
+
+### 16.3 The fix (`KickKeyApplication.kt`)
+
+Resume the keyboard ReactHost right after `start()`:
+
+```kotlin
+keyboardStartTask = keyboardHost.start()
+keyboardHost.onHostResume(null)   // ← THE FIX: lifecycle BEFORE_CREATE → RESUMED
+```
+
+- `onHostResume(null)` sets `currentActivity = null` (no Activity exists for a
+  keyboard — fine) and moves the lifecycle manager to **RESUMED**.
+- When the ReactInstance finishes initialising, `resumeReactContextIfHostResumed`
+  now sees RESUMED and calls `ReactContext.onHostResume()` →
+  `FabricUIManager.onHostResume()` → `DispatchUIFrameCallback.resume()` → the
+  queued mount items are dispatched on the next frame → **keys appear.**
+
+No timing/retry/`post` tricks — the mechanism is now driven exactly the way RN
+intends for a foreground host.
+
+### 16.3b Idempotent safety net (`KickKeyInputMethodService.kt`)
+
+`onCreateInputView()` also calls `host.onHostResume(null)` right after obtaining
+the keyboard ReactHost (before `createSurface`). This covers the edge case where
+the host tore down without the process dying (fatal JS error → `destroy()` →
+lifecycle reset to `BEFORE_CREATE`): the next open would otherwise re-create the
+ReactInstance but never fire `onHostResume` again → same black screen. On the
+happy path `moveToOnHostResume()` early-returns because the state is already
+RESUMED, so this costs nothing.
+
+### 16.4 Watchdog message updated
+
+The “Keyboard mounted but not visible” error now reports the true failure
+mode (mount stall) and includes the host lifecycle state:
+
+```
+KickKey Error: Keyboard mounted but not visible — jsReady=true view=... children=... — Fabric mount dispatcher stalled (ReactHost lifecycle=BEFORE_CREATE); ...
+```
+
+### 16.5 How to verify
+
+```sh
+# Rebuild & install (native change — prebuild + gradle):
+npx expo run:android    # or: eas build --platform android --profile production
+
+# Open any text field → keys appear immediately.
+# Logcat (adb logcat | grep -E 'KickKey|ReactHost|ReactNative'):
+#   KickKeyApplication: Keyboard ReactHost resumed (lifecycleState=RESUMED)
+#   KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK (lifecycle=RESUMED children=1)
+```
+
+---
+
+## 17. Round 6 (2026-08-11) — §16 resumed too early: premature RESUMED broke JS startup (REAL FIX)
+
+§16 was tested on an **EAS release APK** and the failure mode CHANGED again:
+
+```
+KickKey Error: Keyboard did not start within 17s — isRunning=false jsReady=false
+```
+
+### 17.1 The critical regression: §16 resumed the host BEFORE the ReactInstance existed
+
+§16 added `keyboardHost.onHostResume(null)` immediately after `start()`. Reading the
+RN 0.86.2 source (`ReactHostImpl.kt`, `ReactLifecycleStateManager.kt`,
+`ReactContext.java`) with the release build in mind:
+
+- `onHostResume(null)` runs `maybeEnableDevSupport` (no-op in release) and sets the
+  lifecycle manager to **RESUMED** while `currentReactContext` is still `null`.
+- When the ReactInstance later finishes initializing,
+  `getOrCreateReactInstanceTask()`'s `lifecycleUpdateTask` sees the manager is
+  already RESUMED and calls `resumeReactContextIfHostResumed()` →
+  `ReactContext.onHostResume(null)` **during bootstrap**.
+- `ReactContext.onHostResume` wraps every `LifecycleEventListener` in a
+  `try { listener.onHostResume() } catch (e) { handleException(e) }`. If any
+  listener chokes (an IME process has no Activity/window; in release the exception
+  path bypasses the dev redbox), `handleException` → `ReactHost.destroy()` →
+  `createReactInstanceTaskRef.andReset` → the next `getOrCreateReactInstance()`
+  creates a fresh instance → the same error → **a silent create/destroy loop**.
+- In that loop neither the `keyboardStartTask` nor the `surfaceStartTask` ever
+  *faults* (each cycle completes), `surface.isRunning` stays false and the JS root
+  never mounts (`jsReady=false`) → the watchdog's fault checks never fire and it
+  reports the generic 17s error. This exactly matches the report (and explains why
+  removing §16 would only regress back to the §15 `children=0` mount stall).
+
+### 17.2 The fix — resume at the correct lifecycle point
+
+**A. `KickKeyApplication.kt` — no longer resumes the host in `initKeyboardRuntime()`.**
+The premature `onHostResume(null)` (and its claim that it was the real fix) is
+removed; `start()` alone is called, exactly as §15-era code did.
+
+**B. `KickKeyInputMethodService.kt` — `scheduleHostResume()` resumes only once the
+ReactInstance has FULLY initialized.** Right after `surface.start()`, poll
+`app.keyboardStartTask.isCompleted()` (the exact "instance fully created" signal —
+`currentReactContext` alone is too early because it becomes non-null mid-
+initialization, before ReactInstance/JS are ready) every 250ms × 32 ≈ 8s (well
+inside the watchdog window), then call `host.onHostResume(null)`.
+`moveToOnHostResume(currentContext, null)` now has a fully-initialized context, so
+it calls `ReactContext.onHostResume()` directly → `FabricUIManager.onHostResume()`
+→ `DispatchUIFrameCallback.resume()` → queued mount items are applied on the next
+frame → keys appear. Idempotent on later opens (lifecycle already RESUMED).
+
+**C. Watchdog error now carries full state** (the only diagnostic available when the
+user has no adb): `isRunning`, `jsReady`, `hostLifecycle`, `startTask`/`surfaceTask`
+state (pending/completed/faulted), `view=W×H`, `children=N`. A future failure
+text will pinpoint the stall stage directly.
+
+### 17.3 How to verify
+
+```sh
+# Rebuild & install (native change — prebuild + gradle):
+eas build --platform android --profile production   # or npx expo run:android
+
+# Open any text field → keys appear immediately.
+# Logcat (adb logcat | grep -E 'KickKey|ReactHost|ReactNative'):
+#   KickKeyIME: Keyboard ReactHost resumed (lifecycle=RESUMED, context ready)
+#   KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+```
+
+---
+
+## 18. Round 7 (2026-08-11) — resume gated on jsReady (the definitive safe signal) (REAL FIX)
+
+§17 was tested on an **EAS release APK** and the failure changed again — this time
+carrying the new §17 diagnostics:
+
+```
+KickKey Error: Keyboard did not start within 17s — isRunning=false jsReady=false
+hostLifecycle=BEFORE_CREATE startTask=completed surfaceTask=completed
+view=1080×1100 children=0 — check logcat: ...
+```
+
+### 18.1 What this error tells us (and what it rules out)
+
+- `startTask=completed` + `surfaceTask=completed` → the ReactInstance was created and
+  the surface started without faulting.
+- `view=1080×1100` → §15's EXACT sizing is healthy.
+- `children=0` + `jsReady=false` + `hostLifecycle=BEFORE_CREATE` → the host ended up
+  **destroyed** (verified against RN 0.86.2 source): `getOrCreateDestroyTask()` step 1
+  calls `moveToOnHostDestroy()` which **resets the state to BEFORE_CREATE**, and its
+  step 2 stops all surfaces (`isRunning=false`). `handleHostException()` → `destroy()`
+  is the only path that does this; a *destroyed* host also explains `jsReady=false`
+  (the JS runtime is torn down before the root commits).
+
+**Conclusion: §17's resume attempt killed the host.** Both §16 (resume before the
+instance existed) and §17 (resume when `startTask` completed) ended in a destroyed
+host with `jsReady=false` — while §15/§16-era builds with **no resume at all** showed
+`jsReady=true` (JS mounts fine; only the mount dispatch stalls).
+
+### 18.2 Why §17's timing was still wrong
+
+`getOrCreateStartTask()` completes when the **instance is created** — but
+`instance.loadJSBundle()` runs *after* that inside the same creation task, so the
+JS bundle is still executing when the task completes. §17 resumed into that
+mid-bootstrap window. Worse, its poll was capped at 8s (32 × 250ms) while the
+watchdog itself allows 17s — so on a slow cold start the poll could expire before
+the task even completed, leaving the host permanently BEFORE_CREATE.
+
+### 18.3 The fix — resume ONLY when the JS is fully mounted (`keyboardJsReady`)
+
+`KickKeyModule.keyboardJsReady` only becomes `true` after the React root **committed a
+frame** (set by `keyboardReady()` from `useEffect`). At that moment the instance, the
+bundle, the surface and every native module are fully initialized and the bootstrap is
+over — resuming then is exactly what a normal Activity's `onResume()` does after
+startup, with zero in-flight initialization.
+
+`KickKeyInputMethodService.kt` changes:
+
+- **Replaced `scheduleHostResume()`/`retryHostResume()`/`isHostStartFinished()`
+  (startTask-gated, 8s cap) with `scheduleJsReadyResume()`/`pollJsReadyResume()`** —
+  polls `KickKeyModule.keyboardJsReady` every 250ms for up to **30s** (120 × 250ms,
+  comfortably past the watchdog's 17s window) and calls `host.onHostResume(null)`
+  only when the JS has mounted.
+- **`resumeKeyboardHost()` now retries a failed resume** (attempt counter + last-error
+  recorder), because `moveToOnHostResume()` only takes effect if the dispatch didn't
+  throw; a sticky resume is required before the mount items will dispatch.
+- **Watchdog belt-and-suspenders:** at each check, if `jsReady=true` but the host is
+  not yet `RESUMED`, it re-attempts the resume before deciding anything.
+- **Diagnostics enriched:** both final watchdog error texts now include
+  `resumeAttempts=N resumeError=…` so any residual failure reports exactly how many
+  times the resume was attempted and what it threw.
+
+### 18.4 Expected logcat on a working build
+
+```
+KickKeyIME: scheduleJsReadyResume: polling jsReady (host lifecycle=BEFORE_CREATE)
+KickKeyIME: Keyboard ReactHost resumed (lifecycle=RESUMED)
+KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+```
+
+### 18.5 How to verify
+
+```sh
+# Rebuild & install (native change — prebuild + gradle):
+eas build --platform android --profile production   # or npx expo run:android
+
+# Open any text field → keys appear immediately.
+# If it still fails, the error text now shows resumeAttempts/resumeError — paste it back.
+```

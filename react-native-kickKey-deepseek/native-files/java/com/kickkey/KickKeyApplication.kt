@@ -175,6 +175,17 @@ class KickKeyApplication : Application(), ReactApplication {
             keyboardStartTask = keyboardHost.start()
             _keyboardHostReady = true
             Log.i(TAG, "Keyboard ReactHost start() invoked — JS bundle loading from assets://keyboard.bundle")
+
+            // NOTE: the keyboard ReactHost is deliberately NOT resumed here.
+            // ReactHost.onHostResume(null) must only be called once the ReactInstance
+            // EXISTS — see KickKeyInputMethodService.scheduleHostResume(). Resuming
+            // before the instance was created (a previous iteration) moved the lifecycle
+            // to RESUMED prematurely: the bootstrap resume path then dispatched
+            // ReactContext.onHostResume() mid-initialization, and any listener failure
+            // escalated through ReactContext.handleException → ReactHost.destroy() → a
+            // silent create/destroy loop that left the surface not running and the JS
+            // never mounting (the reported "isRunning=false jsReady=false" error after
+            // 17s in the EAS release build).
         }
     }
 
