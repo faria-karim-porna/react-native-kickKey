@@ -6,8 +6,8 @@
 // ⚠️  This file MUST remain .js — React Native's bundler resolves
 //     keyboard.index.js as the entry file for the keyboard bundle.
 
-import React, { useEffect } from 'react';
-import { AppRegistry, LogBox, NativeModules } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { AppRegistry, LogBox, NativeModules, NativeEventEmitter } from 'react-native';
 import KeyboardScreen from './src/keyboard/KeyboardScreen';
 
 // Suppress non-critical warnings in the keyboard bundle
@@ -39,7 +39,44 @@ if (global.HermesInternal == null) {
   }
 }
 
+/**
+ * Fabric mount-pipeline pump — THE fix for the "jsReady=true children=0" black keyboard.
+ *
+ * Verified against the RN 0.86.2 sources in node_modules:
+ *  - Every C++ mount transaction produced by a React commit is queued by
+ *    `RuntimeScheduler_Modern::scheduleRenderingUpdate()` into
+ *    `pendingRenderingUpdates_` (RuntimeScheduler_Modern.cpp).
+ *  - That queue is drained ONLY inside `RuntimeScheduler_Modern::updateRendering()`,
+ *    which runs exclusively at the END of a JS event-loop task (executeEventLoopTask).
+ *  - A normal app's JS keeps scheduling work (timers, rAF, animations, ...), so the
+ *    mount transaction is flushed on the next task and `FabricMountingManager::
+ *    executeMount()` → `FabricUIManager.scheduleMountItem()` delivers the items to Java.
+ *  - The keyboard bundle is STATIC: after the initial runApplication + commit there is
+ *    nothing left on the JS event loop, so the mount transaction is never executed and
+ *    the ReactSurfaceView keeps 0 children forever — while JS (jsReady=true), the
+ *    ReactHost lifecycle (RESUMED), the ReactContext (RESUMED) and the Choreographer
+ *    frame pump (framePump=alive) are all perfectly healthy.
+ *
+ * This interval is a no-op callback that keeps ONE event-loop task in flight at all
+ * times. Every tick ends with `updateRendering()`, which drains any pending mount
+ * transactions and delivers them to Java, where the (jsReady-gated) resumed
+ * DispatchUIFrameCallback applies them to the surface view. 33ms ≈ 30fps is plenty for
+ * a keyboard, and the same mechanism guarantees every LATER commit (key presses, layout
+ * switches, suggestions) is flushed promptly instead of silently stalling again.
+ */
+const MOUNT_PUMP_INTERVAL_MS = 33;
+
+// Remount counter: bumped to force a REAL remount (via the `key` below) so React emits
+// a complete set of CREATE/INSERT mount mutations — a guaranteed-fresh Fabric transaction.
+// A plain re-render with an identical tree produces NO mutations at all, which is why the
+// previous tick-based forceRerender did nothing.
+let _rerenderCounter = 0;
+
 function KickKeyKeyboardRoot() {
+  // Used as the `key` of the KeyboardScreen subtree. Bumping it UNMOUNTS and REMOUNTS
+  // the whole keyboard, generating a brand-new mount transaction.
+  const [mountNonce, setMountNonce] = useState(0);
+
   // Tell the native IME service that the JS keyboard actually mounted and is
   // rendering. The native watchdog uses this to distinguish a working keyboard
   // from a surface that started but never mounted (blank keyboard).
@@ -52,7 +89,41 @@ function KickKeyKeyboardRoot() {
     }
   }, []);
 
-  return <KeyboardScreen />;
+  // ── Mount-pipeline pump (see comment above) ─────────────────────────────────
+  // Keeps the JS event loop from going idle so the C++ RuntimeScheduler's
+  // updateRendering() step flushes pending Fabric mount transactions to Java.
+  useEffect(() => {
+    const id = setInterval(() => {
+      // No-op by design — the mere existence of this callback keeps the event loop
+      // alive; updateRendering() runs at the end of this task and drains the queue.
+    }, MOUNT_PUMP_INTERVAL_MS);
+    // Diagnostic: tell native the pump is running so the watchdog error text can
+    // distinguish "JS fix not deployed" from "pipeline still blocked downstream".
+    try {
+      const p = NativeModules.KickKey?.notifyPumpActive?.();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch (e) {
+      console.warn('[KickKey] notifyPumpActive failed:', e);
+    }
+    return () => clearInterval(id);
+  }, []);
+
+  // Listen for the native forceRerender event. This is emitted by the IME watchdog
+  // while the JS has mounted but Fabric still reports children=0. We respond with a
+  // REAL remount (key change) so a complete new set of CREATE/INSERT mount mutations
+  // is generated for the (now pumping) event loop to flush — fixing any case where the
+  // very first commit's mount transaction was lost before the surface was fully up.
+  useEffect(() => {
+    if (!NativeModules.KickKey) return;
+    const emitter = new NativeEventEmitter(NativeModules.KickKey);
+    const sub = emitter.addListener('kickkey_forceRerender', () => {
+      _rerenderCounter++;
+      setMountNonce(_rerenderCounter);
+    });
+    return () => sub.remove();
+  }, []);
+
+  return <KeyboardScreen key={mountNonce} />;
 }
 
 /**

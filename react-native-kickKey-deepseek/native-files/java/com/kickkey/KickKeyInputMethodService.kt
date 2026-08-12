@@ -11,10 +11,12 @@ import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import com.facebook.react.ReactHost
 import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReactContext
 import com.facebook.react.common.LifecycleState
 import com.facebook.react.interfaces.TaskInterface
 import com.facebook.react.interfaces.fabric.ReactSurface
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.facebook.react.modules.core.ReactChoreographer
 
 class KickKeyInputMethodService : InputMethodService() {
 
@@ -58,6 +60,19 @@ class KickKeyInputMethodService : InputMethodService() {
     // starts. Also bumped when the watchdog gives up, so the poll can't resume a host whose
     // surface was already detached by the error view.
     private var resumeGeneration = 0L
+    // ── Diagnostics for the watchdog error text (no logcat available on device) ─────────
+    // Set true when a ReactChoreographer frame callback actually fires — proves the main-thread
+    // vsync pump is alive in the IME process. Fabric's DispatchUIFrameCallback (the ONLY thing
+    // that applies queued JS mount items to the surface view) lives on this same pump: if the
+    // pump is dead, the JS can mount (jsReady=true) but children stays 0 forever.
+    private var framePumpAlive = false
+    private var framePumpPosted = false
+    private var framePumpProbeLogged = false
+    // Host/context lifecycle states observed at each watchdog check. A RESUMED → BEFORE_CREATE
+    // flip mid-watch means the keyboard ReactHost was DESTROYED (e.g. a lifecycle-listener
+    // exception inside ReactContext.onHostResume() triggered ReactHost.destroy()), which also
+    // leaves children=0 while the destroy is still tearing the JS down.
+    private val hostLifecycleHistory = mutableListOf<String>()
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate() {
@@ -82,8 +97,14 @@ class KickKeyInputMethodService : InputMethodService() {
         // Dispose previous surface if any
         disposeSurface()
 
-        // Reset the JS mount signal for this open cycle
+        // Reset the JS mount signal and per-open diagnostics for this open cycle
         KickKeyModule.keyboardJsReady = false
+        KickKeyModule.keyboardPumpActive = false
+        KickKeyModule.lastInputStartedParams = null
+        framePumpAlive = false
+        framePumpPosted = false
+        framePumpProbeLogged = false
+        hostLifecycleHistory.clear()
 
         // Fail fast with a VISIBLE error instead of a silent blank keyboard if
         // the keyboard JS bundle is missing or corrupt in the APK. Previously a
@@ -225,6 +246,19 @@ class KickKeyInputMethodService : InputMethodService() {
                 // show a VISIBLE error instead of a silent blank keyboard.
                 scheduleStartupWatchdog(app)
 
+                // Fast mount-retry loop: while the JS has mounted but Fabric still
+                // reports children=0, re-emit kickkey_forceRerender (which now forces a
+                // REAL remount) every second so the keyboard recovers in ~1s instead of
+                // waiting for the 8s startup watchdog to act. Purely additive — the
+                // startup watchdog still owns the final error view.
+                scheduleMountRetry(app)
+
+                // Diagnostics: verify the Choreographer frame pump actually ticks in the IME
+                // process — Fabric's mount dispatch (DispatchUIFrameCallback) depends on it.
+                // The result is surfaced in the watchdog error text. Retried from the watchdog
+                // until RN is initialized enough for ReactChoreographer.getInstance() to work.
+                verifyFramePump()
+
                 Log.i(TAG, "Keyboard view created (surface.isRunning=${safeIsRunning(surface)})")
                 return container
             } else {
@@ -266,6 +300,9 @@ class KickKeyInputMethodService : InputMethodService() {
                 attempts++
                 val surface = reactSurface ?: return
                 try {
+                    // Keep (re)trying to install the frame-pump probe until RN is initialized
+                    // enough that ReactChoreographer.getInstance() works.
+                    verifyFramePump()
                     val view = surface.view
                     val laidOutSize = view != null && view.width > 0 && view.height > 0
                     val hasContent = view != null && view.childCount > 0
@@ -298,20 +335,99 @@ class KickKeyInputMethodService : InputMethodService() {
                     // the view is 0×0 or empty. This is the black-keyboard case.
                     // Do not leave it undiagnosable forever — surface it.
                     if (KickKeyModule.keyboardJsReady) {
-                        // Belt & suspenders: if the JS mounted but the host is somehow not
-                        // RESUMED yet (a resume attempt failed or was dropped), try again —
-                        // resuming is idempotent and cheap.
+                        verifyFramePump()
                         val host = app.keyboardReactHost
+                        // Fallback: In RN 0.86 headless/IME contexts, host.currentReactContext
+                        // can return null even though the ReactContext exists (JS called
+                        // keyboardReady, proving the bridge is live). Use the stored reference.
+                        var ctx: ReactContext? = host.currentReactContext
+                        if (ctx == null) {
+                            ctx = KickKeyModule.keyboardReactContext
+                        }
+                        val ctxLifecycle = ctx?.lifecycleState
+                        hostLifecycleHistory.add("host=${host.lifecycleState}/ctx=$ctxLifecycle")
+
+                        // ── Detect a destroyed host ──
+                        // jsReady implies the jsReady-resume poll already moved the host to
+                        // RESUMED, so BEFORE_CREATE here means the host was DESTROYED after
+                        // resume (a lifecycle-listener exception inside ReactContext.onHostResume()
+                        // → ReactHost.destroy()). A destroyed host never mounts; reset it so the
+                        // NEXT open starts with a completely fresh React pipeline, then stop the
+                        // watchdog for this open — if we rescheduled, the getter would lazily
+                        // recreate a fresh host and the stale jsReady flag would re-trigger this
+                        // branch, spinning a create/destroy loop every retry interval.
+                        if (host.lifecycleState == LifecycleState.BEFORE_CREATE) {
+                            Log.e(
+                                TAG,
+                                "Watchdog: keyboard ReactHost was DESTROYED after resume " +
+                                    "(history=${hostLifecycleHistory.joinToString(" → ")}) — " +
+                                    "showing error; next open will create a fresh host"
+                            )
+                            app.resetKeyboardHostForRetry()
+                            showErrorFallback(
+                                "Keyboard ReactHost was destroyed after resume",
+                                "jsReady=true children=${view?.childCount ?: -1} " +
+                                    "lifecycleHistory=${hostLifecycleHistory.joinToString("→")} " +
+                                    "resumeAttempts=$resumeAttempts " +
+                                    "resumeError=${resumeLastError ?: "none"} — the next keyboard " +
+                                    "open will start a completely fresh React pipeline; " +
+                                    "check logcat: adb logcat | grep -E 'KickKey|ReactHost|ReactNative'"
+                            )
+                            return
+                        }
+
+                        // ── Belt & suspenders: make sure the mount pipeline is running ──
+                        // * If the host isn't RESUMED yet, resume (idempotent, cheap).
+                        // * If the host IS resumed but the ReactContext never was (possible when
+                        //   currentReactContext was null mid-resume), resume the context directly:
+                        //   ReactContext.onHostResume() → FabricUIManager.onHostResume() →
+                        //   DispatchUIFrameCallback.resume(), which is what actually applies the
+                        //   queued mount items on the next frame.
+                        // * requestLayout pushes the current EXACT constraints into C++ again,
+                        //   producing a fresh commit + mount transaction in case the first one
+                        //   was ever lost.
                         if (host.lifecycleState != LifecycleState.RESUMED) {
                             resumeKeyboardHost(host)
+                        } else if (ctxLifecycle != LifecycleState.RESUMED) {
+                            // Host IS resumed but the ReactContext never was — resume the
+                            // context directly (public API). Skip if the host is not RESUMED
+                            // (mid-destroy): poking a dying context only re-fires listeners.
+                            // The ctx variable already includes the stored-fallback, so this
+                            // covers both host.currentReactContext and the stored reference.
+                            try {
+                                Log.i(TAG, "Direct-resuming ReactContext (ctx=$ctxLifecycle)")
+                                ctx?.onHostResume(null)
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Direct context resume failed: ${e.message}")
+                            }
                         }
+                        // Force a re-render: the initial JS commit's mount items may have been
+                        // lost because DispatchUIFrameCallback wasn't active at commit time.
+                        // A new commit (triggered by this event) generates mount items with the
+                        // callback active → they get delivered → children>0.
+                        if (ctx != null && view != null && view.childCount == 0) {
+                            try {
+                                ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                                    ?.emit("kickkey_forceRerender", null)
+                                Log.i(TAG, "Watchdog: emitted kickkey_forceRerender (attempt $attempts)")
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Watchdog kickkey_forceRerender failed: ${e.message}")
+                            }
+                        }
+                        try { view?.requestLayout() } catch (e: Exception) { /* ignore */ }
+
                         if (attempts >= MAX_WATCHDOG_ATTEMPTS) {
                             showErrorFallback(
                                 "Keyboard mounted but not visible",
                                 "jsReady=true view=${view?.width}×${view?.height} " +
                                     "children=${view?.childCount ?: -1} after ~${TOTAL_WATCHDOG_MS / 1000}s " +
-                                    "— Fabric mount dispatcher stalled (ReactHost lifecycle=" +
-                                    "${host.lifecycleState} resumeAttempts=$resumeAttempts " +
+                                    "— Fabric mount dispatcher stalled " +
+                                    "(ReactHost lifecycle=${host.lifecycleState} " +
+                                    "reactContextLifecycle=$ctxLifecycle " +
+                                    "framePump=${if (framePumpAlive) "alive" else "stalled/unknown"} " +
+                                    "jsPump=${if (KickKeyModule.keyboardPumpActive) "active" else "inactive"} " +
+                                    "lifecycleHistory=${hostLifecycleHistory.joinToString("→")} " +
+                                    "resumeAttempts=$resumeAttempts " +
                                     "resumeError=${resumeLastError ?: "none"}); " +
                                     "check logcat: adb logcat | grep -E 'KickKey|ReactHost|ReactNative'"
                             )
@@ -320,7 +436,9 @@ class KickKeyInputMethodService : InputMethodService() {
                                 TAG,
                                 "Watchdog: JS mounted but view not rendering yet " +
                                     "(${view?.width}×${view?.height} children=${view?.childCount ?: -1}, " +
-                                    "lifecycle=${host.lifecycleState}, attempt $attempts)"
+                                    "host=${host.lifecycleState} ctx=$ctxLifecycle " +
+                                    "framePump=${if (framePumpAlive) "alive" else "unknown"}, " +
+                                    "attempt $attempts)"
                             )
                             mainHandler.postDelayed(this, WATCHDOG_RETRY_MS)
                         }
@@ -362,25 +480,28 @@ class KickKeyInputMethodService : InputMethodService() {
                     if (attempts >= MAX_WATCHDOG_ATTEMPTS) {
                         // Surface as much state as possible: with no logcat access this
                         // error text is the only diagnostic the user can paste back.
-                        val startState = when {
-                            app.keyboardStartTask?.isFaulted() == true -> "faulted"
-                            app.keyboardStartTask?.isCompleted() == true -> "completed"
-                            else -> "pending"
-                        }
-                        val surfaceState = when {
-                            surfaceStartTask?.isFaulted() == true -> "faulted"
-                            surfaceStartTask?.isCompleted() == true -> "completed"
-                            else -> "pending"
-                        }
-                        showErrorFallback(
-                            "Keyboard did not start within ${TOTAL_WATCHDOG_MS / 1000}s",
-                            "isRunning=${safeIsRunning(surface)} jsReady=${KickKeyModule.keyboardJsReady} " +
-                                "hostLifecycle=${app.keyboardReactHost.lifecycleState} " +
-                                "startTask=$startState surfaceTask=$surfaceState " +
-                                "view=${view?.width}×${view?.height} children=${view?.childCount ?: -1} " +
-                                "resumeAttempts=$resumeAttempts resumeError=${resumeLastError ?: "none"} " +
-                                "— check logcat: adb logcat | grep -E 'KickKey|ReactHost|ReactNative'"
-                        )
+                    val startState = when {
+                        app.keyboardStartTask?.isFaulted() == true -> "faulted"
+                        app.keyboardStartTask?.isCompleted() == true -> "completed"
+                        else -> "pending"
+                    }
+                    val surfaceState = when {
+                        surfaceStartTask?.isFaulted() == true -> "faulted"
+                        surfaceStartTask?.isCompleted() == true -> "completed"
+                        else -> "pending"
+                    }
+                    showErrorFallback(
+                        "Keyboard did not start within ${TOTAL_WATCHDOG_MS / 1000}s",
+                        "isRunning=${safeIsRunning(surface)} jsReady=${KickKeyModule.keyboardJsReady} " +
+                            "hostLifecycle=${app.keyboardReactHost.lifecycleState} " +
+                            "ctxLifecycle=${app.keyboardReactHost.currentReactContext?.lifecycleState ?: KickKeyModule.keyboardReactContext?.lifecycleState} " +
+                            "startTask=$startState surfaceTask=$surfaceState " +
+                            "view=${view?.width}×${view?.height} children=${view?.childCount ?: -1} " +
+                            "framePump=${if (framePumpAlive) "alive" else "stalled/unknown"} " +
+                            "jsPump=${if (KickKeyModule.keyboardPumpActive) "active" else "inactive"} " +
+                            "resumeAttempts=$resumeAttempts resumeError=${resumeLastError ?: "none"} " +
+                            "— check logcat: adb logcat | grep -E 'KickKey|ReactHost|ReactNative'"
+                    )
                     } else {
                         Log.w(TAG, "Watchdog: surface not running yet (attempt $attempts) — retrying")
                         mainHandler.postDelayed(this, WATCHDOG_RETRY_MS)
@@ -403,6 +524,80 @@ class KickKeyInputMethodService : InputMethodService() {
     private fun cancelWatchdog() {
         watchdog?.let { mainHandler.removeCallbacks(it) }
         watchdog = null
+    }
+
+    // ── Fast mount-retry loop ─────────────────────────────────────────────────────
+    // The JS-side mount pump (keyboard.index.js) fixes the children=0 black keyboard by
+    // keeping the JS event loop alive so the C++ RuntimeScheduler's updateRendering()
+    // drains pending Fabric mount transactions. `kickkey_forceRerender` now forces a
+    // REAL remount (fresh CREATE/INSERT mutations) as a safety net for a lost initial
+    // transaction. This loop drives both while jsReady=true and children=0, so the
+    // keyboard recovers in ~1s instead of waiting for the 8s startup watchdog. Stops on
+    // success, on teardown, or once the startup watchdog takes over (showErrorFallback).
+    private var mountRetryGeneration = 0L
+
+    private fun scheduleMountRetry(app: KickKeyApplication) {
+        val generation = ++mountRetryGeneration
+        mainHandler.postDelayed(
+            object : Runnable {
+                var attempts = 0
+
+                override fun run() {
+                    if (generation != mountRetryGeneration) return
+                    val surface = reactSurface ?: return
+                    val view = surface.view
+                    // Keyboard visible — done. (Also the success path for the watchdog.)
+                    if (view != null && view.childCount > 0) return
+                    // Cap at ~17s so we stop quietly before the watchdog's give-up window;
+                    // the watchdog owns the final error view.
+                    if (attempts >= 17) return
+                    attempts++
+                    if (KickKeyModule.keyboardJsReady) {
+                        try {
+                            val host = app.keyboardReactHost
+                            // Belt & suspenders: keep the host resumed and the constraints
+                            // re-asserted while the mount pipeline is still draining.
+                            if (host.lifecycleState != LifecycleState.RESUMED) {
+                                resumeKeyboardHost(host)
+                            }
+                            try { view?.requestLayout() } catch (e: Exception) { /* ignore */ }
+                            val ctx = host.currentReactContext ?: KickKeyModule.keyboardReactContext
+                            if (ctx != null && view != null && view.childCount == 0) {
+                                ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                                    ?.emit("kickkey_forceRerender", null)
+                                Log.i(TAG, "Mount retry: emitted kickkey_forceRerender (attempt $attempts)")
+                                // A remount re-creates the JS keyboard subtree and resets its
+                                // input-type state — re-emit it shortly after so number / phone /
+                                // password fields restore their correct layout.
+                                mainHandler.postDelayed({
+                                    if (generation != mountRetryGeneration) return@postDelayed
+                                    reemitInputStarted()
+                                }, 300)
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Mount retry check failed (attempt $attempts): ${e.message}")
+                        }
+                    }
+                    mainHandler.postDelayed(this, 1000)
+                }
+            },
+            1000
+        )
+    }
+
+    /** Re-emits the most recent onInputStarted payload (used after a forceRerender remount). */
+    private fun reemitInputStarted() {
+        val params = KickKeyModule.lastInputStartedParams ?: return
+        try {
+            val app = application as? KickKeyApplication ?: return
+            val ctx = app.keyboardReactHost.currentReactContext ?: KickKeyModule.keyboardReactContext
+                ?: return
+            ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                ?.emit("onInputStarted", params)
+            Log.i(TAG, "Re-emitted onInputStarted after mount retry")
+        } catch (e: Exception) {
+            Log.w(TAG, "reemitInputStarted failed: ${e.message}")
+        }
     }
 
     /**
@@ -478,14 +673,105 @@ class KickKeyInputMethodService : InputMethodService() {
             // onHostResume() cleanly → DispatchUIFrameCallback starts → the mount items queued
             // by the JS commit are applied on the next frame → keys appear.
             host.onHostResume(null)
+
+            // Safety net: if the host reached RESUMED but the ReactContext itself was never
+            // resumed (possible when currentReactContext was null at the moment of resume), fire
+            // the context resume directly. ReactContext.onHostResume() → FabricUIManager.
+            // onHostResume() → DispatchUIFrameCallback.resume() is what actually flushes the
+            // queued mount items; the host-level state alone does nothing if the listeners never
+            // fired.
+            //
+            // Fallback: In RN 0.86's new architecture, host.currentReactContext can return null
+            // even after the host is RESUMED (a known issue in headless/IME contexts). Since
+            // keyboardReady() is a @ReactMethod, the ReactContext must exist when it runs —
+            // KickKeyModule.keyboardReactContext gives us a reliable fallback.
+            var ctx: ReactContext? = host.currentReactContext
+            if (ctx == null) {
+                ctx = KickKeyModule.keyboardReactContext
+                if (ctx != null) {
+                    Log.i(TAG, "Using stored ReactContext for resume (host.currentReactContext is null)")
+                }
+            }
+            if (ctx != null && host.lifecycleState == LifecycleState.RESUMED &&
+                ctx.lifecycleState != LifecycleState.RESUMED
+            ) {
+                Log.i(
+                    TAG,
+                    "ReactContext not resumed after host resume (host=${host.lifecycleState} " +
+                        "ctx=${ctx.lifecycleState}) — resuming context directly"
+                )
+                ctx.onHostResume(null)
+            }
             // Keep resumeLastError as-is: it records the most recent failure for the watchdog
             // error text (a flaky resume that eventually succeeded is still worth knowing about).
-            Log.i(TAG, "Keyboard ReactHost resumed (lifecycle=${host.lifecycleState})")
+            Log.i(
+                TAG,
+                "Keyboard ReactHost resumed (lifecycle=${host.lifecycleState}, " +
+                    "ctx=${ctx?.lifecycleState})"
+            )
+
+            // ── Force a remount ONLY if the surface is still empty ──────────────────
+            // In RN 0.86 Fabric, the initial JS commit's mount transaction can be LOST
+            // before the pipeline was running. After resuming the host, emit an event that
+            // forces a REAL remount (keyboard.index.js bumps the root key) so a brand-new
+            // set of CREATE/INSERT mount mutations is generated for the JS mount pump to
+            // flush. Gated on the view still being empty (childCount==0) so a WORKING
+            // keyboard is never remounted — a remount would reset keyboard state (language,
+            // shift, and the number/phone/password flags from onInputStarted).
+            val rerenderCtx = ctx ?: KickKeyModule.keyboardReactContext
+            val surfaceStillEmpty = try {
+                reactSurface?.view?.childCount == 0
+            } catch (e: Exception) {
+                true
+            }
+            if (rerenderCtx != null && host.lifecycleState == LifecycleState.RESUMED &&
+                surfaceStillEmpty
+            ) {
+                mainHandler.postDelayed({
+                    try {
+                        rerenderCtx
+                            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                            ?.emit("kickkey_forceRerender", null)
+                        Log.i(TAG, "Emitted kickkey_forceRerender event (ctx=${rerenderCtx.lifecycleState})")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "kickkey_forceRerender emit failed: ${e.message}")
+                    }
+                }, 200) // 200ms delay to let DispatchUIFrameCallback fully initialize
+            }
         } catch (e: Exception) {
             // Never let a resume failure silently kill the keyboard — record it so the
             // watchdog surfaces it in the error text, and retry on the next poll.
             resumeLastError = e.message ?: e.javaClass.simpleName
             Log.w(TAG, "Keyboard ReactHost resume failed (attempt $resumeAttempts): ${e.message}")
+        }
+    }
+
+    /**
+     * Posts a one-shot frame callback to ReactChoreographer to prove the main-thread frame pump
+     * is alive in the IME process. Fabric's DispatchUIFrameCallback (which applies queued JS
+     * mount items to the surface view) runs on this same pump, so a dead pump = keyboard stays
+     * black with jsReady=true and children=0. The result is surfaced in the watchdog error text
+     * (framePump=alive vs stalled/unknown).
+     */
+    private fun verifyFramePump() {
+        if (framePumpAlive || framePumpPosted) return
+        try {
+            ReactChoreographer.getInstance().postFrameCallback(
+                ReactChoreographer.CallbackType.DISPATCH_UI
+            ) {
+                if (!framePumpAlive) {
+                    framePumpAlive = true
+                    Log.i(TAG, "Frame pump ALIVE — Choreographer ticks in the IME process")
+                }
+            }
+            framePumpPosted = true
+        } catch (e: Exception) {
+            // ReactChoreographer.getInstance() throws before RN is initialized — retry on the
+            // next watchdog check. Log once (not every check) to avoid spamming.
+            if (!framePumpProbeLogged) {
+                framePumpProbeLogged = true
+                Log.w(TAG, "Frame pump probe unavailable yet: ${e.message}")
+            }
         }
     }
 
@@ -497,9 +783,26 @@ class KickKeyInputMethodService : InputMethodService() {
 
     private fun showErrorFallback(reason: String, detail: String?) {
         Log.e(TAG, "showErrorFallback: $reason | $detail")
-        // The keyboard has been declared dead — stop the resume poll so it can't resume a host
-        // whose surface is about to be (or already was) detached by the error view.
+        // The keyboard has been declared dead — stop the resume poll and the mount-retry
+        // loop so they can't resume a host / remount a surface that's about to be (or
+        // already was) detached by the error view.
         resumeGeneration++
+        mountRetryGeneration++
+        // If the JS was up but the mount pipeline never delivered (or the host was destroyed),
+        // reset the keyboard ReactHost so the next keyboard open starts with a completely fresh
+        // React pipeline (new FabricUIManager / MountItemDispatcher) instead of reusing a wedged
+        // one. Only done when jsReady was true — if JS never mounted, the host itself is healthy
+        // and the next open should reuse it.
+        try {
+            if (KickKeyModule.keyboardJsReady) {
+                // Clear the stored ReactContext so the next open captures a fresh one.
+                KickKeyModule.keyboardReactContext = null
+                val app = application as? KickKeyApplication
+                app?.resetKeyboardHostForRetry()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "showErrorFallback: host reset failed: ${e.message}")
+        }
         val container = keyboardContainer ?: return
         try {
             val message = if (detail.isNullOrBlank()) reason else "$reason — $detail"
@@ -561,8 +864,9 @@ class KickKeyInputMethodService : InputMethodService() {
 
     private fun disposeSurface() {
         cancelWatchdog()
-        // Stop any stale resume-poll chain (generation-guarded).
+        // Stop any stale resume-poll chain and mount-retry loop (generation-guarded).
         resumeGeneration++
+        mountRetryGeneration++
         try {
             reactSurface?.stop()
             reactSurface = null
@@ -573,6 +877,9 @@ class KickKeyInputMethodService : InputMethodService() {
             // "ready" from a previous surface/session can never mask a genuinely
             // dead keyboard in the next open cycle.
             KickKeyModule.keyboardJsReady = false
+            // Clear the stored ReactContext — the next open will capture a fresh one
+            // when keyboardReady() is called.
+            KickKeyModule.keyboardReactContext = null
         } catch (e: Exception) {
             Log.w(TAG, "disposeSurface error: ${e.message}")
         }
@@ -610,7 +917,11 @@ class KickKeyInputMethodService : InputMethodService() {
     ) {
         try {
             val app = application as? KickKeyApplication ?: return
-            val reactContext = app.keyboardReactHost.currentReactContext
+            // Fallback: use stored ReactContext when host.currentReactContext is null
+            var reactContext = app.keyboardReactHost.currentReactContext
+            if (reactContext == null) {
+                reactContext = KickKeyModule.keyboardReactContext
+            }
             if (reactContext == null) {
                 // The keyboard ReactHost starts asynchronously — if the JS context
                 // isn't ready yet, the very first input-type event would be lost
@@ -640,6 +951,9 @@ class KickKeyInputMethodService : InputMethodService() {
                 putBoolean("isEmail",    isEmail)
                 putString("imeAction",   imeAction)
             }
+            // Store the payload so the mount-retry loop can re-emit it after a
+            // forceRerender remount (which resets the JS input-type state).
+            KickKeyModule.lastInputStartedParams = params
             reactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                 ?.emit("onInputStarted", params)

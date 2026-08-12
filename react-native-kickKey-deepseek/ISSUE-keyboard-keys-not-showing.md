@@ -909,3 +909,223 @@ eas build --platform android --profile production   # or npx expo run:android
 # Open any text field → keys appear immediately.
 # If it still fails, the error text now shows resumeAttempts/resumeError — paste it back.
 ```
+
+---
+
+## 19. Round 8 (2026-08-12) — self-diagnosing watchdog + fresh-host recovery (no logcat available)
+
+Still reported after §18 with the new §18 diagnostics:
+
+```
+KickKey Error: Keyboard mounted but not visible — jsReady=true view=1080×1100 children=0 after ~17s
+— Fabric mount dispatcher stalled (ReactHost lifecycle=RESUMED resumeAttempts=1 resumeError=none); ...
+```
+
+This is the **most informative failure yet**: `lifecycle=RESUMED resumeError=none` proves the §18
+jsReady-gated resume worked (the host reached RESUMED without throwing), `jsReady=true` proves the
+keyboard JS mounted and committed a frame, `view=1080×1100` proves sizing is healthy — yet Fabric
+attached **zero children** for the full 17 s window.
+
+### 19.1 What that combination rules out / leaves open
+
+The RN 0.86.2 sources were re-verified end-to-end (see below); every link of the mount pipeline is
+mechanically correct WHEN the lifecycle machinery runs. `children=0` + `lifecycle=RESUMED` is
+consistent with exactly three failure modes, and they need different fixes:
+
+1. **Mount items never reach Java** — the C++→JNI `scheduleMountItem` call (Scheduler →
+   `runtimeScheduler_->scheduleRenderingUpdate` → `FabricMountingManager::executeMount`) never
+   runs, so the Java `MountItemDispatcher` queue stays empty forever. The frame callback ticks but
+   has nothing to dispatch.
+2. **The Fabric frame callback never fires** — `DispatchUIFrameCallback` is scheduled by
+   `FabricUIManager.onHostResume()` on the ReactChoreographer DISPATCH_UI queue; if the
+   main-thread Choreographer vsync pump is dead in the IME process, queued items are never
+   applied. (JS can still mount — jsReady=true — because the JS commit doesn't need the pump.)
+3. **The resume silently destroys the host** — a lifecycle-listener exception inside
+   `ReactContext.onHostResume()` is swallowed by RN (each listener runs in its own try/catch →
+   `handleException` → `ReactHost.destroy()`), so our `resumeError` stays `none` while the async
+   destroy tears the JS down; the host lifecycle can still read RESUMED during the teardown.
+
+(The user has no adb access, so logcat cannot distinguish these — the build below makes the error
+TEXT do it instead.)
+
+### 19.2 Verified against RN 0.86.2 sources (this round)
+
+- `FabricUIManager.scheduleMountItem` queues `BatchMountItem`s off the UI thread; dispatch relies
+  SOLELY on `DispatchUIFrameCallback` (scheduled only by `onHostResume`). ✓
+- `ReactHostImpl.onHostResume → ReactLifecycleStateManager.moveToOnHostResume(currentContext,
+  activity)` fires `ReactContext.onHostResume` ONLY if `currentReactContext != null`; otherwise it
+  just sets the lifecycle state to RESUMED and the listeners NEVER fire (the "host resumed but
+  context never resumed" case). ✓
+- `ReactHostImpl.getOrCreateReactInstanceTask`'s `lifecycleUpdateTask` calls
+  `resumeReactContextIfHostResumed` ONCE when the instance is created — if the host was already
+  RESUMED at that point it fires the context resume mid-bootstrap (the §16/§17 destroy loop). ✓
+- C++ `Scheduler::uiManagerDidFinishTransaction` → `runtimeScheduler_->scheduleRenderingUpdate`
+  → `schedulerShouldRenderTransactions` → `FabricMountingManager::executeMount` →
+  `FabricUIManager.scheduleMountItem` (JS thread). ✓
+- `GuardedFrameCallback`/`DispatchUIFrameCallback.doFrameGuarded` → `tryDispatchMountItems` on
+  every frame once scheduled. ✓
+- `ReactContext.getLifecycleState()` (public) vs `ReactHost.lifecycleState` can diverge — the
+  former proves whether the resume actually reached the listeners. ✓
+
+### 19.3 The fix (KickKeyInputMethodService.kt + KickKeyApplication.kt)
+
+**A. Self-diagnosing watchdog — the error text now names the exact failure stage.**
+
+- **Frame-pump probe**: a one-shot `ReactChoreographer` DISPATCH_UI frame callback is posted;
+  when it fires, `framePumpAlive=true` (proves the Choreographer ticks in the IME process).
+  Result surfaced as `framePump=alive` vs `stalled/unknown` in the error text — distinguishes
+  failure mode 2 from 1/3.
+- **`reactContextLifecycle`** (the ReactContext's OWN lifecycle state, public
+  `ReactContext.getLifecycleState()`) is added to the error text alongside the host lifecycle.
+  `host=RESUMED/ctx=BEFORE_CREATE` = the resume never reached the listeners (failure mode 3's
+  null-context variant); `ctx=RESUMED` + `children=0` = the pump is alive but mount items never
+  arrived (failure mode 1).
+- **`lifecycleHistory`** records host/ctx states at every watchdog check — a
+  RESUMED → BEFORE_CREATE flip mid-watch = the host was destroyed after resume.
+
+**B. Self-healing: direct context resume + layout nudge.**
+
+- After `host.onHostResume(null)`, if the ReactContext is still not RESUMED, the service calls
+  `currentReactContext?.onHostResume(null)` DIRECTLY (public API) — this fires the
+  FabricUIManager listener → `DispatchUIFrameCallback.resume()` even when the host-level resume
+  skipped the context. The watchdog's belt-and-suspenders branch does the same on every check.
+- The watchdog calls `view.requestLayout()` per check — pushes the current EXACT constraints into
+  C++ again, producing a fresh commit + mount transaction if the first one was ever lost.
+
+**C. Fresh-host recovery (KickKeyApplication.resetKeyboardHostForRetry()).**
+
+- New public method on `KickKeyApplication`: nulls the cached keyboard ReactHost (under the same
+  lock as init) and fires `destroy()` on the old one. The next keyboard open lazily creates a
+  brand-new `ReactHostImpl` → new `ReactInstance` → new `FabricUIManager` / `MountItemDispatcher`.
+- Called when the watchdog gives up with `jsReady=true` (the mount pipeline wedged or the host
+  was destroyed) and when the destroyed-host state is detected mid-watch. A one-time startup
+  fault therefore heals on the next open instead of failing forever; if the fault is systematic,
+  the richer error text now says exactly where.
+
+### 19.4 Expected logcat on a working build (unchanged)
+
+```
+KickKeyIME: Keyboard ReactHost resumed (lifecycle=RESUMED, ctx=RESUMED)
+KickKeyIME: Frame pump ALIVE — Choreographer ticks in the IME process
+KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+```
+
+### 19.5 How to verify / what to paste back if it still fails
+
+```sh
+# Rebuild & install (native change — prebuild + gradle):
+eas build --platform android --profile production   # or npx expo run:android
+
+# Open any text field → keys appear immediately.
+```
+
+If it still fails, the error text now disambiguates the three modes:
+
+- `framePump=stalled/unknown` → the IME process Choreographer doesn't tick; next step is running
+  the IME in the main process (drop `android:process=":ime_process"`) or driving mount dispatch
+  from a manual pump.
+- `framePump=alive reactContextLifecycle=BEFORE_CREATE` → resume never reached the listeners;
+  the direct-context-resume path is the fix (already in this build) — verify it logged
+  "Direct-resuming ReactContext".
+- `framePump=alive reactContextLifecycle=RESUMED children=0` → mount items never arrive from
+  C++; next step is forcing fresh commits/constraints from Java or a C++-level investigation of
+  `scheduleRenderingUpdate` delivery.
+- `lifecycleHistory` containing `host=BEFORE_CREATE` after a `host=RESUMED` entry → the host was
+  destroyed after resume (listener exception); the fresh-host reset (this build) heals the next
+  open.
+
+---
+
+## 20. Round 9 (2026-08-12) — THE REAL ROOT CAUSE: the JS event loop goes idle, so C++ never executes the mount transaction (REAL FIX)
+
+Still reported after §19 with the full §19 diagnostics:
+
+```
+KickKey Error: Keyboard mounted but not visible — jsReady=true view=1080×1100 children=0
+— Fabric mount dispatcher stalled (ReactHost lifecycle=RESUMED reactContextLifecycle=RESUMED
+framePump=alive host=RESUMED/ctx=RESUMED ... resumeAttempts=1 resumeError=none); ...
+```
+
+`jsReady=true` + `host/ctx=RESUMED` + `framePump=alive` + `children=0` **forever** — even after
+§19's direct-context resume, `kickkey_forceRerender` re-renders and `requestLayout` nudges — was
+impossible to explain with any Java-side lifecycle issue. Every link of the mount pipeline was
+re-verified line-by-line against the ACTUAL RN 0.86.2 sources installed in `node_modules` and the
+real culprit is on the **C++ side**, in the **Modern RuntimeScheduler**:
+
+### 20.1 The mechanism (verified in RN 0.86.2 sources)
+
+- `ShadowTree::commit()` → `mount()` → `delegate_.shadowTreeDidFinishTransaction()` →
+  `Scheduler::uiManagerDidFinishTransaction()` → **`runtimeScheduler_->scheduleRenderingUpdate(...)`**
+  (`RuntimeScheduler_Modern.cpp`).
+- **`scheduleRenderingUpdate()` only PUSHES the update into `pendingRenderingUpdates_`.** It does
+  NOT execute it (`RuntimeScheduler_Modern.cpp:187-194`).
+- The queue is drained **ONLY inside `updateRendering()`, which runs exclusively at the END of a
+  JS event-loop task** (`RuntimeScheduler_Modern.cpp:322`, called from `executeEventLoopTask`).
+- A normal RN app's JS keeps scheduling work (timers, rAF, animations, React's own follow-up
+  tasks), so the mount transaction is flushed on the very next event-loop task and reaches Java
+  via `FabricMountingManager::executeMount` → `FabricUIManager.scheduleMountItem`.
+- **The keyboard bundle is STATIC.** After the initial `runApplication` + commit, the JS event
+  loop has nothing left to do and goes IDLE. `pendingRenderingUpdates_` is never drained, the
+  mount transaction is never executed, `scheduleMountItem` is never called, and the
+  `ReactSurfaceView` keeps 0 children forever — while JS, host, context and frame pump are all
+  perfectly healthy. This is EXACTLY the observed error text.
+
+This also explains why every previous fix failed:
+- Resume / direct-context resume / frame pump (Java) — the items never arrive in Java, so the
+  dispatch side has nothing to apply.
+- `requestLayout()` — `SurfaceHandler::constraintLayout()` early-returns when the constraints are
+  UNCHANGED, so it produces no new commit.
+- `kickkey_forceRerender` re-render (`setTick`) — re-rendering an IDENTICAL tree produces an
+  EMPTY diff → no new mount transaction → nothing new to flush.
+
+### 20.2 The fix (keyboard.index.js — the JS bundle, no native pipeline surgery)
+
+**A. Mount-pipeline pump.** The keyboard root now runs a no-op `setInterval` (~33ms / 30fps) for
+as long as the keyboard is mounted. Every tick is an event-loop task; at its end
+`RuntimeScheduler_Modern::updateRendering()` drains `pendingRenderingUpdates_`, so any pending
+mount transaction (the initial one, and every later commit from key presses / layout switches /
+suggestions) is executed → delivered to Java → applied by the resumed `DispatchUIFrameCallback`.
+
+**B. Real remount instead of a no-op re-render.** `kickkey_forceRerender` (emitted by the IME
+service's resume path and a new fast mount-retry loop) now bumps the `key` of the `KeyboardScreen`
+subtree, so React UNMOUNTS and REMOUNTS the whole keyboard — generating a complete, guaranteed-
+fresh set of CREATE/INSERT mount mutations. This is the safety net for the case where the very
+first commit's transaction was lost before the pump was running.
+
+**C. Fast mount-retry loop (KickKeyInputMethodService).** While `jsReady=true` and `children=0`,
+the service now re-emits `kickkey_forceRerender` every 1s (plus a delayed `onInputStarted` re-emit
+so a remounted JS subtree restores its number/phone/password/imeAction state), so the keyboard
+recovers in ~1–2s instead of waiting for the 8s startup watchdog. The watchdog still owns the
+final error view if it never recovers.
+
+**D. New diagnostic `jsPump=active|inactive`** in the watchdog error text (`KickKeyModule.
+notifyPumpActive()` is called once by the pump) — a residual failure now says whether the JS fix
+is actually running on the device.
+
+### 20.3 Why this is correct, not a hack
+
+The pump makes the keyboard's JS runtime behave exactly like a normal RN app's: an event loop
+that is never empty, so the C++ scheduler's "update the rendering" step (a spec-compliant part of
+the event loop, mirroring the WHATWG "update the rendering" step) runs continuously. RN itself
+depends on this behaviour; the keyboard bundle simply had no recurring work.
+
+### 20.4 How to verify
+
+```sh
+# Rebuild & install (JS bundle change is picked up by the gradle keyboard-bundle task):
+eas build --platform android --profile production   # or npx expo run:android
+
+# Open any text field → keys appear immediately (and stay live when typing).
+# Logcat (adb logcat | grep -E 'KickKey|ReactHost|ReactNative'):
+#   KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+```
+
+If it STILL fails, the error text now includes `jsPump=active|inactive`:
+
+- `jsPump=inactive` → the JS bundle on the device is stale (fix not deployed); rebuild.
+- `jsPump=active` + `children=0` → the pump is running but C++ still never delivers mount items;
+  that points to the surface having been started non-mountable (Suspended commit mode) or a
+  destroyed/recreated FabricUIManager — next step is forcing a fresh surface start (`surface.stop()`
+  + `start()`) or dropping `android:process=":ime_process"`.

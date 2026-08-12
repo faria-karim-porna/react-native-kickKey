@@ -29,6 +29,34 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         // on the main thread (IME watchdog) — needs cross-thread visibility.
         @Volatile
         var keyboardJsReady: Boolean = false
+
+        // Captured ReactContext when keyboardReady() is called from JS.
+        // In RN 0.86's new architecture, host.currentReactContext can return null
+        // even after the host reaches RESUMED state (a known issue in headless/IME
+        // contexts). Since keyboardReady() is a @ReactMethod, the ReactContext must
+        // exist when it runs — storing it here gives the IME watchdog a reliable
+        // fallback to directly resume Fabric's DispatchUIFrameCallback.
+        // @Volatile: written on the native-modules thread, read on the main thread.
+        @Volatile
+        var keyboardReactContext: ReactApplicationContext? = null
+
+        // Set to true when the keyboard JS calls notifyPumpActive() from the mount-
+        // pipeline pump (a no-op setInterval that keeps the JS event loop alive so the
+        // C++ RuntimeScheduler's updateRendering() drains pending Fabric mount
+        // transactions — the fix for the children=0 black keyboard). Surfaced in the
+        // watchdog error text (jsPump=active) so a residual failure can distinguish
+        // "JS fix not deployed" from "pipeline still blocked downstream".
+        // @Volatile: written on the native-modules thread, read on the main thread.
+        @Volatile
+        var keyboardPumpActive: Boolean = false
+
+        // The most recent onInputStarted parameters. Re-emitted by the IME service after
+        // a kickkey_forceRerender remount, because a remount re-creates the JS keyboard
+        // subtree and its input-type state (number/phone/password/imeAction) is reset —
+        // without this a number field would show the default QWERTY layout after a remount.
+        // @Volatile: written/read on the main thread (IME service).
+        @Volatile
+        var lastInputStartedParams: ReadableMap? = null
     }
 
     override fun getName(): String = "KickKey"
@@ -47,7 +75,17 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun keyboardReady(promise: Promise) {
         keyboardJsReady = true
+        // Capture the ReactContext while it definitely exists (we're inside a
+        // @ReactMethod, so the bridge/context is live). The IME watchdog uses this
+        // fallback when host.currentReactContext returns null (RN 0.86 headless bug).
+        keyboardReactContext = reactApplicationContext
         Log.i("KickKeyModule", "JS keyboard mounted and ready — React surface is rendering")
+        promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun notifyPumpActive(promise: Promise) {
+        keyboardPumpActive = true
         promise.resolve(null)
     }
 

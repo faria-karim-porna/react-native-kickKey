@@ -154,7 +154,12 @@ class SuggestionEngine(private val context: Context) {
     private fun emitSuggestions() {
         try {
             val app = context.applicationContext as KickKeyApplication
-            val reactContext = app.keyboardReactHost.currentReactContext ?: return
+            // Fallback: use stored ReactContext when host.currentReactContext is null
+            var reactContext = app.keyboardReactHost.currentReactContext
+            if (reactContext == null) {
+                reactContext = KickKeyModule.keyboardReactContext
+            }
+            if (reactContext == null) return
 
             val params = Arguments.createMap()
             val arr = Arguments.createArray()

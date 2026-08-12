@@ -79,6 +79,38 @@ class KickKeyApplication : Application(), ReactApplication {
         )
         }
 
+    /**
+     * Tears down the keyboard ReactHost so the NEXT keyboard open creates a completely fresh
+     * React pipeline (new ReactInstance → new FabricUIManager → new MountItemDispatcher).
+     *
+     * Used by the IME watchdog when the host was destroyed mid-session (a lifecycle-listener
+     * exception inside ReactContext.onHostResume() → ReactHost.destroy()) or when the Fabric
+     * mount pipeline wedged. A one-time startup fault often resolves itself on the next open
+     * with a clean host; without this, a wedged host would keep failing every open.
+     *
+     * Safe to fire-and-forget: destroy() is asynchronous, and the keyboardReactHost getter
+     * lazily re-initializes a new host on the next access (initKeyboardRuntime is guarded by
+     * keyboardInitLock, so a concurrent access cannot double-create).
+     */
+    fun resetKeyboardHostForRetry() {
+        // Guard with the same lock initKeyboardRuntime uses, so a concurrent getter cannot
+        // re-create a host between the null-out and the destroy below.
+        val oldHost: ReactHost?
+        synchronized(keyboardInitLock) {
+            oldHost = _keyboardReactHost
+            _keyboardReactHost = null
+            _keyboardHostReady = false
+            keyboardStartTask = null
+        }
+        if (oldHost == null) return
+        try {
+            oldHost.destroy("KickKey watchdog: resetting keyboard host for next open", null)
+        } catch (e: Exception) {
+            Log.w(TAG, "Keyboard host destroy during reset failed: ${e.message}")
+        }
+        Log.i(TAG, "Keyboard ReactHost marked for teardown — next open will create a fresh host")
+    }
+
     override fun onCreate() {
         super.onCreate()
 
@@ -137,10 +169,12 @@ class KickKeyApplication : Application(), ReactApplication {
                 override val jsRuntimeFactory: JSRuntimeFactory
                     get() = HermesInstance()
 
-                // Only include the KickKey native module — no Expo modules needed
-                // for the keyboard bundle running in the IME process
+                // Includes MainReactPackage (via PackageList) for standard React Native core view managers
+                // (View, Text, TouchableOpacity, etc.) + KickKeyPackage for native IME bridge methods
                 override val reactPackages: List<ReactPackage>
-                    get() = listOf(KickKeyPackage())
+                    get() = PackageList(this@KickKeyApplication).packages.apply {
+                        if (none { it is KickKeyPackage }) add(KickKeyPackage())
+                    }
 
                 override val bindingsInstaller: BindingsInstaller? = null
 
