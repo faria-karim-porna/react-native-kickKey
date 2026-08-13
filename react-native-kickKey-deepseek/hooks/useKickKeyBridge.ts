@@ -12,6 +12,9 @@ export function useKickKeyBridge() {
     openKeyboardSettings: (): void => {
       if (isAvailable) KickKey.openKeyboardSettings();
     },
+    showInputMethodPicker: (): void => {
+      if (isAvailable) KickKey.showInputMethodPicker();
+    },
 
     savePreferences: (prefs: Record<string, any>): Promise<void> =>
       isAvailable ? KickKey.savePreferences(prefs) : Promise.resolve(),

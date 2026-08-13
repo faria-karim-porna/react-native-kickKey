@@ -8,6 +8,9 @@ export default {
   isKeyboardEnabled:    (): Promise<boolean>            => KickKey.isKeyboardEnabled(),
   openKeyboardSettings: (): void                        => KickKey.openKeyboardSettings(),
 
+  /** Shows the system "Choose input method" picker to set the current keyboard. */
+  showInputMethodPicker: (): void                       => KickKey.showInputMethodPicker(),
+
   // ── Phase 2 ───────────────────────────────────────────────────────────────
   commitKey:       (code: string, language: string): Promise<void> => KickKey.commitKey(code, language),
   sendBackspace:   (): Promise<void>                               => KickKey.sendBackspace(),

@@ -8,7 +8,7 @@ import { useKickKeyBridge } from '../../hooks/useKickKeyBridge';
 export default function Step2Default() {
   const router = useRouter();
   const { isDefault } = useSetupStatus();
-  const { openKeyboardSettings } = useKickKeyBridge();
+  const { showInputMethodPicker } = useKickKeyBridge();
 
   useEffect(() => {
     if (isDefault) {
@@ -33,7 +33,7 @@ export default function Step2Default() {
         <Text style={styles.cardStep}>3. Come back to this app</Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={() => openKeyboardSettings()}>
+      <TouchableOpacity style={styles.button} onPress={() => showInputMethodPicker()}>
         <Text style={styles.buttonText}>Set Default Keyboard</Text>
       </TouchableOpacity>
 

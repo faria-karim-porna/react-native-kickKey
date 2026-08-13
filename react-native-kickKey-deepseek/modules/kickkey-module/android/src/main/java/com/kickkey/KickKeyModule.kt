@@ -288,5 +288,16 @@ class KickKeyModule : Module() {
             ).apply { flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK }
             context.startActivity(intent)
         }
+
+        // Show the system "Choose input method" picker so the user can select
+        // KickKey as the current (default) keyboard. Works on every Android
+        // version/device, unlike Settings.ACTION_INPUT_METHOD_SETTINGS which
+        // on Android 12+ only opens the "Available on-screen keyboards" list.
+        Function("showInputMethodPicker") {
+            val context = appContext.reactContext ?: return@Function
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE)
+                    as android.view.inputmethod.InputMethodManager
+            imm.showInputMethodPicker()
+        }
     }
 }

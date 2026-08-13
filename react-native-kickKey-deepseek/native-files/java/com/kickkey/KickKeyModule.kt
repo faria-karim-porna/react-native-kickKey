@@ -376,4 +376,18 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         context.startActivity(intent)
         promise.resolve(null)
     }
+
+    @ReactMethod
+    fun showInputMethodPicker(promise: Promise) {
+        // Show the system "Choose input method" picker so the user can select
+        // KickKey as the current (default) keyboard. This is the standard
+        // "set as default" flow (used by Gboard) and works on every Android
+        // version/device, unlike Settings.ACTION_INPUT_METHOD_SETTINGS which
+        // on Android 12+ only opens the "Available on-screen keyboards" list.
+        val context = reactApplicationContext
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE)
+                as android.view.inputmethod.InputMethodManager
+        imm.showInputMethodPicker()
+        promise.resolve(null)
+    }
 }
