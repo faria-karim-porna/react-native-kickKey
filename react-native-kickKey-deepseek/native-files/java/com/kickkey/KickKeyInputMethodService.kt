@@ -637,10 +637,12 @@ class KickKeyInputMethodService : InputMethodService() {
         // A newer open (or a teardown / watchdog give-up) bumped the generation — stop this
         // stale chain so it can never resume the wrong lifecycle or leak for 30s.
         if (generation != resumeGeneration) return
-        // 120 × 250ms = 30s — comfortably beyond the watchdog's 17s give-up window, so a very
+        // 600 × 50ms = 30s — comfortably beyond the watchdog's 17s give-up window, so a very
         // slow cold start (RN init + 1.2MB Hermes bundle + Fabric setup on slow hardware) still
-        // gets its resume.
-        if (attempt >= 120) {
+        // gets its resume. The 50ms poll (instead of 250ms) minimizes the black-screen window
+        // after the JS signals readiness: the resume — and therefore the first visible keys —
+        // now land within ~1 frame of keyboardReady() instead of up to a quarter second later.
+        if (attempt >= 600) {
             Log.w(TAG, "scheduleJsReadyResume: JS never signalled readiness — watchdog will surface the failure")
             return
         }
@@ -662,7 +664,7 @@ class KickKeyInputMethodService : InputMethodService() {
             } catch (e: Exception) {
                 Log.w(TAG, "pollJsReadyResume failed: ${e.message}")
             }
-        }, 250)
+        }, 50)
     }
 
     private fun resumeKeyboardHost(host: ReactHost) {

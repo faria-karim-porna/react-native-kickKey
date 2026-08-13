@@ -2,6 +2,7 @@ package com.kickkey
 
 import android.app.Application
 import android.content.res.Configuration
+import android.os.Build
 import android.util.Log
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -57,6 +58,24 @@ class KickKeyApplication : Application(), ReactApplication {
 
     // Class-level lock for keyboard ReactHost initialization
     private val keyboardInitLock = Any()
+
+    // Whether this process is the dedicated IME process (KickKeyInputMethodService is
+    // declared with android:process=":ime_process"). Application.getProcessName() is
+    // API 28+; older versions read /proc/self/cmdline.
+    private val isImeProcess: Boolean by lazy {
+        val name = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            try {
+                java.io.File("/proc/self/cmdline")
+                    .readBytes().toString(Charsets.US_ASCII)
+                    .substringBefore('\u0000')
+            } catch (e: Exception) {
+                null
+            }
+        }
+        name?.endsWith(":ime_process") == true
+    }
 
     val isKeyboardHostReady: Boolean
         get() = _keyboardHostReady
@@ -138,11 +157,34 @@ class KickKeyApplication : Application(), ReactApplication {
         // ── Initialize Expo module lifecycle ──
         ApplicationLifecycleDispatcher.onApplicationCreate(this)
 
-        // NOTE: Keyboard ReactHost is NOT pre-warmed at app startup.
-        // Pre-warming triggered SoLoader.loadLibrary() in ComponentFactory.<clinit>
-        // before SoLoader was initialized, causing a race condition.
-        // The keyboard ReactHost is instead initialized lazily when the
-        // keyboard is first opened (via keyboardReactHost getter).
+        // ── Pre-warm the keyboard ReactHost in the IME process ────────────────
+        // The IME process exists ONLY to serve the keyboard, so warming the host
+        // here — immediately after loadReactNative() has initialized SoLoader —
+        // moves the expensive startup steps (ComponentFactory creation + the
+        // ~911KB Hermes keyboard.bundle load) OUT of the critical path of the first
+        // keyboard open. Without this the host was initialized lazily on the main
+        // thread inside KickKeyInputMethodService.onCreateInputView(), right as the
+        // input window was appearing — the user saw a black keyboard area for
+        // 1–3s before the keys mounted.
+        //
+        // Safe now: the pre-warm that previously crashed ran BEFORE loadReactNative()
+        // existed, so ComponentFactory.<clinit> → SoLoader.loadLibrary("fabricjni")
+        // raced an uninitialized SoLoader. loadReactNative() initializes SoLoader
+        // first, so touching ComponentFactory here is race-free.
+        //
+        // Guarded to :ime_process: the MAIN app process also runs this Application,
+        // but its users may never open the keyboard — it must not burn a Hermes
+        // runtime + 911KB bundle there.
+        if (isImeProcess) {
+            try {
+                keyboardReactHost // lazy getter → initKeyboardRuntime() + host.start()
+                Log.i(TAG, "Keyboard ReactHost pre-warmed in IME process")
+            } catch (e: Throwable) {
+                // Best-effort: on failure the lazy getter retries on the first
+                // keyboard open (existing behavior).
+                Log.w(TAG, "Keyboard ReactHost pre-warm failed — will retry on first open", e)
+            }
+        }
     }
 
     @OptIn(UnstableReactNativeAPI::class)

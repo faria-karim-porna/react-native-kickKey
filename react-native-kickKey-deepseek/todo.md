@@ -1,6 +1,6 @@
 Email: educationworldfkp@gmail.com
-Download Link: https://expo.dev/artifacts/eas/F2yk-L8qUOr5TbpA9oiMTKFUQ42hPquYWn55Pr53ovs.apk
-Status: Fix keyboard Default View Settings
+Download Link: https://expo.dev/artifacts/eas/cMFhYJAF_q2BY-ZWqmzjJQmcOHlW-2P7Fs0mEZ9dvYU.apk
+Status: Try To Fix Keyboard Key Delay
 
 1. [Done] Fix keyboard Default View Settings
 2. Fix The Delay In The UI
