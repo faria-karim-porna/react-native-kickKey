@@ -127,7 +127,7 @@ export default function EmojiPanel({ theme, onEmojiSelect, onClose }: EmojiPanel
 }
 
 const styles = StyleSheet.create({
-  panel: { width: '100%', height: 260 },
+  panel: { width: '100%', flex: 1 },
   tabs: { height: 40, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#2a2a3e' },
   tabsContent: { alignItems: 'center', paddingHorizontal: 4 },
   tab: {

@@ -130,7 +130,7 @@ export default function KeyboardScreen() {
 const styles = StyleSheet.create({
   keyboard: {
     width: '100%',
-    minHeight: 280,
+    flex: 1,
     paddingBottom: 6,
   },
 });

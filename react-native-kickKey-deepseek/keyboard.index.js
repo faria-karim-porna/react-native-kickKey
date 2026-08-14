@@ -64,7 +64,18 @@ if (global.HermesInternal == null) {
  * a keyboard, and the same mechanism guarantees every LATER commit (key presses, layout
  * switches, suggestions) is flushed promptly instead of silently stalling again.
  */
-const MOUNT_PUMP_INTERVAL_MS = 33;
+const MOUNT_PUMP_INTERVAL_MS = 16; // ~60fps — flush Fabric mount transactions promptly
+
+// ── Early mount-pipeline pump ─────────────────────────────────────────────────
+// Start the pump at MODULE LOAD time (before React renders) so the very first
+// Fabric commit's mount transactions are flushed immediately, without waiting
+// for a useEffect to register the interval after React mount.
+// See the comment above for a full explanation of WHY this pump is necessary.
+const _mountPumpId = setInterval(() => {
+  // No-op by design — the mere existence of this callback keeps the JS event
+  // loop alive; updateRendering() runs at the end of each task and drains the
+  // pending Fabric mount-transaction queue.
+}, MOUNT_PUMP_INTERVAL_MS);
 
 // Remount counter: bumped to force a REAL remount (via the `key` below) so React emits
 // a complete set of CREATE/INSERT mount mutations — a guaranteed-fresh Fabric transaction.
@@ -89,23 +100,18 @@ function KickKeyKeyboardRoot() {
     }
   }, []);
 
-  // ── Mount-pipeline pump (see comment above) ─────────────────────────────────
-  // Keeps the JS event loop from going idle so the C++ RuntimeScheduler's
-  // updateRendering() step flushes pending Fabric mount transactions to Java.
+  // ── Mount-pipeline pump diagnostic ──────────────────────────────────────────
+  // The pump itself is started at module scope (above) so it fires before the
+  // first React commit. Here we just notify native that the pump is active so
+  // the watchdog error text can distinguish "JS fix not deployed" from
+  // "pipeline still blocked downstream".
   useEffect(() => {
-    const id = setInterval(() => {
-      // No-op by design — the mere existence of this callback keeps the event loop
-      // alive; updateRendering() runs at the end of this task and drains the queue.
-    }, MOUNT_PUMP_INTERVAL_MS);
-    // Diagnostic: tell native the pump is running so the watchdog error text can
-    // distinguish "JS fix not deployed" from "pipeline still blocked downstream".
     try {
       const p = NativeModules.KickKey?.notifyPumpActive?.();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (e) {
       console.warn('[KickKey] notifyPumpActive failed:', e);
     }
-    return () => clearInterval(id);
   }, []);
 
   // Listen for the native forceRerender event. This is emitted by the IME watchdog

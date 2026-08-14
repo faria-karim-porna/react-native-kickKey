@@ -109,7 +109,7 @@ export default function ClipboardPanel({ theme, onPaste, onClose }: ClipboardPan
 }
 
 const styles = StyleSheet.create({
-  panel: { width: '100%', height: 260 },
+  panel: { width: '100%', flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

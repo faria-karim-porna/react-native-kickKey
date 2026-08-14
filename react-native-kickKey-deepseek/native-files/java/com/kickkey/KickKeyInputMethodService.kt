@@ -22,12 +22,10 @@ class KickKeyInputMethodService : InputMethodService() {
 
     companion object {
         private const val TAG = "KickKeyIME"
-        // Keyboard height in dp. Must fit the FULL JS keyboard content, which is
+        // Keyboard height in dp. Exactly matches the FULL JS keyboard content:
         // ~354dp with the default theme (header 28 + suggestion bar 40 + 4 rows ×
-        // (keyHeight 48 + 8 margin) + bottom row 56 + padding 6) and grows with
-        // the key-height slider (40–60dp). 400dp covers every keyHeight up to
-        // ~57dp without clipping the bottom row.
-        private const val KEYBOARD_HEIGHT_DP = 400
+        // (keyHeight 48 + 8 margin) + bottom row 56 + padding 6).
+        private const val KEYBOARD_HEIGHT_DP = 354
         // First watchdog check after this delay, then re-check periodically. The
         // FIRST cold start after install is slow (RN init + 911KB Hermes bundle +
         // Fabric setup can exceed 8s on slow hardware), so we retry a few times
@@ -89,44 +87,32 @@ class KickKeyInputMethodService : InputMethodService() {
         } catch (e: Exception) {
             Log.w(TAG, "Sound pool preload failed: ${e.message}")
         }
+
+        // Pre-warm the React surface immediately on IME service creation
+        try {
+            ensureSurfaceCreated()
+            Log.i(TAG, "Pre-warmed keyboard ReactSurface in IME service onCreate")
+        } catch (e: Throwable) {
+            Log.w(TAG, "Pre-warming surface failed in onCreate: ${e.message}")
+        }
     }
 
-    override fun onCreateInputView(): View {
-        Log.i(TAG, "onCreateInputView (keyboardHeightPx=${keyboardHeightPx})")
-
-        // Dispose previous surface if any
-        disposeSurface()
-
-        // Reset the JS mount signal and per-open diagnostics for this open cycle
-        KickKeyModule.keyboardJsReady = false
-        KickKeyModule.keyboardPumpActive = false
-        KickKeyModule.lastInputStartedParams = null
-        framePumpAlive = false
-        framePumpPosted = false
-        framePumpProbeLogged = false
-        hostLifecycleHistory.clear()
-
-        // Fail fast with a VISIBLE error instead of a silent blank keyboard if
-        // the keyboard JS bundle is missing or corrupt in the APK. Previously a
-        // missing assets://keyboard.bundle produced an empty transparent area
-        // with no explanation.
-        val bundleProblem = verifyKeyboardBundle()
-        if (bundleProblem != null) {
-            Log.e(TAG, "keyboard.bundle problem: $bundleProblem")
-            return createFallbackView(bundleProblem)
+    private fun ensureSurfaceCreated(): View? {
+        val existingContainer = keyboardContainer
+        val existingSurface = reactSurface
+        if (existingContainer != null && existingSurface != null && safeIsRunning(existingSurface)) {
+            val parent = existingContainer.parent as? android.view.ViewGroup
+            parent?.removeView(existingContainer)
+            return existingContainer
         }
 
         try {
             val app = application as? KickKeyApplication ?: run {
-                Log.e(TAG, "KickKeyApplication not found"); return createFallbackView("KickKeyApplication not found")
+                Log.e(TAG, "KickKeyApplication not found")
+                return null
             }
             Log.i(TAG, "Accessing keyboardReactHost...")
             val host = app.keyboardReactHost
-
-            // The keyboard ReactHost is resumed by scheduleJsReadyResume() below — and ONLY
-            // after the JS signals it has fully mounted (keyboardJsReady). Resuming before
-            // the instance existed (a previous iteration) broke JS startup in release builds
-            // (see KickKeyApplication.initKeyboardRuntime for details).
 
             Log.i(TAG, "Creating React surface...")
             val surface = host.createSurface(this, "KickKeyKeyboard", null)
@@ -137,42 +123,12 @@ class KickKeyInputMethodService : InputMethodService() {
             val surfaceView = surface.view
             if (surfaceView != null) {
                 Log.i(TAG, "Keyboard surface view created — wrapping in FrameLayout")
-
-                // ── CRITICAL: deterministic keyboard sizing ────────────────────
-                // InputMethodService.setInputView() REMOVES the view returned by
-                // onCreateInputView() from our tree and re-adds it to its input
-                // frame with `FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)`,
-                // silently discarding whatever layout params we set here.
-                //
-                // Under the resulting AT_MOST/UNSPECIFIED measure specs,
-                // ReactSurfaceView.onMeasure() (RN 0.86,
-                // ReactAndroid/.../runtime/ReactSurfaceView.kt) sizes itself from
-                // its children — which are empty until React mounts — so it
-                // measures 0×0. Fabric then lays the whole keyboard out at 0×0:
-                // the window keeps its height but every key is invisible (the
-                // reported black keyboard area).
-                //
-                // A previous attempt re-asserted the container's LayoutParams
-                // from `post {}`, which is timing-dependent (it can be swallowed
-                // or re-replaced by the framework). Instead we override the
-                // container's onMeasure() to FORCE EXACT specs on every measure
-                // pass — width = window width (falling back to the display
-                // width), height = KEYBOARD_HEIGHT_DP in px. The container is
-                // therefore always measured EXACTLY, and its children (the
-                // ReactSurfaceView, MATCH_PARENT × MATCH_PARENT) always receive
-                // EXACTLY specs, so ReactSurfaceView.onMeasure() uses the real
-                // size and passes EXACT layout constraints to Fabric.
                 val container = object : FrameLayout(this) {
                     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
                         var width = MeasureSpec.getSize(widthMeasureSpec)
                         if (width <= 0) {
-                            // Defensive: an UNSPECIFIED/0 spec must not collapse
-                            // the keyboard to zero width.
                             width = resources.displayMetrics.widthPixels
                         }
-                        // Landscape / short screens: never force a height taller
-                        // than ~90% of the display (the system clamps IME windows
-                        // anyway, but a defensive cap avoids fighting it).
                         val height = minOf(
                             keyboardHeightPx,
                             (resources.displayMetrics.heightPixels * 0.9f).toInt().coerceAtLeast(1)
@@ -187,12 +143,7 @@ class KickKeyInputMethodService : InputMethodService() {
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         keyboardHeightPx
                     )
-                    // Belt & suspenders: if the layout params are ever replaced by
-                    // the IME framework (see above), minimumHeight survives because
-                    // it is a View property, not a LayoutParams value.
                     minimumHeight = keyboardHeightPx
-                    // Dark background — matches the default keyboard theme and avoids
-                    // a transparent flash while React loads.
                     setBackgroundColor(0xFF0D0D1A.toInt())
                 }
                 container.addView(surfaceView, FrameLayout.LayoutParams(
@@ -200,12 +151,6 @@ class KickKeyInputMethodService : InputMethodService() {
                     FrameLayout.LayoutParams.MATCH_PARENT
                 ))
 
-                // Diagnostics: log the ACTUAL rendered size of the surface as it
-                // lays out (bounded to the first 3 layouts — the first pass can
-                // legitimately be 0×0 before the container's forced measure takes
-                // effect, so log every layout until it stabilises). A persistent
-                // 0×0 here = sizing regression; full size = sizing is healthy and
-                // the problem (if any) is elsewhere.
                 var surfaceLayoutLogs = 0
                 surfaceView.viewTreeObserver.addOnGlobalLayoutListener(
                     object : ViewTreeObserver.OnGlobalLayoutListener {
@@ -227,48 +172,37 @@ class KickKeyInputMethodService : InputMethodService() {
                 )
                 keyboardContainer = container
 
-                // Resume the keyboard ReactHost once the JS has FULLY mounted
-                // (scheduleJsReadyResume). This is the lifecycle signal that starts Fabric's
-                // DispatchUIFrameCallback — which is what actually applies the JS mount items
-                // to the surface view. Without it the keyboard JS mounts (jsReady=true) but no
-                // views are ever attached (children=0 → black keyboard, §15).
-                //
-                // Resuming on startTask completion (a previous iteration) was wrong in BOTH
-                // directions: an 8s poll could expire before a slow instance finished creating
-                // (→ host stuck BEFORE_CREATE, black keyboard) or fire while the JS bundle was
-                // still executing and kill the host (→ jsReady=false, §16/§17). jsReady only
-                // becomes true after the root committed a frame, i.e. instance, bundle, surface
-                // and modules are all up — the safest possible moment to resume, equivalent to
-                // a normal Activity's onResume() after startup.
                 scheduleJsReadyResume(app)
-
-                // Watchdog: if the surface hasn't started rendering after a timeout,
-                // show a VISIBLE error instead of a silent blank keyboard.
                 scheduleStartupWatchdog(app)
-
-                // Fast mount-retry loop: while the JS has mounted but Fabric still
-                // reports children=0, re-emit kickkey_forceRerender (which now forces a
-                // REAL remount) every second so the keyboard recovers in ~1s instead of
-                // waiting for the 8s startup watchdog to act. Purely additive — the
-                // startup watchdog still owns the final error view.
                 scheduleMountRetry(app)
-
-                // Diagnostics: verify the Choreographer frame pump actually ticks in the IME
-                // process — Fabric's mount dispatch (DispatchUIFrameCallback) depends on it.
-                // The result is surfaced in the watchdog error text. Retried from the watchdog
-                // until RN is initialized enough for ReactChoreographer.getInstance() to work.
                 verifyFramePump()
 
                 Log.i(TAG, "Keyboard view created (surface.isRunning=${safeIsRunning(surface)})")
                 return container
             } else {
-                Log.e(TAG, "surface.view is null — returning fallback")
-                return createFallbackView("surface.view is null")
+                Log.e(TAG, "surface.view is null")
+                return null
             }
         } catch (e: Throwable) {
-            Log.e(TAG, "onCreateInputView FAILED", e)
-            return createFallbackView("Exception: ${e.message}")
+            Log.e(TAG, "ensureSurfaceCreated FAILED", e)
+            return null
         }
+    }
+
+    override fun onCreateInputView(): View {
+        Log.i(TAG, "onCreateInputView (keyboardHeightPx=${keyboardHeightPx})")
+
+        val bundleProblem = verifyKeyboardBundle()
+        if (bundleProblem != null) {
+            Log.e(TAG, "keyboard.bundle problem: $bundleProblem")
+            return createFallbackView(bundleProblem)
+        }
+
+        val container = ensureSurfaceCreated()
+        if (container != null) {
+            return container
+        }
+        return createFallbackView("Unable to create keyboard surface view")
     }
 
     /**
@@ -729,16 +663,16 @@ class KickKeyInputMethodService : InputMethodService() {
             if (rerenderCtx != null && host.lifecycleState == LifecycleState.RESUMED &&
                 surfaceStillEmpty
             ) {
-                mainHandler.postDelayed({
+                mainHandler.post {
                     try {
                         rerenderCtx
                             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                             ?.emit("kickkey_forceRerender", null)
-                        Log.i(TAG, "Emitted kickkey_forceRerender event (ctx=${rerenderCtx.lifecycleState})")
+                        Log.i(TAG, "Emitted kickkey_forceRerender event immediately (ctx=${rerenderCtx.lifecycleState})")
                     } catch (e: Exception) {
                         Log.w(TAG, "kickkey_forceRerender emit failed: ${e.message}")
                     }
-                }, 200) // 200ms delay to let DispatchUIFrameCallback fully initialize
+                }
             }
         } catch (e: Exception) {
             // Never let a resume failure silently kill the keyboard — record it so the
