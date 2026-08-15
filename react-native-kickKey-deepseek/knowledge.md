@@ -55,21 +55,22 @@ hooks/
   useSetupStatus.ts           # Polls keyboard enable/default status
 
 src/keyboard/                 # Keyboard bundle code (loaded in :ime_process)
-  KeyboardScreen.tsx          # Root keyboard component
-  Key.tsx, KeyRow.tsx         # Key rendering with animated scale press (0.88×, 80ms)
-  BottomRow.tsx               # Space bar, language switch, emoji, clipboard buttons
-  SuggestionBar.tsx           # Suggestion chips with autocorrect
-  AltCharsPopup.tsx           # Long-press alt char popup
-  ClipboardPanel.tsx          # Clipboard history panel (tap to paste, long-press to remove)
-  EmojiPanel.tsx              # Emoji picker with 8 category tabs + recent tray
-  KeyboardHeader.tsx          # Header row with input type indicator
-  layouts/                    # Keyboard layout definitions
-    english.ts, bangla.ts, numbers.ts, symbols.ts, index.ts
-  hooks/
-    useKeyboardState.ts, useKeyboardTheme.ts
-  constants/defaultTheme.ts
-  data/emojiData.ts, soundManager.ts
-  types.ts                    # KeyDef, Theme, KeyIcon, KeyAction types
+  KeyboardScreen.tsx          # Root keyboard component (ErrorBoundary + QykeyKeyboard)
+  ErrorBoundary.tsx           # Catches JS errors and shows them on-screen
+  hooks/useKeyboardState.ts   # State + native wiring (en-US / bn-BD / banglish)
+  data/soundManager.ts        # Optional key-click sound
+  qykey/                      # "Chocolate bar" UI ported from the qykey reference
+    QykeyKeyboard.tsx         # Orchestrator (slider, top keys, arrows, main keys, emoji, touchpad)
+    styles.ts                 # Chocolate neumorphic styles (exact qykey look)
+    Key.tsx, MainKeys.tsx     # Chocolate keys + letter rows / bottom row
+    KeyboardSlider.tsx        # Keyboard ⇄ touchpad toggle
+    KeyboardTopKeys.tsx       # Emoji / suggestions / SYM / mic strip
+    SymbolKeys.tsx, SymbolKeysMore.tsx  # Symbol + system-key pages (F-keys)
+    EmojiBoard.tsx            # Emoji picker (data re-exported from qykey/helper/data)
+    Touchpad.tsx              # Mouse-mode surface (visual-only for now)
+    FeatheredArrowKey.tsx     # Arrow glyphs
+    speechRecognition.ts      # Mic stub (RECORD_AUDIO blocked; no speech module)
+    emojiData.ts              # Re-exports qykey/helper/data emojis
 
 store/settingsStore.ts        # Zustand store with AsyncStorage persistence
 

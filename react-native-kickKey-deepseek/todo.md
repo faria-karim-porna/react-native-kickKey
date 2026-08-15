@@ -1,5 +1,5 @@
-Email: educationworldfkp@gmail.com
-Download Link: https://expo.dev/artifacts/eas/aEmn1pRR9HrmOWyTW_-WZkaHncPvxLzvAXwfWwHSEn0.apk
+Email: entertainmentzonefkp@gmail.com
+Download Link: https://expo.dev/artifacts/eas/rzRXIjv_zjqqbpaC7S9yYYpYA02J-5EUjTgU89SRBu8.apk
 Status: Fix Keyboard Key Delay
 
 1. [Done] Fix keyboard Default View Settings

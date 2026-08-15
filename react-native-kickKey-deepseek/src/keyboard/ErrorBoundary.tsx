@@ -1,10 +1,8 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import type { Theme } from './types';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
-  theme: Theme;
 }
 
 interface ErrorBoundaryState {
@@ -31,16 +29,13 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
 
   render() {
     if (this.state.hasError) {
-      const { theme } = this.props;
       return (
-        <View style={[styles.container, { backgroundColor: theme.keyboardBg }]}>
-          <Text style={[styles.title, { color: '#FF5252' }]}>
-            ⚠ Keyboard Error
-          </Text>
-          <Text style={[styles.message, { color: theme.keyText }]}>
+        <View style={styles.container}>
+          <Text style={styles.title}>⚠ Keyboard Error</Text>
+          <Text style={styles.message}>
             {this.state.error?.message ?? 'Unknown error'}
           </Text>
-          <Text style={[styles.hint, { color: theme.altText }]}>
+          <Text style={styles.hint}>
             Check logcat for details: adb logcat | grep KickKey
           </Text>
         </View>
@@ -57,21 +52,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     minHeight: 200,
+    backgroundColor: '#e0e5ec',
   },
   title: {
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 8,
+    color: '#FF5252',
   },
   message: {
     fontSize: 11,
     textAlign: 'center',
     marginBottom: 6,
     lineHeight: 16,
+    color: '#444',
   },
   hint: {
     fontSize: 9,
     textAlign: 'center',
     fontStyle: 'italic',
+    color: '#888',
   },
 });
