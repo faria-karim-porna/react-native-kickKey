@@ -1,6 +1,6 @@
 Email: entertainmentzonefkp@gmail.com
-Download Link: https://expo.dev/artifacts/eas/rzRXIjv_zjqqbpaC7S9yYYpYA02J-5EUjTgU89SRBu8.apk
-Status: Fix Keyboard Key Delay
+Download Link: https://expo.dev/artifacts/eas/U6mmRsLGmoQU5ONgtwWO1ibW4IZsY4zak6eeX7mdGbg.apk
+Status: Add Qykey With Circuit Background
 
 1. [Done] Fix keyboard Default View Settings
 2. [Done] Fix The Delay In The UI

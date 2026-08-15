@@ -71,6 +71,11 @@ src/keyboard/                 # Keyboard bundle code (loaded in :ime_process)
     FeatheredArrowKey.tsx     # Arrow glyphs
     speechRecognition.ts      # Mic stub (RECORD_AUDIO blocked; no speech module)
     emojiData.ts              # Re-exports qykey/helper/data emojis
+    circuit/                  # Animated circuit board behind the keys (qykey port)
+      Circuit.tsx             # Wire/dot generator → SVG layer behind the translucent shell
+      PathWithAnimation.tsx   # Reanimated stroke-dash glow animation (UI thread)
+      Wire.ts, Cell.ts        # Grid-walk wire generation
+      config.ts               # Wire colors, cell size, glow speed
 
 store/settingsStore.ts        # Zustand store with AsyncStorage persistence
 
@@ -108,10 +113,10 @@ Defined in `modules/kickkey-module/index.ts` — calls through to `KickKey` Nati
 - **Expo Router** — File-based routing in `app/`. `_layout.tsx` files define navigators.
 - **Zustand** — Global state management with AsyncStorage persistence (`persist` middleware).
 - **Keyboard bundle is isolated** — `keyboard.index.js` (entry) must NOT import from `app/` or companion code. It renders the `KeyboardScreen` component.
-- **React.memo + useCallback** — Used extensively on `Key`, `KeyRow`, `SuggestionBar` for performance.
+- **React.memo + useCallback** — Used extensively on `Key` and the circuit components for performance.
 - **Hermes JS engine** — Enabled via `app.json`.
 - **Haptic feedback** — Uses `VIBRATE` permission.
-- **Theme system** — `Theme` interface in `src/keyboard/types.ts`, presets in `constants/Themes.ts`, persisted in Zustand.
+- **Fixed light look** — The qykey "chocolate bar" UI replaced the old theme system; no dark mode.
 - **Sound feedback** — Uses `AudioManager.playSoundEffect()`.
 
 ## Notable constraints
@@ -119,10 +124,11 @@ Defined in `modules/kickkey-module/index.ts` — calls through to `KickKey` Nati
 - **Android only** — No iOS support. `app.json` sets `"platforms": ["android"]`.
 - **Min SDK 26** — `app.json` sets `minSdkVersion: 26`.
 - **Target SDK 34** — Android 14 target.
-- **Keyboard bundle ~911 KB** — Keep it lean.
+- **Keyboard bundle ~2.4 MB** — Now includes react-native-svg + react-native-reanimated/worklets (circuit + emoji data). Keep it as lean as features allow.
 - **Dictionary files** — Must compile `.txt` → `.bin` via `scripts/compile_dictionaries.py` before building.
 - **No global package installs** — Don't use `npm install -g`.
 - **Blocked permissions** — READ_CONTACTS, ACCESS_FINE_LOCATION, RECORD_AUDIO are explicitly blocked.
+- **reanimated needs babel plugin** — `babel.config.js` adds `react-native-worklets/plugin` (required by reanimated 4 for the circuit animation). Both bundles share this config.
 
 ## Architecture
 
