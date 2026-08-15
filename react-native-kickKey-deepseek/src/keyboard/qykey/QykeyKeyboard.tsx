@@ -25,6 +25,7 @@ import { MainKeys } from './MainKeys';
 import { Key } from './Key';
 import { KeyboardTopKeys } from './KeyboardTopKeys';
 import { EmojiBoard } from './EmojiBoard';
+import { Circuit } from './circuit/Circuit';
 import { useKeyboardState } from '../hooks/useKeyboardState';
 
 export type AppLanguage = 'en-US' | 'bn-BD' | 'banglish';
@@ -57,86 +58,91 @@ export default function QykeyKeyboard() {
   const emojiModeHandler = () => handleEmojiToggle();
 
   return (
-    <View style={styles.base}>
-      {/* Top Row */}
-      <View style={[styles.line, { justifyContent: 'flex-start' }]}>
-        <KeyboardSlider toggleMode={toggleMode} sliderHandler={sliderHandler} />
-        {!toggleMode ? (
-          <KeyboardTopKeys
-            symHandler={symHandler}
-            emojiModeHandler={emojiModeHandler}
-            language={language}
-            suggestions={suggestions}
-            onSuggestionPress={handleSuggestionSelect}
-          />
-        ) : null}
-      </View>
+    <View style={styles.keyboardContainer}>
+      {/* Circuit board behind the translucent keyboard shell */}
+      <Circuit />
 
-      <View style={styles.mainKeysContainer}>
-        {!toggleMode ? (
-          <>
-            {isEmojiMode ? (
-              <EmojiBoard onEmojiSelect={handleEmojiSelect} />
-            ) : (
-              <View style={styles.line}>
-                {['"', ':', ','].map((k) => (
-                  <Key key={k} onPressHandler={() => handleKeyPress(k)}>
-                    {k}
-                  </Key>
-                ))}
-                <Key functionKey isIcon>
-                  <FeatheredArrowKey direction="left" color="#f2f2f2" />
-                </Key>
-                <Key functionKey isIcon>
-                  <FeatheredArrowKey direction="up" color="#f2f2f2" />
-                </Key>
-                <Key functionKey isIcon>
-                  <FeatheredArrowKey direction="down" color="#f2f2f2" />
-                </Key>
-                <Key functionKey isIcon>
-                  <FeatheredArrowKey direction="right" color="#f2f2f2" />
-                </Key>
-                {['.', ';', '?'].map((k) => (
-                  <Key key={k} onPressHandler={() => handleKeyPress(k)}>
-                    {k}
-                  </Key>
-                ))}
-              </View>
-            )}
+      <View style={styles.base}>
+        {/* Top Row */}
+        <View style={[styles.line, { justifyContent: 'flex-start' }]}>
+          <KeyboardSlider toggleMode={toggleMode} sliderHandler={sliderHandler} />
+          {!toggleMode ? (
+            <KeyboardTopKeys
+              symHandler={symHandler}
+              emojiModeHandler={emojiModeHandler}
+              language={language}
+              suggestions={suggestions}
+              onSuggestionPress={handleSuggestionSelect}
+            />
+          ) : null}
+        </View>
 
-            {!isEmojiMode ? (
-              symbolModeStatus === 0 ? (
-                <MainKeys
-                  onKeyPress={handleKeyPress}
-                  onBackspace={handleBackspace}
-                  onBackspaceRepeatStart={handleBackspaceRepeatStart}
-                  onBackspaceRepeatEnd={handleBackspaceRepeatEnd}
-                  onSpace={handleSpace}
-                  onEnter={handleEnter}
-                  language={language}
-                  onLanguageChange={handleLanguageChange}
-                />
-              ) : symbolModeStatus === 1 ? (
-                <SymbolKeys
-                  onNext={handleSymbolNext}
-                  onKeyPress={handleKeyPress}
-                  onBackspace={handleBackspace}
-                  onEnter={handleEnter}
-                />
+        <View style={styles.mainKeysContainer}>
+          {!toggleMode ? (
+            <>
+              {isEmojiMode ? (
+                <EmojiBoard onEmojiSelect={handleEmojiSelect} />
               ) : (
-                <SystemKeysMore
-                  onPrev={handleSymbolPrev}
-                  onBackspace={handleBackspace}
-                  onEnter={handleEnter}
-                />
-              )
-            ) : null}
-          </>
-        ) : (
-          <View style={styles.touchpadArea}>
-            <Touchpad />
-          </View>
-        )}
+                <View style={styles.line}>
+                  {['"', ':', ','].map((k) => (
+                    <Key key={k} onPressHandler={() => handleKeyPress(k)}>
+                      {k}
+                    </Key>
+                  ))}
+                  <Key functionKey isIcon>
+                    <FeatheredArrowKey direction="left" color="#f2f2f2" />
+                  </Key>
+                  <Key functionKey isIcon>
+                    <FeatheredArrowKey direction="up" color="#f2f2f2" />
+                  </Key>
+                  <Key functionKey isIcon>
+                    <FeatheredArrowKey direction="down" color="#f2f2f2" />
+                  </Key>
+                  <Key functionKey isIcon>
+                    <FeatheredArrowKey direction="right" color="#f2f2f2" />
+                  </Key>
+                  {['.', ';', '?'].map((k) => (
+                    <Key key={k} onPressHandler={() => handleKeyPress(k)}>
+                      {k}
+                    </Key>
+                  ))}
+                </View>
+              )}
+
+              {!isEmojiMode ? (
+                symbolModeStatus === 0 ? (
+                  <MainKeys
+                    onKeyPress={handleKeyPress}
+                    onBackspace={handleBackspace}
+                    onBackspaceRepeatStart={handleBackspaceRepeatStart}
+                    onBackspaceRepeatEnd={handleBackspaceRepeatEnd}
+                    onSpace={handleSpace}
+                    onEnter={handleEnter}
+                    language={language}
+                    onLanguageChange={handleLanguageChange}
+                  />
+                ) : symbolModeStatus === 1 ? (
+                  <SymbolKeys
+                    onNext={handleSymbolNext}
+                    onKeyPress={handleKeyPress}
+                    onBackspace={handleBackspace}
+                    onEnter={handleEnter}
+                  />
+                ) : (
+                  <SystemKeysMore
+                    onPrev={handleSymbolPrev}
+                    onBackspace={handleBackspace}
+                    onEnter={handleEnter}
+                  />
+                )
+              ) : null}
+            </>
+          ) : (
+            <View style={styles.touchpadArea}>
+              <Touchpad />
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );

@@ -13,6 +13,24 @@ import { Dimensions, StyleSheet } from 'react-native';
 const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
+  // Wrapper that layers the circuit board BEHIND the keyboard shell.
+  // The `base` shell is translucent (#e0e5ecac) so the animated wires
+  // show through behind the keys (qykey's design).
+  keyboardContainer: {
+    flex: 1,
+    position: 'relative',
+    alignSelf: 'center',
+    width: '100%',
+  },
+  circuitContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+  },
   base: {
     flex: 1,
     zIndex: 1,

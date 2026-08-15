@@ -10,12 +10,13 @@
     "expo-linking": "~57.0.1",
     "expo-router": "~57.0.9",
     "expo-status-bar": "~57.0.0",
+    "hermes-compiler": "250829098.0.16",
     "react": "19.2.3",
     "react-native": "0.86.2",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "zustand": "^5.0.14",
-    "hermes-compiler": "250829098.0.16"
+    "react-native-svg": "15.15.4",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@react-native-community/cli": "^20.2.0",
