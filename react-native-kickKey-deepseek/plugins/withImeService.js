@@ -42,8 +42,8 @@ function withNativeSourceCopy(config) {
         console.log(`[withImeService] Copied ${files.length} Kotlin files to ${targetJavaDir}`);
       }
 
-      // 2. Copy method.xml
-      const srcXmlFile = path.join(nativeFilesDir, 'res', 'xml', 'method.xml');
+      // 2. Copy res/xml files (method.xml, accessibility_service_config.xml)
+      const srcXmlDir = path.join(nativeFilesDir, 'res', 'xml');
       const targetXmlDir = path.join(
         projectRoot,
         'android',
@@ -54,10 +54,13 @@ function withNativeSourceCopy(config) {
         'xml'
       );
 
-      if (fs.existsSync(srcXmlFile)) {
+      if (fs.existsSync(srcXmlDir)) {
         fs.mkdirSync(targetXmlDir, { recursive: true });
-        fs.copyFileSync(srcXmlFile, path.join(targetXmlDir, 'method.xml'));
-        console.log('[withImeService] Copied method.xml');
+        for (const xmlFile of fs.readdirSync(srcXmlDir)) {
+          if (!xmlFile.endsWith('.xml')) continue;
+          fs.copyFileSync(path.join(srcXmlDir, xmlFile), path.join(targetXmlDir, xmlFile));
+          console.log(`[withImeService] Copied ${xmlFile}`);
+        }
       }
 
       // 3. Copy dictionary binary files
@@ -161,13 +164,17 @@ module.exports = function withImeService(config) {
   // First apply native source copy
   config = withNativeSourceCopy(config);
 
-  // Apply strings.xml updates for ime_name
+  // Apply strings.xml updates for ime_name + accessibility description
   config = withStringsXml(config, (config) => {
     config.modResults = AndroidConfig.Strings.setStringItem(
       [
         {
           $: { name: 'ime_name' },
           _: 'KickKey Keyboard',
+        },
+        {
+          $: { name: 'accessibility_service_description' },
+          _: 'Lets the KickKey touchpad move a mouse cursor and tap/scroll across your screen.',
         },
       ],
       config.modResults
@@ -220,6 +227,47 @@ module.exports = function withImeService(config) {
             $: {
               'android:name': 'android.view.im',
               'android:resource': '@xml/method',
+            },
+          },
+        ],
+      });
+    }
+
+    // 2b. Register the accessibility service (touchpad mouse control).
+    // It runs in the same :ime_process as the IME so the KickKey module can
+    // reach it through statics (no cross-process IPC). Declared BEFORE the
+    // VIBRATE permission block below.
+    if (!application.service) {
+      application.service = [];
+    }
+
+    const mouseServiceRegistered = application.service.some(
+      (s) => s.$?.['android:name'] === '.MouseAccessibilityService'
+    );
+
+    if (!mouseServiceRegistered) {
+      application.service.push({
+        $: {
+          'android:name': '.MouseAccessibilityService',
+          'android:label': 'KickKey Mouse Control',
+          'android:permission': 'android.permission.BIND_ACCESSIBILITY_SERVICE',
+          'android:exported': 'true',
+          'android:process': ':ime_process', // same process as the IME → static bridge
+        },
+        'intent-filter': [
+          {
+            action: [
+              {
+                $: { 'android:name': 'android.accessibilityservice.AccessibilityService' },
+              },
+            ],
+          },
+        ],
+        'meta-data': [
+          {
+            $: {
+              'android:name': 'android.accessibilityservice',
+              'android:resource': '@xml/accessibility_service_config',
             },
           },
         ],

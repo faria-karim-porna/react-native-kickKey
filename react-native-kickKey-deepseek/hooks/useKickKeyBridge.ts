@@ -27,5 +27,11 @@ export function useKickKeyBridge() {
       isAvailable ? KickKey.getDictionaryWords() : Promise.resolve([]),
     removeDictionaryWord: (word: string): Promise<void> =>
       isAvailable ? KickKey.removeDictionaryWord(word) : Promise.resolve(),
+
+    isMouseConnected: (): Promise<boolean> =>
+      isAvailable ? KickKey.isMouseConnected() : Promise.resolve(false),
+    openAccessibilitySettings: (): void => {
+      if (isAvailable) KickKey.openAccessibilitySettings();
+    },
   };
 }

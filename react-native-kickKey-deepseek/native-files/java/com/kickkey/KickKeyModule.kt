@@ -361,6 +361,80 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         promise.resolve(null)
     }
 
+    // ── Mouse / touchpad bridge (MouseAccessibilityService) ────────────────
+    // The touchpad runs in the same :ime_process as this module, so the
+    // service is reached directly through its companion-object statics.
+
+    @ReactMethod
+    fun mouseMove(dx: Float, dy: Float, promise: Promise) {
+        MouseAccessibilityService.moveCursor(dx, dy)
+        promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun mouseClick(promise: Promise) {
+        MouseAccessibilityService.click()
+        promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun mouseRightClick(promise: Promise) {
+        MouseAccessibilityService.rightClick()
+        promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun mouseScroll(dy: Float, promise: Promise) {
+        MouseAccessibilityService.scroll(dy)
+        promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun mouseShowCursor(promise: Promise) {
+        MouseAccessibilityService.showCursor()
+        promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun mouseHideCursor(promise: Promise) {
+        MouseAccessibilityService.hideCursor()
+        promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun isMouseConnected(promise: Promise) {
+        promise.resolve(MouseAccessibilityService.isConnected)
+    }
+
+    @ReactMethod
+    fun openAccessibilitySettings(promise: Promise) {
+        val context = reactApplicationContext
+        try {
+            // Jump straight to the KickKey accessibility toggle page (API 24+).
+            val intent = android.content.Intent(
+                android.provider.Settings.ACTION_ACCESSIBILITY_DETAILS_SETTINGS
+            ).apply {
+                putExtra(
+                    android.content.Intent.EXTRA_COMPONENT_NAME,
+                    android.content.ComponentName(context, MouseAccessibilityService::class.java)
+                )
+                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.w("KickKeyModule", "Open accessibility details failed: ${e.message}")
+            try {
+                val fallback = android.content.Intent(
+                    android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
+                ).apply { flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK }
+                context.startActivity(fallback)
+            } catch (e2: Exception) {
+                Log.w("KickKeyModule", "Open accessibility settings failed: ${e2.message}")
+            }
+        }
+        promise.resolve(null)
+    }
+
     @ReactMethod
     fun getPreferences(promise: Promise) {
         val context = reactApplicationContext

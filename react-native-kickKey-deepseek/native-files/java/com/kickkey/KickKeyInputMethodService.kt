@@ -913,6 +913,8 @@ class KickKeyInputMethodService : InputMethodService() {
         KickKeyModule.activeInputConnection = null
         KickKeyModule.banglaEngine?.reset()
         KickKeyModule.suggestionEngine?.reset()
+        // The keyboard is gone — take the mouse cursor overlay down with it.
+        MouseAccessibilityService.hideCursor()
     }
 
     override fun onDestroy() {
@@ -921,6 +923,8 @@ class KickKeyInputMethodService : InputMethodService() {
         KickKeyModule.banglaEngine     = null
         KickKeyModule.suggestionEngine = null
         KickKeyModule.clipboardHandler = null
+        // In case the window-hidden hook never ran.
+        MouseAccessibilityService.hideCursor()
         super.onDestroy()
         Log.i(TAG, "IME destroyed")
     }

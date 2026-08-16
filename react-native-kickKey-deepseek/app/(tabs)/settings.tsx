@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, SafeAreaView, Pressable, AppState } from 'react-native';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useKickKeyBridge } from '../../hooks/useKickKeyBridge';
 import ToggleRow from '../../components/ToggleRow';
 
 export default function SettingsScreen() {
@@ -12,6 +13,21 @@ export default function SettingsScreen() {
   const toggleSound          = useSettingsStore((s) => s.toggleSound);
   const toggleAutoCorrect     = useSettingsStore((s) => s.toggleAutoCorrect);
   const toggleShowSuggestions  = useSettingsStore((s) => s.toggleShowSuggestions);
+
+  const { isMouseConnected, openAccessibilitySettings } = useKickKeyBridge();
+  const [mouseEnabled, setMouseEnabled] = useState(false);
+
+  const refreshMouseStatus = useCallback(async () => {
+    setMouseEnabled(await isMouseConnected());
+  }, [isMouseConnected]);
+
+  useEffect(() => {
+    refreshMouseStatus();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshMouseStatus();
+    });
+    return () => sub.remove();
+  }, [refreshMouseStatus]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -50,6 +66,28 @@ export default function SettingsScreen() {
           />
         </View>
 
+        <Text style={styles.sectionLabel}>Mouse Control</Text>
+        <View style={styles.card}>
+          <View style={styles.mouseRow}>
+            <View style={styles.mouseTextContainer}>
+              <Text style={styles.mouseLabel}>Touchpad cursor</Text>
+              <Text style={styles.mouseDescription}>
+                {mouseEnabled
+                  ? 'Enabled — drag on the keyboard touchpad to move the cursor'
+                  : 'Needs one-time setup — enable the accessibility service to use the touchpad'}
+              </Text>
+            </View>
+            <Pressable
+              style={[styles.mouseBtn, mouseEnabled && styles.mouseBtnEnabled]}
+              onPress={openAccessibilitySettings}
+            >
+              <Text style={[styles.mouseBtnText, mouseEnabled && styles.mouseBtnTextEnabled]}>
+                {mouseEnabled ? 'Open Settings' : 'Enable'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
         <Text style={styles.footnote}>
           Changes apply automatically the next time you open the keyboard.
         </Text>
@@ -67,5 +105,24 @@ const styles = StyleSheet.create({
     marginBottom: 8, marginTop: 16, letterSpacing: 0.5,
   },
   card: { backgroundColor: '#13132a', borderRadius: 12, paddingHorizontal: 16 },
+  mouseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    gap: 12,
+  },
+  mouseTextContainer: { flex: 1 },
+  mouseLabel: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  mouseDescription: { color: '#888', fontSize: 12, marginTop: 2, lineHeight: 16 },
+  mouseBtn: {
+    backgroundColor: '#00BCD4',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  mouseBtnEnabled: { backgroundColor: '#2a2a40' },
+  mouseBtnText: { color: '#000', fontSize: 13, fontWeight: '700' },
+  mouseBtnTextEnabled: { color: '#fff' },
   footnote: { color: '#555', fontSize: 12, textAlign: 'center', marginTop: 24 },
 });
