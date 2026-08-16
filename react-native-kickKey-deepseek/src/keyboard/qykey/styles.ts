@@ -29,6 +29,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: 12,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     backgroundColor: '#ffffff',
   },
   base: {
@@ -38,6 +40,8 @@ const styles = StyleSheet.create({
     padding: 5,
     backgroundColor: '#e0e5ecac',
     borderRadius: 12,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     // Inset border simulation
     borderWidth: 1,
     borderColor: '#abb2b9',
