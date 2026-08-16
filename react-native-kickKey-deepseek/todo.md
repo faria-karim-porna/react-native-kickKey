@@ -1,6 +1,6 @@
-Email: entertainmentzonefkp@gmail.com
-Download Link: https://expo.dev/artifacts/eas/PfTsQx3PXlPrycGaEFhmeGWbaM_lLWzf-O82Vm1PF2E.apk
-Status: Add Qykey With Circuit Background, Speech Recognition
+Email: faria.karim.12@gmail.com
+Download Link: https://expo.dev/artifacts/eas/6yZqVm0Wj4PjzYepMoDGDPIk52Ttd08wphj2kPGw3QE.apk
+Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon
 
 1. [Done] Fix keyboard Default View Settings
 2. [Done] Fix The Delay In The UI
