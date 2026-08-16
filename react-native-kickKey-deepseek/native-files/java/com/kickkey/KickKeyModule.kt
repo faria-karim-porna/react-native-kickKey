@@ -117,11 +117,40 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         val engine = banglaEngine
         val consumedByBuffer = engine?.onBackspace() ?: false
         if (!consumedByBuffer) {
-            activeInputConnection?.deleteSurroundingText(1, 0)
+            deleteGraphemeBeforeCursor(activeInputConnection)
             suggestionEngine?.onBackspace()
         }
         hapticManager?.vibrate()
         promise.resolve(null)
+    }
+
+    /**
+     * Deletes the full grapheme cluster before the cursor, not a single UTF-16
+     * code unit. Emoji are surrogate pairs (2 units) or ZWJ sequences (up to
+     * ~11 units) — deleting one unit leaves a lone surrogate that the editor
+     * shows as a stray "unicode" character and forces a second backspace to
+     * finish the job (the reported emoji deletion bug). ICU BreakIterator
+     * (API 24+, below RN 0.86's minSdk of 24) treats ZWJ families like
+     * 👨‍👩‍👧‍👦 as ONE cluster, so a single backspace removes the whole emoji,
+     * matching Ridmik/Gboard behavior.
+     */
+    private fun deleteGraphemeBeforeCursor(ic: InputConnection?) {
+        if (ic == null) return
+        val before = ic.getTextBeforeCursor(32, 0)
+        if (before == null || before.length == 0) {
+            ic.deleteSurroundingText(1, 0)
+            return
+        }
+        val iterator = android.icu.text.BreakIterator.getCharacterInstance(java.util.Locale.ROOT)
+        iterator.setText(before.toString())
+        val lastBoundary = iterator.last()
+        val clusterStart = iterator.previous()
+        if (clusterStart == android.icu.text.BreakIterator.DONE) {
+            ic.deleteSurroundingText(1, 0)
+            return
+        }
+        val toDelete = lastBoundary - clusterStart
+        if (toDelete > 0) ic.deleteSurroundingText(toDelete, 0)
     }
 
     @ReactMethod

@@ -95,6 +95,23 @@ function buildKeyboardBundle(projectRoot) {
   // Remove temporary JS bundle
   try { fs.unlinkSync(jsBundlePath); } catch (e) {}
 
+  // Copy bundled emoji font into assets/fonts. ReactFontManager auto-loads
+  // fonts/<FamilyName>.ttf for unregistered families, so fontFamily:
+  // 'NotoColorEmoji' in the keyboard resolves to it. Doing this here (and
+  // NOT only in the prebuild config plugin) means the font also survives
+  // cached/skipped prebuilds — this script runs in the local build flow AND
+  // as the Gradle-injected reliability net, so the APK always ships it.
+  const srcFontsDir = path.join(projectRoot, 'assets', 'fonts');
+  if (fs.existsSync(srcFontsDir)) {
+    const targetFontsDir = path.join(assetsDir, 'fonts');
+    fs.mkdirSync(targetFontsDir, { recursive: true });
+    for (const file of fs.readdirSync(srcFontsDir)) {
+      if (!/\.(ttf|otf)$/i.test(file)) continue;
+      fs.copyFileSync(path.join(srcFontsDir, file), path.join(targetFontsDir, file));
+      console.log(`[build-keyboard-bundle] Copied ${file} to assets/fonts`);
+    }
+  }
+
   // Verify Hermes bytecode magic bytes (0xC61FBC03 in little endian)
   const fd = fs.openSync(hbcBundlePath, 'r');
   const magic = Buffer.alloc(8);

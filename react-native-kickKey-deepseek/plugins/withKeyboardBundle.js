@@ -150,6 +150,11 @@ def kickkeyKeyboardBundleTask = tasks.register("createKeyboardBundleReleaseJsAnd
     inputs.file(kickkeyKeyboardBundleScript)
     inputs.file(new File(projectRoot, "keyboard.index.js"))
     inputs.dir(new File(projectRoot, "src/keyboard"))
+    // The build script also copies assets/fonts/NotoColorEmoji.ttf into
+    // android/app/src/main/assets/fonts/ (see build-keyboard-bundle.js). It
+    // must be an INPUT so an up-to-date check can never skip the font copy
+    // on an incremental build.
+    inputs.file(new File(projectRoot, "assets/fonts/NotoColorEmoji.ttf"))
     outputs.file(kickkeyKeyboardBundleOut)
     workingDir projectRoot
     commandLine "node", kickkeyKeyboardBundleScript.absolutePath
