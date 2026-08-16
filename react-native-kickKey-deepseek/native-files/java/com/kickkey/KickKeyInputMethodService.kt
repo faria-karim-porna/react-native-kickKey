@@ -22,11 +22,13 @@ class KickKeyInputMethodService : InputMethodService() {
 
     companion object {
         private const val TAG = "KickKeyIME"
-        // Keyboard height in dp. Exactly matches the FULL JS keyboard content:
-        // ~234dp with the qykey-style chocolate UI (padding 10 + top row 32 +
-        // arrows row 32 + 5 key lines × 32). A little slack is fine — the JS
-        // root fills the window (flex: 1) with the chocolate base background.
-        private const val KEYBOARD_HEIGHT_DP = 240
+        // Keyboard height in dp. Matches the FULL JS keyboard content including
+        // the extra bottom spacing that reproduces qykey's asymmetric shell
+        // (bottom gap clearly larger than the top): ~274dp = padding 10 + top
+        // row 32 + arrows row 32 + 5 key lines × 32 + bottom spacing 40.
+        // A little slack is fine — the JS root fills the window (flex: 1) with
+        // the chocolate base background.
+        private const val KEYBOARD_HEIGHT_DP = 275
         // First watchdog check after this delay, then re-check periodically. The
         // FIRST cold start after install is slow (RN init + 911KB Hermes bundle +
         // Fabric setup can exceed 8s on slow hardware), so we retry a few times

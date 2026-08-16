@@ -43,7 +43,15 @@ const styles = StyleSheet.create({
     flex: 1,
     zIndex: 1,
     width: '100%',
-    padding: 5,
+    // Top/horizontal padding 5; bottom 40 reproduces qykey's asymmetric
+    // shell, where the gap below the last key row is clearly larger than the
+    // gap above the first (qykey's mainKeysContainer is a fixed 30% of the
+    // screen height, leaving empty shell space at the bottom). The native
+    // IME window is sized to fit this (KEYBOARD_HEIGHT_DP = 275).
+    paddingTop: 5,
+    paddingRight: 5,
+    paddingBottom: 40,
+    paddingLeft: 5,
     backgroundColor: '#e0e5ecac',
     borderRadius: 12,
     borderBottomLeftRadius: 0,
