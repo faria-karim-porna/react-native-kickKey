@@ -8,6 +8,11 @@
 // needs the react-native-worklets babel plugin (babel.config.js)
 // and the worklets TurboModule, which autolinks into the keyboard
 // ReactHost's PackageList.
+//
+// `paused` freezes the wire in place (cancelAnimation) — used while
+// the emoji board is open so the per-frame SVG redraw behind the
+// translucent shell doesn't compete with the emoji FlatList scroll
+// on the UI thread.
 // ============================================================
 
 import React, { useEffect } from 'react';
@@ -32,6 +37,7 @@ const PathWithAnimationComponent = ({
   isAnimated,
   pathLength,
   animationTime,
+  paused,
 }: {
   d: string;
   color: string;
@@ -39,10 +45,18 @@ const PathWithAnimationComponent = ({
   isAnimated: boolean;
   pathLength: number;
   animationTime: number;
+  paused?: boolean;
 }) => {
   const offset = useSharedValue(isAnimated ? 0 : pathLength);
 
   useEffect(() => {
+    if (paused) {
+      // Freeze the wire where it is. When unpaused the effect re-runs and
+      // restarts the animation from the current value.
+      cancelAnimation(offset);
+      return;
+    }
+
     if (isAnimated) {
       offset.value = withRepeat(
         withTiming(-(pathLength + config().glowLength), {
@@ -65,7 +79,7 @@ const PathWithAnimationComponent = ({
     return () => {
       cancelAnimation(offset);
     };
-  }, [isAnimated, animationTime, pathLength, offset]);
+  }, [isAnimated, animationTime, pathLength, offset, paused]);
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: offset.value,

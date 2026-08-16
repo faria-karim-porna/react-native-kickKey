@@ -458,28 +458,40 @@ const styles = StyleSheet.create({
     minHeight: 180, // Matches your mainKeysContainer height
   },
   categoryTitle: {
-    fontSize: 9,
-    color: "#2c2b2b",
+    fontSize: 11,
+    color: "#555555",
     fontWeight: "700",
-    marginBottom: 6,
-    paddingLeft: 4,
+    paddingLeft: 6,
+  },
+  sectionHeader: {
+    height: 28,
+    justifyContent: "center",
+    backgroundColor: "transparent",
+    marginVertical: 2,
   },
   scrollContent: {
-    paddingBottom: 5,
+    paddingBottom: 15,
   },
-  row: {
-    justifyContent: "center",
-    gap: 3,
-    marginBottom: 3,
+  emojiRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    height: 38,
+    marginBottom: 2,
   },
   emojiKey: {
-    width: 32, // Matches standard key width
-    height: 32,
-    backgroundColor: "#f2f2f2",
+    width: 36,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 6,
+    backgroundColor: "transparent",
   },
   emojiText: {
-    fontSize: 16, // Emojis need larger text to be visible
-    includeFontPadding: false,
+    fontSize: 22,
+    textAlign: "center",
+    textAlignVertical: "center",
+    color: "#000",
   },
 });
 

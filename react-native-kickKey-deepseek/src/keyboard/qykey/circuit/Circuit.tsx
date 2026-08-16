@@ -31,7 +31,12 @@ type WireShape = {
   isFill: boolean;
 };
 
-const CircuitComponent = () => {
+type CircuitProps = {
+  /** Set false to freeze the wires (e.g. while the emoji board is open). */
+  animated?: boolean;
+};
+
+const CircuitComponent = ({ animated = true }: CircuitProps) => {
   const [wires, setWires] = useState<WireShape[]>([]);
 
   const [dimensions, setDimensions] = useState({
@@ -168,6 +173,7 @@ const CircuitComponent = () => {
                 isAnimated={wire.isAnimated}
                 pathLength={wire.pathLength}
                 animationTime={wire.animationTime}
+                paused={!animated}
               />
 
               {/* Start dot */}

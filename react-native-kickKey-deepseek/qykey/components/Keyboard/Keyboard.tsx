@@ -12,6 +12,7 @@ import { KeyboardTopKeys } from "./KeyboardTopKeys";
 import { EmojiBoard } from "./EmojiBoard";
 import { useKeyboardSuggestions } from "../../keyboard/hooks/useKeyboardSuggestions";
 import { useBanglish } from "../../keyboard/banglish/useBanglish";
+import { removeLastGrapheme } from "../../helper/grapheme";
 
 export type AppLanguage = "en-US" | "bn-BD" | "banglish";
 
@@ -40,7 +41,7 @@ export default function Keyboard() {
   }, []);
 
   const handleBackspace = useCallback(() => {
-    setInputValue((prev) => Array.from(prev).slice(0, -1).join(""));
+    setInputValue((prev) => removeLastGrapheme(prev));
   }, []);
 
   const handleTextChange = useCallback((newText: string) => {
@@ -84,7 +85,11 @@ export default function Keyboard() {
         {!toggleMode ? (
           <>
             {isEmojiMode ? (
-              <EmojiBoard />
+              <EmojiBoard
+                onEmojiSelect={handleKeyPress}
+                onBackspace={handleBackspace}
+                onClose={() => setIsEmojiMode(false)}
+              />
             ) : (
               <View style={styles.line}>
                 {['""', ":", ","].map((k) => (

@@ -444,10 +444,15 @@ const styles = StyleSheet.create({
   emojiTabIcon: {
     fontSize: 14,
     includeFontPadding: false,
+    // Bundled NotoColorEmoji (assets/fonts) — renders full-color emoji even
+    // on Android 11 and below, where the system emoji font shows tofu boxes
+    // for newer emoji.
+    fontFamily: 'NotoColorEmoji',
   },
   emojiTabIconActive: {
     fontSize: 12,
     includeFontPadding: false,
+    fontFamily: 'NotoColorEmoji',
   },
   emojiGridContainer: {
     height: 160, // Matches the 5-line key area height
@@ -469,6 +474,8 @@ const styles = StyleSheet.create({
   emojiText: {
     fontSize: 16, // Emojis need larger text to be visible
     includeFontPadding: false,
+    // Bundled NotoColorEmoji (assets/fonts) — full-color emoji on all devices.
+    fontFamily: 'NotoColorEmoji',
   },
 });
 

@@ -60,8 +60,10 @@ export default function QykeyKeyboard() {
 
   return (
     <View style={styles.keyboardContainer}>
-      {/* Circuit board behind the translucent keyboard shell */}
-      <Circuit />
+      {/* Circuit board behind the translucent keyboard shell.
+          Frozen while the emoji board is open: its per-frame SVG redraw
+          would compete with the emoji FlatList scroll on the UI thread. */}
+      <Circuit animated={!isEmojiMode} />
 
       <View style={styles.base}>
         {/* Top Row */}

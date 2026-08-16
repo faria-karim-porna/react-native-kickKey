@@ -83,6 +83,36 @@ function withNativeSourceCopy(config) {
         }
       }
 
+      // 3b. Copy bundled emoji font into assets/fonts. ReactFontManager
+      // auto-loads fonts/<FamilyName>.ttf for unregistered families, so JS
+      // fontFamily: 'NotoColorEmoji' resolves to the bundled NotoColorEmoji
+      // without any Kotlin registration — and old devices (Android 11 and
+      // below) get full-color emoji that the system font lacks.
+      const srcFontsDir = path.join(projectRoot, 'assets', 'fonts');
+      const targetFontsDir = path.join(
+        projectRoot,
+        'android',
+        'app',
+        'src',
+        'main',
+        'assets',
+        'fonts'
+      );
+
+      if (fs.existsSync(srcFontsDir)) {
+        fs.mkdirSync(targetFontsDir, { recursive: true });
+        const fontFiles = fs
+          .readdirSync(srcFontsDir)
+          .filter((f) => /\.(ttf|otf)$/i.test(f));
+        for (const file of fontFiles) {
+          fs.copyFileSync(
+            path.join(srcFontsDir, file),
+            path.join(targetFontsDir, file)
+          );
+          console.log(`[withImeService] Copied ${file} to assets/fonts`);
+        }
+      }
+
       // 4. Copy ProGuard rules file to prevent R8 stripping custom classes
       const srcProGuard = path.join(nativeFilesDir, 'proguard-rules.pro');
       const targetProGuard = path.join(

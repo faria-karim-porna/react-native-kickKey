@@ -4,6 +4,15 @@
 //     and records usage for the recent tray.
 //   - Category tab icons (FontAwesome5 / MaterialCommunityIcons
 //     in qykey) replaced with unicode emoji glyphs.
+//
+// Fixes over the qykey original:
+//   - index-based keyExtractor: the raw data contains duplicate
+//     entries; keying by the emoji string alone made FlatList
+//     drop the duplicates ("missing" emojis).
+//   - memoized per-item press handlers so Key's React.memo
+//     actually skips re-renders while scrolling / switching tabs.
+//   - getItemLayout + windowSize/batch tuning for smooth
+//     scrolling in the IME process.
 // ============================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -34,18 +43,30 @@ const TAB_GLYPHS: Record<string, string> = {
   flags: '🚩',
 };
 
+const COLUMNS = 8;
+// emojiKey height (32) + row marginBottom (3)
+const ROW_HEIGHT = 35;
+
 const EmojiBoardComponent = ({ onEmojiSelect }: EmojiBoardProps) => {
   const [activeTab, setActiveTab] = useState('people');
 
   const currentEmojis = useMemo(() => emojis()[activeTab] || [], [activeTab]);
 
+  // Stable per-item handler: returns a fresh function per emoji, but the
+  // same function for that emoji across re-renders, so Key's React.memo
+  // can skip re-rendering mounted keys.
+  const handleEmojiPress = useCallback(
+    (emoji: string) => () => onEmojiSelect?.(emoji),
+    [onEmojiSelect],
+  );
+
   const renderEmojiItem = useCallback(
     ({ item }: { item: string }) => (
-      <Key style={styles.emojiKey} onPressHandler={() => onEmojiSelect?.(item)}>
+      <Key style={styles.emojiKey} onPressHandler={handleEmojiPress(item)}>
         <Text style={styles.emojiText}>{item}</Text>
       </Key>
     ),
-    [onEmojiSelect],
+    [handleEmojiPress],
   );
 
   const [showTooltipId, setShowTooltipId] = useState<string | null>(null);
@@ -109,11 +130,21 @@ const EmojiBoardComponent = ({ onEmojiSelect }: EmojiBoardProps) => {
         <FlatList
           data={currentEmojis}
           renderItem={renderEmojiItem}
-          keyExtractor={(item) => item}
-          numColumns={8} // Mimics the Ridmik/Gboard grid layout
+          keyExtractor={(item, index) => `${index}-${item}`}
+          numColumns={COLUMNS} // Mimics the Ridmik/Gboard grid layout
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          getItemLayout={(_, index) => ({
+            length: ROW_HEIGHT,
+            offset: ROW_HEIGHT * Math.floor(index / COLUMNS),
+            index,
+          })}
+          initialNumToRender={COLUMNS * 3}
+          maxToRenderPerBatch={COLUMNS * 3}
+          windowSize={5}
+          updateCellsBatchingPeriod={50}
         />
       </View>
     </>
