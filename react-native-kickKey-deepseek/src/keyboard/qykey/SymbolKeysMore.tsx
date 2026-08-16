@@ -6,9 +6,10 @@
 // ============================================================
 
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import styles from './styles';
 import { Key } from './Key';
+import { FA5Icon, MDIIcon } from './icons';
 
 type SystemKeysMoreProps = {
   onPrev?: () => void;
@@ -17,8 +18,6 @@ type SystemKeysMoreProps = {
 };
 
 export default function SystemKeysMore({ onPrev, onBackspace, onEnter }: SystemKeysMoreProps) {
-  const darkIcon = { color: '#2c2b2b' };
-
   return (
     <View style={styles.container}>
       {/* 1. PrintScreen Row */}
@@ -52,16 +51,16 @@ export default function SystemKeysMore({ onPrev, onBackspace, onEnter }: SystemK
       {/* 4. Utility Icons Row */}
       <View style={[styles.line, styles.utilityLine]}>
         <Key special style={styles.wider} isIcon>
-          <Text style={[styles.keyIconText, darkIcon]}>▲</Text>
+          <MDIIcon name="arrow-up-bold-outline" size={14} color="#2c2b2b" />
         </Key>
         <View style={styles.utilityLineInner}>
-          <Key functionKey isIcon><Text style={styles.keyIconText}>☀️</Text></Key>
-          <Key functionKey isIcon><Text style={styles.keyIconText}>🔍</Text></Key>
-          <Key functionKey isIcon><Text style={styles.keyIconText}>⚙️</Text></Key>
-          <Key functionKey isIcon><Text style={styles.keyIconText}>⏻</Text></Key>
+          <Key functionKey isIcon><FA5Icon name="sun" size={12} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="search" size={12} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="cog" size={12} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="power-off" size={12} color="#444" /></Key>
         </View>
         <Key special style={styles.wider} isIcon onPressHandler={onBackspace}>
-          <Text style={[styles.keyIconText, darkIcon]}>⌫</Text>
+          <MDIIcon name="backspace-outline" size={14} color="#2c2b2b" />
         </Key>
       </View>
 
@@ -71,12 +70,12 @@ export default function SystemKeysMore({ onPrev, onBackspace, onEnter }: SystemK
           Ctrl
         </Key>
         <View style={styles.lastLineInner}>
-          <Key functionKey isIcon><Text style={styles.keyIconText}>🔇</Text></Key>
-          <Key functionKey isIcon><Text style={styles.keyIconText}>🔉</Text></Key>
-          <Key functionKey isIcon><Text style={styles.keyIconText}>🔊</Text></Key>
+          <Key functionKey isIcon><FA5Icon name="volume-mute" size={12} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="volume-down" size={12} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="volume-up" size={12} color="#444" /></Key>
         </View>
         <Key special style={styles.wider} isIcon onPressHandler={onEnter}>
-          <Text style={[styles.keyIconText, darkIcon]}>↵</Text>
+          <MDIIcon name="keyboard-return" size={14} color="#2c2b2b" />
         </Key>
       </View>
     </View>

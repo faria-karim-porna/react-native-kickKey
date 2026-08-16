@@ -1,11 +1,13 @@
 // ============================================================
 // KeyboardSlider.tsx — ported from qykey (keyboard ⇄ touchpad).
-// FontAwesome5 icons replaced with unicode glyphs (⌨ / 🖱).
+// Renders the exact FontAwesome5 "keyboard" / "mouse-pointer"
+// glyphs qykey draws (via icons.tsx).
 // ============================================================
 
 import React, { useRef } from 'react';
-import { View, Pressable, Animated, Easing, Text } from 'react-native';
+import { View, Pressable, Animated, Easing } from 'react-native';
 import styles from './styles';
+import { FA5Icon } from './icons';
 
 type KeyboardSliderProps = {
   toggleMode?: boolean;
@@ -37,8 +39,8 @@ const KeyboardSliderComponent = (props: KeyboardSliderProps) => {
       <View style={styles.slider}>
         <Animated.View style={[styles.knob, { left: knobTranslate }]} />
         <View style={styles.iconLayer}>
-          <Text style={[styles.sliderIcon, { color: !toggleMode ? '#444' : '#888' }]}>⌨</Text>
-          <Text style={[styles.sliderIcon, { color: toggleMode ? '#444' : '#888' }]}>🖱</Text>
+          <FA5Icon name="keyboard" size={10} color={!toggleMode ? '#444' : '#888'} />
+          <FA5Icon name="mouse-pointer" size={10} color={toggleMode ? '#444' : '#888'} />
         </View>
       </View>
     </Pressable>

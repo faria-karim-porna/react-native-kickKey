@@ -2,8 +2,8 @@
 // EmojiBoard.tsx — ported from qykey.
 //   - Emoji selection commits through the native KickKey module
 //     and records usage for the recent tray.
-//   - Category tab icons (FontAwesome5 / MaterialCommunityIcons
-//     in qykey) replaced with unicode emoji glyphs.
+//   - Category tab icons are the exact FontAwesome5 /
+//     MaterialCommunityIcons glyphs qykey renders (via icons.tsx).
 //
 // Fixes over the qykey original:
 //   - index-based keyExtractor: the raw data contains duplicate
@@ -24,23 +24,11 @@ import {
 } from 'react-native';
 import { Key } from './Key';
 import { emojis, emojiCategories } from './emojiData';
+import { FA5Icon, MDIIcon } from './icons';
 import styles from './styles';
 
 type EmojiBoardProps = {
   onEmojiSelect?: (emoji: string) => void;
-};
-
-// Tab glyphs replacing qykey's FontAwesome5 / MaterialCommunityIcons icons
-const TAB_GLYPHS: Record<string, string> = {
-  recent: '🕐',
-  people: '😊',
-  nature: '🌿',
-  food: '🍔',
-  activity: '🏀',
-  travel: '✈️',
-  objects: '💡',
-  signs: '📍',
-  flags: '🚩',
 };
 
 const COLUMNS = 8;
@@ -107,9 +95,19 @@ const EmojiBoardComponent = ({ onEmojiSelect }: EmojiBoardProps) => {
           onPress={() => handleTabPress(tab.id)}
           style={[styles.tabButton, isActive && styles.activeTabButton]}
         >
-          <Text style={isActive ? styles.emojiTabIconActive : styles.emojiTabIcon}>
-            {TAB_GLYPHS[tab.id] || '•'}
-          </Text>
+          {tab.lib === 'FontAwesome5' ? (
+            <FA5Icon
+              name={tab.icon}
+              size={isActive ? 14 : 16}
+              color={isActive ? '#fff' : '#2c2b2b'}
+            />
+          ) : (
+            <MDIIcon
+              name={tab.icon}
+              size={isActive ? 16 : 18}
+              color={isActive ? '#fff' : '#2c2b2b'}
+            />
+          )}
           {isActive && (
             <View
               style={[styles.tabActiveIndicator, { borderColor: '#fff' }]}

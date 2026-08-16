@@ -5,9 +5,10 @@
 // ============================================================
 
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import styles from './styles';
 import { Key } from './Key';
+import { MDIIcon } from './icons';
 
 type SymbolKeysProps = {
   onNext?: () => void;
@@ -18,7 +19,6 @@ type SymbolKeysProps = {
 
 export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter }: SymbolKeysProps) {
   const press = (s: string) => () => onKeyPress?.(s);
-  const darkIcon = { color: '#2c2b2b' };
 
   return (
     <View style={styles.container}>
@@ -75,13 +75,13 @@ export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter }:
       {/* 4. Z Row (Shift + F1-F7 + Backspace) */}
       <View style={styles.line}>
         <Key special style={styles.wider} isIcon>
-          <Text style={[styles.keyIconText, darkIcon]}>▲</Text>
+          <MDIIcon name="arrow-up-bold-outline" size={14} color="#2c2b2b" />
         </Key>
         {['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7'].map((f) => (
           <Key key={f} functionKey>{f}</Key>
         ))}
         <Key special style={styles.wider} isIcon onPressHandler={onBackspace}>
-          <Text style={[styles.keyIconText, darkIcon]}>⌫</Text>
+          <MDIIcon name="backspace-outline" size={14} color="#2c2b2b" />
         </Key>
       </View>
 
@@ -96,7 +96,7 @@ export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter }:
           ))}
         </View>
         <Key special style={styles.wider} isIcon onPressHandler={onEnter}>
-          <Text style={[styles.keyIconText, darkIcon]}>↵</Text>
+          <MDIIcon name="keyboard-return" size={14} color="#2c2b2b" />
         </Key>
       </View>
     </View>

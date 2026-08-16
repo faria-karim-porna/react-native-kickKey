@@ -1,14 +1,16 @@
 // ============================================================
 // Touchpad.tsx — ported from qykey (mouse mode surface).
 // Cursor control is not implemented natively yet (same as qykey,
-// whose touchpad is also visual-only). FontAwesome5 icons are
-// replaced with unicode glyphs.
+// whose touchpad is also visual-only). Nav / scroll arrows are
+// the exact FontAwesome5 chevron / caret glyphs qykey draws
+// (via icons.tsx).
 // ============================================================
 
 import React from 'react';
 import { View, Text } from 'react-native';
 import styles from './styles';
 import { Key } from './Key';
+import { FA5Icon } from './icons';
 
 export default function Touchpad() {
   return (
@@ -20,7 +22,7 @@ export default function Touchpad() {
         {/* Nav Buttons Row */}
         <View style={styles.touchpadButtonArea}>
           <Key variant="nav" isIcon type="mouse">
-            <Text style={{ color: '#888', fontSize: 14, fontWeight: '700' }}>‹</Text>
+            <FA5Icon name="chevron-left" size={12} color="#888" />
           </Key>
 
           <Key variant="mouse" type="mouse">
@@ -31,16 +33,16 @@ export default function Touchpad() {
         {/* Scroll Stack (Middle Column) */}
         <View style={styles.scrollStack}>
           <Key variant="scroll" isIcon type="mouse">
-            <Text style={{ color: '#f2f2f2', fontSize: 10, fontWeight: '700' }}>▲</Text>
+            <FA5Icon name="caret-up" size={14} color="#f2f2f2" />
           </Key>
           <Key variant="scroll" isIcon type="mouse">
-            <Text style={{ color: '#f2f2f2', fontSize: 10, fontWeight: '700' }}>▼</Text>
+            <FA5Icon name="caret-down" size={14} color="#f2f2f2" />
           </Key>
         </View>
 
         <View style={styles.touchpadButtonArea}>
           <Key variant="nav" isIcon type="mouse">
-            <Text style={{ color: '#888', fontSize: 14, fontWeight: '700' }}>›</Text>
+            <FA5Icon name="chevron-right" size={12} color="#888" />
           </Key>
 
           <Key variant="mouse" type="mouse">

@@ -127,14 +127,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     includeFontPadding: false,
   },
-  // Icon glyphs drawn with Text (vector-icon fonts are unavailable in the IME process)
-  keyIconText: {
-    fontSize: 12,
-    color: '#444',
-    fontWeight: '700',
-    includeFontPadding: false,
-    textAlign: 'center',
-  },
   specialKey: { backgroundColor: '#c8ccd0' },
   functionKey: { backgroundColor: '#8a8a8a' },
   wider: {
@@ -206,10 +198,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     zIndex: 2,
-  },
-  sliderIcon: {
-    fontSize: 10,
-    includeFontPadding: false,
   },
   suggestionsContainer: {
     flex: 1,
@@ -458,19 +446,6 @@ const styles = StyleSheet.create({
     width: '70%',
     position: 'absolute',
     bottom: 2,
-  },
-  emojiTabIcon: {
-    fontSize: 14,
-    includeFontPadding: false,
-    // Bundled NotoColorEmoji (assets/fonts) — renders full-color emoji even
-    // on Android 11 and below, where the system emoji font shows tofu boxes
-    // for newer emoji.
-    fontFamily: 'NotoColorEmoji',
-  },
-  emojiTabIconActive: {
-    fontSize: 12,
-    includeFontPadding: false,
-    fontFamily: 'NotoColorEmoji',
   },
   emojiGridContainer: {
     height: 160, // Matches the 5-line key area height

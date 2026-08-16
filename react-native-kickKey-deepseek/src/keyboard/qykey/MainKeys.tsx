@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import styles from './styles';
 import { Key } from './Key';
+import { MDIIcon } from './icons';
 import type { AppLanguage } from './QykeyKeyboard';
 
 type MainKeysProps = {
@@ -88,7 +89,8 @@ const MainKeysComponent = ({
           hasActiveState
           onPressHandler={() => setIsCapsOn(!isCapsOn)}
         >
-          <Text style={styles.keyIconText}>▲</Text>
+          {/* Same as qykey: arrow-up-bold-outline shrinks 14 → 12 when active */}
+          <MDIIcon name="arrow-up-bold-outline" size={isCapsOn ? 12 : 14} color="#444" />
         </Key>
         {(language === 'bn-BD'
           ? isCapsOn
@@ -114,7 +116,7 @@ const MainKeysComponent = ({
           onRepeatStart={onBackspaceRepeatStart}
           onRepeatEnd={onBackspaceRepeatEnd}
         >
-          <Text style={styles.keyIconText}>⌫</Text>
+          <MDIIcon name="backspace-outline" size={14} color="#444" />
         </Key>
       </View>
 
@@ -152,7 +154,7 @@ const MainKeysComponent = ({
           isIcon
           onPressHandler={onEnter}
         >
-          <Text style={styles.keyIconText}>↵</Text>
+          <MDIIcon name="keyboard-return" size={14} color="#444" />
         </Key>
       </View>
     </>
