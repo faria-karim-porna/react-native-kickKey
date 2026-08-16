@@ -21,6 +21,12 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignSelf: 'center',
     width: '100%',
+    // Light background behind the keyboard shell: the shell (and the circuit
+    // layer) have rounded top corners, and their corner cutouts are
+    // transparent — without this, the dark native IME container (#0D0D1A)
+    // shows through as a dark screen in the top corners. White matches the
+    // circuit background, so the rounded corners stay visible but clean.
+    backgroundColor: '#ffffff',
   },
   circuitContainer: {
     position: 'absolute',
