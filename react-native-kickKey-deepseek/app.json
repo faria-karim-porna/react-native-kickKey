@@ -12,12 +12,12 @@
     "android": {
       "package": "com.kickkey",
       "permissions": [
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
       ],
       "blockedPermissions": [
         "android.permission.READ_CONTACTS",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#0a0a1a",
@@ -31,7 +31,8 @@
     "plugins": [
       "expo-router",
       "./plugins/withImeService",
-      "./plugins/withKeyboardBundle"
+      "./plugins/withKeyboardBundle",
+      "expo-speech-recognition"
     ],
     "extra": {
       "router": {},

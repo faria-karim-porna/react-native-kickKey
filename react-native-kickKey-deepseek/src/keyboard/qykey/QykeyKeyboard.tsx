@@ -51,6 +51,7 @@ export default function QykeyKeyboard() {
     handleEmojiToggle,
     handleEmojiSelect,
     handleSuggestionSelect,
+    handleTranscriptComplete,
   } = useKeyboardState();
 
   const symHandler = () => handleSymbolToggle();
@@ -73,6 +74,7 @@ export default function QykeyKeyboard() {
               language={language}
               suggestions={suggestions}
               onSuggestionPress={handleSuggestionSelect}
+              onTranscriptComplete={handleTranscriptComplete}
             />
           ) : null}
         </View>

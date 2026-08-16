@@ -56,6 +56,7 @@ export interface QykeyKeyboardState {
   handleEmojiToggle: () => void;
   handleEmojiSelect: (emoji: string) => void;
   handleSuggestionSelect: (word: string) => void;
+  handleTranscriptComplete: (text: string) => void;
 }
 
 /** banglish types Roman letters → native phonetic engine converts to Bangla. */
@@ -190,6 +191,13 @@ export function useKeyboardState(): QykeyKeyboardState {
     setSuggestions([]);
   }, []);
 
+  /** Voice dictation: commit the recognized transcript through the native IME. */
+  const handleTranscriptComplete = useCallback((text: string) => {
+    if (!text) return;
+    getKickKey()?.commitText(text);
+    playKeySound();
+  }, []);
+
   return {
     language, toggleMode, symbolModeStatus, isEmojiMode, suggestions,
     setToggleMode,
@@ -200,5 +208,6 @@ export function useKeyboardState(): QykeyKeyboardState {
     handleSymbolToggle, handleSymbolNext, handleSymbolPrev,
     handleEmojiToggle, handleEmojiSelect,
     handleSuggestionSelect,
+    handleTranscriptComplete,
   };
 }

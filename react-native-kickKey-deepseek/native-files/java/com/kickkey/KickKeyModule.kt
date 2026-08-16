@@ -175,6 +175,23 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     }
 
     @ReactMethod
+    fun commitText(text: String, promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null && text.isNotEmpty()) {
+            // Flush any pending bangla phonetic buffer first so dictation text
+            // never mixes with an uncommitted Roman buffer.
+            val pending = banglaEngine?.flush() ?: ""
+            ic.beginBatchEdit()
+            if (pending.isNotEmpty()) ic.commitText(pending, 1)
+            ic.commitText("$text ", 1)
+            ic.endBatchEdit()
+            suggestionEngine?.onWordCommitted(text)
+            hapticManager?.vibrate()
+        }
+        promise.resolve(null)
+    }
+
+    @ReactMethod
     fun flushBanglaBuffer(promise: Promise) {
         val ic = activeInputConnection
         if (ic != null) {

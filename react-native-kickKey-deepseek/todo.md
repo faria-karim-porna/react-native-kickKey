@@ -1,12 +1,12 @@
 Email: entertainmentzonefkp@gmail.com
-Download Link: https://expo.dev/artifacts/eas/O9zAs-cU9A-869P_y8oFlDGcbqZmSkxzbrqBZeC4ods.apk
-Status: Add Qykey With Circuit Background
+Download Link: https://expo.dev/artifacts/eas/PfTsQx3PXlPrycGaEFhmeGWbaM_lLWzf-O82Vm1PF2E.apk
+Status: Add Qykey With Circuit Background, Speech Recognition
 
 1. [Done] Fix keyboard Default View Settings
 2. [Done] Fix The Delay In The UI
 3. [Done] Add Qykey
 4. Fix Icons
-5. Fix Voice Recognition
+5. [Done] Fix Voice Recognition
 6. Fix Trackpad
 7. Fix Symbols
 8. Fix Emojis

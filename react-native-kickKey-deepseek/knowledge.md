@@ -69,7 +69,8 @@ src/keyboard/                 # Keyboard bundle code (loaded in :ime_process)
     EmojiBoard.tsx            # Emoji picker (data re-exported from qykey/helper/data)
     Touchpad.tsx              # Mouse-mode surface (visual-only for now)
     FeatheredArrowKey.tsx     # Arrow glyphs
-    speechRecognition.ts      # Mic stub (RECORD_AUDIO blocked; no speech module)
+    speechRecognition.ts      # Mic bridge → real expo-speech-recognition module
+    MicrophoneIcon.tsx        # FontAwesome5 "microphone" glyph (react-native-svg)
     emojiData.ts              # Re-exports qykey/helper/data emojis
     circuit/                  # Animated circuit board behind the keys (qykey port)
       Circuit.tsx             # Wire/dot generator → SVG layer behind the translucent shell
@@ -100,7 +101,7 @@ Defined in `modules/kickkey-module/index.ts` — calls through to `KickKey` Nati
 | Category | Functions |
 |---|---|
 | Setup | `isDefaultKeyboard()`, `isKeyboardEnabled()`, `openKeyboardSettings()` |
-| Input | `commitKey()`, `sendBackspace()`, `commitSpace()`, `sendEnter()` |
+| Input | `commitKey()`, `sendBackspace()`, `commitSpace()`, `sendEnter()`, `commitText()` (voice transcript) |
 | Suggestions | `commitSuggestion()`, `setBanglaEnabled()`, `flushBanglaBuffer()` |
 | Dictionary | `setDictionaryWords()`, `getDictionaryWords()`, `removeDictionaryWord()` |
 | Clipboard | `getClipboardHistory()`, `clearClipboardHistory()`, `removeClipboardItem()` |
@@ -124,10 +125,10 @@ Defined in `modules/kickkey-module/index.ts` — calls through to `KickKey` Nati
 - **Android only** — No iOS support. `app.json` sets `"platforms": ["android"]`.
 - **Min SDK 26** — `app.json` sets `minSdkVersion: 26`.
 - **Target SDK 34** — Android 14 target.
-- **Keyboard bundle ~2.4 MB** — Now includes react-native-svg + react-native-reanimated/worklets (circuit + emoji data). Keep it as lean as features allow.
+- **Keyboard bundle ~2.5 MB** — Includes react-native-svg + react-native-reanimated/worklets (circuit + emoji data) + expo-modules-core (voice). Keep it as lean as features allow.
 - **Dictionary files** — Must compile `.txt` → `.bin` via `scripts/compile_dictionaries.py` before building.
 - **No global package installs** — Don't use `npm install -g`.
-- **Blocked permissions** — READ_CONTACTS, ACCESS_FINE_LOCATION, RECORD_AUDIO are explicitly blocked.
+- **Blocked permissions** — READ_CONTACTS and ACCESS_FINE_LOCATION are blocked; RECORD_AUDIO is allowed (needed for voice typing). The keyboard runs in `:ime_process` with no Activity, so the RECORD_AUDIO prompt is requested once from the companion app (`app/_layout.tsx`); the IME then starts recognition via expo-speech-recognition (autolinked TurboModule, same path as svg/reanimated).
 - **reanimated needs babel plugin** — `babel.config.js` adds `react-native-worklets/plugin` (required by reanimated 4 for the circuit animation). Both bundles share this config.
 
 ## Architecture
