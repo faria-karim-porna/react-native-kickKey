@@ -121,7 +121,10 @@ export function useKeyboardState(): QykeyKeyboardState {
     // Small delay before the auto-repeat kicks in
     backspaceDelayRef.current = setTimeout(() => {
       backspaceRepeatRef.current = setInterval(() => {
-        getKickKey()?.sendBackspace();
+        getKickKey()?.sendBackspace()?.then?.((deleted: boolean) => {
+          // Nothing left to delete — stop repeating (and with it, the vibration)
+          if (!deleted) handleBackspaceRepeatEnd();
+        });
       }, 80);
     }, 350);
   }, []);

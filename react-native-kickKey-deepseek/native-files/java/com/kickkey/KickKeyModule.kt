@@ -116,12 +116,20 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     fun sendBackspace(promise: Promise) {
         val engine = banglaEngine
         val consumedByBuffer = engine?.onBackspace() ?: false
-        if (!consumedByBuffer) {
-            deleteGraphemeBeforeCursor(activeInputConnection)
+        val deleted: Boolean
+        if (consumedByBuffer) {
+            // The Bangla phonetic buffer consumed the backspace — something was removed.
+            deleted = true
+        } else {
+            deleted = deleteGraphemeBeforeCursor(activeInputConnection)
             suggestionEngine?.onBackspace()
         }
-        hapticManager?.vibrate()
-        promise.resolve(null)
+        // Only give tactile feedback when something was actually deleted — holding
+        // backspace on an empty field must not keep buzzing pointlessly.
+        if (deleted) hapticManager?.vibrate()
+        // Resolve with whether anything was deleted so the JS auto-repeat can stop
+        // as soon as the field is empty (stops the pointless repeat + vibration).
+        promise.resolve(deleted)
     }
 
     /**
@@ -133,24 +141,30 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
      * (API 24+, below RN 0.86's minSdk of 24) treats ZWJ families like
      * 👨‍👩‍👧‍👦 as ONE cluster, so a single backspace removes the whole emoji,
      * matching Ridmik/Gboard behavior.
+     *
+     * @return true if a grapheme was actually deleted, false when there is
+     *         nothing before the cursor to delete.
      */
-    private fun deleteGraphemeBeforeCursor(ic: InputConnection?) {
-        if (ic == null) return
+    private fun deleteGraphemeBeforeCursor(ic: InputConnection?): Boolean {
+        if (ic == null) return false
         val before = ic.getTextBeforeCursor(32, 0)
         if (before == null || before.length == 0) {
-            ic.deleteSurroundingText(1, 0)
-            return
+            // Nothing before the cursor — nothing to delete.
+            return false
         }
         val iterator = android.icu.text.BreakIterator.getCharacterInstance(java.util.Locale.ROOT)
         iterator.setText(before.toString())
         val lastBoundary = iterator.last()
         val clusterStart = iterator.previous()
         if (clusterStart == android.icu.text.BreakIterator.DONE) {
-            ic.deleteSurroundingText(1, 0)
-            return
+            return false
         }
         val toDelete = lastBoundary - clusterStart
-        if (toDelete > 0) ic.deleteSurroundingText(toDelete, 0)
+        if (toDelete > 0) {
+            ic.deleteSurroundingText(toDelete, 0)
+            return true
+        }
+        return false
     }
 
     @ReactMethod
