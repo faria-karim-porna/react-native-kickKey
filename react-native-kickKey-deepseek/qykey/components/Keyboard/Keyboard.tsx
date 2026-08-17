@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from "react";
-import { View } from "react-native";
+import { View, NativeModules } from "react-native";
+
+const KickKey = NativeModules.KickKey;
 import Touchpad from "./Touchpad";
 import SymbolKeys from "./SymbolKeys";
 import SystemKeysMore from "./SymbolKeysMore";
@@ -129,7 +131,19 @@ export default function Keyboard() {
           </>
         ) : (
           <View style={styles.touchpadArea}>
-            <Touchpad />
+            <Touchpad
+              onMoveCursor={(d) => KickKey?.moveCursor?.(d)}
+              onScrollPage={(d) => KickKey?.scrollPage?.(d)}
+              onNavigateHistory={(d) => KickKey?.navigateHistory?.(d)}
+              onMouseClick={(b) => KickKey?.mouseClick?.(b)}
+              onPointerShow={() => {
+                const res = KickKey?.pointerShow?.();
+                return res ? Promise.resolve(res) : Promise.resolve(false);
+              }}
+              onPointerHide={() => KickKey?.pointerHide?.()}
+              onPointerMove={(dx, dy) => KickKey?.pointerMove?.(dx, dy)}
+              onRequestPointerPermission={() => KickKey?.openOverlaySettings?.()}
+            />
           </View>
         )}
       </View>

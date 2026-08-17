@@ -1,10 +1,25 @@
 package com.kickkey
 
 import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PixelFormat
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.view.Gravity
 import android.view.KeyEvent
+import android.view.View
+import android.view.WindowManager
 import android.view.inputmethod.InputConnection
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class KickKeyModule : Module() {
 
@@ -18,6 +33,71 @@ class KickKeyModule : Module() {
 
         // ── NEW in Phase 6 ────────────────────────────────────────────────
         var clipboardHandler: ClipboardHandler? = null
+    }
+
+    // ── Touchpad: on-screen mouse pointer overlay ────────────────────────────
+    // A desktop-style cursor drawn over the app screen (TYPE_APPLICATION_OVERLAY).
+    // Moved with RELATIVE deltas like a laptop trackpad; clamped to the visible
+    // app area (below the status bar, above the keyboard).
+    private var pointerView: View? = null
+    private var pointerX = 0f
+    private var pointerY = 0f
+
+    private fun pointerSizePx(): Int {
+        val ctx = appContext.reactContext ?: return 0
+        return (28 * ctx.resources.displayMetrics.density).toInt()
+    }
+
+    private fun pointerMarginPx(): Int {
+        val ctx = appContext.reactContext ?: return 0
+        return (4 * ctx.resources.displayMetrics.density).toInt()
+    }
+
+    private fun screenWidthPx(): Int {
+        val ctx = appContext.reactContext ?: return 0
+        return ctx.resources.displayMetrics.widthPixels
+    }
+
+    private fun screenHeightPx(): Int {
+        val ctx = appContext.reactContext ?: return 0
+        return ctx.resources.displayMetrics.heightPixels
+    }
+
+    private fun statusBarHeightPx(context: Context): Int {
+        val res = context.resources
+        val id = res.getIdentifier("status_bar_height", "dimen", "android")
+        return if (id > 0) res.getDimensionPixelSize(id) else 0
+    }
+
+    private fun createPointerBitmap(size: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val s = size.toFloat()
+        // Classic desktop arrow: tip top-left, tail bottom-right
+        val path = Path().apply {
+            moveTo(0.16f * s, 0.10f * s)
+            lineTo(0.16f * s, 0.66f * s)
+            lineTo(0.32f * s, 0.52f * s)
+            lineTo(0.45f * s, 0.80f * s)
+            lineTo(0.57f * s, 0.72f * s)
+            lineTo(0.45f * s, 0.46f * s)
+            lineTo(0.68f * s, 0.45f * s)
+            close()
+        }
+        val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0x66000000.toInt()
+            setShadowLayer(1.5f, 1.5f, 2f, 0x66000000.toInt())
+        }
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+        val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.BLACK
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f
+        }
+        canvas.drawPath(path, shadow)
+        canvas.drawPath(path, fill)
+        canvas.drawPath(path, stroke)
+        return bmp
     }
 
     override fun definition() = ModuleDefinition {
@@ -220,6 +300,113 @@ class KickKeyModule : Module() {
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MENU))
             }
             hapticManager?.vibrate()
+        }
+
+        // ── Touchpad: on-screen mouse pointer overlay ────────────────────────
+        //
+        // A desktop-style cursor drawn over the app screen (TYPE_APPLICATION_OVERLAY).
+        // Moved with RELATIVE deltas like a laptop trackpad; clamped to the visible
+        // app area (below the status bar, above the keyboard). Requires "Display over
+        // other apps" (SYSTEM_ALERT_WINDOW) — if not granted, pointerShow() returns
+        // false and the touchpad still works for caret movement / scroll / clicks.
+
+        Function("pointerShow") {
+            val context = appContext.reactContext ?: return@Function false
+            if (!Settings.canDrawOverlays(context)) return@Function false
+            withContext(Dispatchers.Main) {
+                try {
+                    if (pointerView == null) {
+                        val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                        val size = pointerSizePx()
+                        val view = android.widget.ImageView(context).apply {
+                            setImageBitmap(createPointerBitmap(size))
+                        }
+                        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                        } else {
+                            @Suppress("DEPRECATION")
+                            WindowManager.LayoutParams.TYPE_PHONE
+                        }
+                        val minY = statusBarHeightPx(context) + pointerMarginPx()
+                        // Keep the pointer above the keyboard window (275dp, matching
+                        // KEYBOARD_HEIGHT_DP in KickKeyInputMethodService).
+                        val keyboardH = (275 * context.resources.displayMetrics.density).toInt()
+                        val maxY = (screenHeightPx() - keyboardH - size - pointerMarginPx())
+                            .coerceAtLeast(minY)
+                        val params = WindowManager.LayoutParams(
+                            size,
+                            size,
+                            type,
+                            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                            PixelFormat.TRANSLUCENT
+                        ).apply {
+                            gravity = Gravity.TOP or Gravity.START
+                            x = (screenWidthPx() - size) / 2
+                            y = (minY + maxY) / 2
+                        }
+                        pointerX = params.x.toFloat()
+                        pointerY = params.y.toFloat()
+                        wm.addView(view, params)
+                        pointerView = view
+                    }
+                    true
+                } catch (e: Exception) {
+                    android.util.Log.w("KickKeyModule", "pointerShow failed: ${e.message}")
+                    false
+                }
+            }
+        }
+
+        Function("pointerMove") { dx: Double, dy: Double ->
+            withContext(Dispatchers.Main) {
+                val view = pointerView
+                if (view == null) return@withContext
+                try {
+                    val context = appContext.reactContext ?: return@withContext
+                    val size = pointerSizePx()
+                    val minY = statusBarHeightPx(context) + pointerMarginPx()
+                    val keyboardH = (275 * context.resources.displayMetrics.density).toInt()
+                    val maxY = (screenHeightPx() - keyboardH - size - pointerMarginPx())
+                        .coerceAtLeast(minY)
+                    pointerX = (pointerX + dx.toFloat()).coerceIn(0f, (screenWidthPx() - size).coerceAtLeast(0).toFloat())
+                    pointerY = (pointerY + dy.toFloat()).coerceIn(minY.toFloat(), maxY.toFloat())
+                    val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                    val params = view.layoutParams as WindowManager.LayoutParams
+                    params.x = pointerX.toInt()
+                    params.y = pointerY.toInt()
+                    wm.updateViewLayout(view, params)
+                } catch (e: Exception) {
+                    android.util.Log.w("KickKeyModule", "pointerMove failed: ${e.message}")
+                }
+            }
+        }
+
+        Function("pointerHide") {
+            withContext(Dispatchers.Main) {
+                val view = pointerView ?: return@withContext
+                try {
+                    val context = appContext.reactContext ?: return@withContext
+                    val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                    wm.removeView(view)
+                } catch (e: Exception) {
+                    android.util.Log.w("KickKeyModule", "pointerHide failed: ${e.message}")
+                }
+                pointerView = null
+            }
+        }
+
+        Function("openOverlaySettings") {
+            val context = appContext.reactContext ?: return@Function
+            try {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${context.packageName}")
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                android.util.Log.w("KickKeyModule", "openOverlaySettings failed: ${e.message}")
+            }
         }
 
         // ── Phase 6: Clipboard ──────────────────────────────────────────────────

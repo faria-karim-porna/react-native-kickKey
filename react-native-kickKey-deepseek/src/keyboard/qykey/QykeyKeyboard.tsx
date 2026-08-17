@@ -56,6 +56,10 @@ export default function QykeyKeyboard() {
     handleScrollPage,
     handleNavigateHistory,
     handleMouseClick,
+    handlePointerShow,
+    handlePointerHide,
+    handlePointerMove,
+    handleRequestPointerPermission,
   } = useKeyboardState();
 
   const symHandler = () => handleSymbolToggle();
@@ -152,6 +156,10 @@ export default function QykeyKeyboard() {
                 onScrollPage={handleScrollPage}
                 onNavigateHistory={handleNavigateHistory}
                 onMouseClick={handleMouseClick}
+                onPointerShow={handlePointerShow}
+                onPointerHide={handlePointerHide}
+                onPointerMove={handlePointerMove}
+                onRequestPointerPermission={handleRequestPointerPermission}
               />
             </View>
           )}

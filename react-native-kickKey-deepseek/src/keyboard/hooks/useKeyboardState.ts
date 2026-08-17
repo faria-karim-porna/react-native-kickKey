@@ -62,6 +62,11 @@ export interface QykeyKeyboardState {
   handleScrollPage: (direction: 'up' | 'down') => void;
   handleNavigateHistory: (direction: 'backward' | 'forward') => void;
   handleMouseClick: (button: 'left' | 'right') => void;
+  // ── Touchpad: on-screen pointer overlay ──────────────────────────────────
+  handlePointerShow: () => Promise<boolean>;
+  handlePointerHide: () => void;
+  handlePointerMove: (dx: number, dy: number) => void;
+  handleRequestPointerPermission: () => void;
 }
 
 /** banglish types Roman letters → native phonetic engine converts to Bangla. */
@@ -236,6 +241,32 @@ export function useKeyboardState(): QykeyKeyboardState {
     getKickKey()?.mouseClick(button);
   }, []);
 
+  // ── Touchpad: on-screen pointer overlay ──────────────────────────────────
+
+  /**
+   * Shows the desktop-style pointer over the app screen. Resolves true when
+   * visible, false when "Display over other apps" is not granted.
+   */
+  const handlePointerShow = useCallback((): Promise<boolean> => {
+    const res = getKickKey()?.pointerShow?.();
+    return res && typeof res.then === 'function' ? res : Promise.resolve(false);
+  }, []);
+
+  /** Hides the on-screen mouse pointer overlay. */
+  const handlePointerHide = useCallback(() => {
+    getKickKey()?.pointerHide?.();
+  }, []);
+
+  /** Moves the pointer by a relative (dx, dy) delta while the user drags. */
+  const handlePointerMove = useCallback((dx: number, dy: number) => {
+    getKickKey()?.pointerMove?.(dx, dy);
+  }, []);
+
+  /** Opens the system "Display over other apps" settings for this app. */
+  const handleRequestPointerPermission = useCallback(() => {
+    getKickKey()?.openOverlaySettings?.();
+  }, []);
+
   return {
     language, toggleMode, symbolModeStatus, isEmojiMode, suggestions,
     setToggleMode,
@@ -248,5 +279,6 @@ export function useKeyboardState(): QykeyKeyboardState {
     handleSuggestionSelect,
     handleTranscriptComplete,
     handleMoveCursor, handleScrollPage, handleNavigateHistory, handleMouseClick,
+    handlePointerShow, handlePointerHide, handlePointerMove, handleRequestPointerPermission,
   };
 }

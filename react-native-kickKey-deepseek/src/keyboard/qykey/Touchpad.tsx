@@ -1,12 +1,13 @@
 // ============================================================
 // Touchpad.tsx — ported from qykey (mouse mode surface).
 // Provides an interactive surface with visual cursor tracking,
-// scroll up/down buttons, nav backward/forward buttons, and
-// mouse left/right buttons.
+// scroll up/down buttons, nav backward/forward buttons, mouse
+// left/right buttons, and a desktop-style pointer overlay that
+// moves over the app screen with the drag (trackpad behavior).
 // ============================================================
 
-import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, PanResponder } from 'react-native';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { View, Text, PanResponder, Pressable } from 'react-native';
 import styles from './styles';
 import { Key } from './Key';
 import { FA5Icon } from './icons';
@@ -16,6 +17,18 @@ export interface TouchpadProps {
   onScrollPage?: (direction: 'up' | 'down') => void;
   onNavigateHistory?: (direction: 'backward' | 'forward') => void;
   onMouseClick?: (button: 'left' | 'right') => void;
+  /**
+   * Shows the desktop-style pointer over the app screen.
+   * Resolves true when the pointer is visible, false when the
+   * "Display over other apps" permission is missing.
+   */
+  onPointerShow?: () => Promise<boolean> | boolean;
+  /** Hides the desktop-style pointer overlay. */
+  onPointerHide?: () => void;
+  /** Moves the pointer by a relative (dx, dy) delta (trackpad-style). */
+  onPointerMove?: (dx: number, dy: number) => void;
+  /** Opens the system "Display over other apps" settings. */
+  onRequestPointerPermission?: () => void;
 }
 
 export default function Touchpad({
@@ -23,13 +36,29 @@ export default function Touchpad({
   onScrollPage,
   onNavigateHistory,
   onMouseClick,
+  onPointerShow,
+  onPointerHide,
+  onPointerMove,
+  onRequestPointerPermission,
 }: TouchpadProps) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
+  // True while the on-screen pointer is hidden because the user hasn't granted
+  // "Display over other apps" — shows a small banner on the touchpad surface.
+  const [showPermissionBanner, setShowPermissionBanner] = useState(false);
 
   const onMoveCursorRef = useRef(onMoveCursor);
+  const onPointerMoveRef = useRef(onPointerMove);
+  const onPointerShowRef = useRef(onPointerShow);
+  const onPointerHideRef = useRef(onPointerHide);
+  const onRequestPointerPermissionRef = useRef(onRequestPointerPermission);
+
   useEffect(() => {
     onMoveCursorRef.current = onMoveCursor;
-  }, [onMoveCursor]);
+    onPointerMoveRef.current = onPointerMove;
+    onPointerShowRef.current = onPointerShow;
+    onPointerHideRef.current = onPointerHide;
+    onRequestPointerPermissionRef.current = onRequestPointerPermission;
+  }, [onMoveCursor, onPointerMove, onPointerShow, onPointerHide, onRequestPointerPermission]);
 
   const accX = useRef(0);
   const accY = useRef(0);
@@ -37,6 +66,21 @@ export default function Touchpad({
   const lastDy = useRef(0);
 
   const STEP_THRESHOLD = 14;
+
+  // Show the desktop-style pointer while touchpad mode is active.
+  // If the overlay permission is missing, show a banner instead (the touchpad
+  // still works for caret movement / scrolling / clicks on the focused view).
+  const showPointerAndCheck = useCallback(() => {
+    const result = onPointerShowRef.current?.();
+    Promise.resolve(result)
+      .then((ok) => setShowPermissionBanner(ok === false))
+      .catch(() => setShowPermissionBanner(false));
+  }, []);
+
+  useEffect(() => {
+    showPointerAndCheck();
+    return () => onPointerHideRef.current?.();
+  }, [showPointerAndCheck]);
 
   const surfacePanResponder = useRef(
     PanResponder.create({
@@ -60,6 +104,9 @@ export default function Touchpad({
         const deltaY = gestureState.dy - lastDy.current;
         lastDx.current = gestureState.dx;
         lastDy.current = gestureState.dy;
+
+        // Move the on-screen desktop pointer (relative, trackpad-style)
+        onPointerMoveRef.current?.(deltaX, deltaY);
 
         accX.current += deltaX;
         accY.current += deltaY;
@@ -130,6 +177,42 @@ export default function Touchpad({
         )}
       </View>
 
+      {/* Permission banner — only when the overlay permission is missing */}
+      {showPermissionBanner && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            right: 12,
+            zIndex: 10,
+            backgroundColor: 'rgba(0, 0, 0, 0.78)',
+            borderRadius: 8,
+            paddingHorizontal: 8,
+            paddingVertical: 6,
+          }}
+        >
+          <Pressable onPress={showPointerAndCheck}>
+            <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>
+              Mouse pointer hidden — enable “Display over other apps”
+            </Text>
+          </Pressable>
+          <Pressable onPress={() => onRequestPointerPermissionRef.current?.()}>
+            <Text
+              style={{
+                color: '#00BCD4',
+                fontSize: 9,
+                fontWeight: 'bold',
+                textAlign: 'center',
+                marginTop: 4,
+              }}
+            >
+              GRANT →
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
       <View style={styles.touchpadButtons}>
         {/* Nav Buttons Row */}
         <View style={styles.touchpadButtonArea}>
@@ -193,4 +276,3 @@ export default function Touchpad({
     </View>
   );
 }
-

@@ -101,4 +101,26 @@ export default {
    */
   mouseClick: (button: 'left' | 'right'): Promise<void> =>
     KickKey.mouseClick(button),
+
+  // ── Touchpad: on-screen mouse pointer overlay ────────────────────────────────
+
+  /**
+   * Shows a desktop-style mouse pointer over the app screen (TYPE_APPLICATION_OVERLAY).
+   * Resolves true when the pointer is visible. Requires "Display over other apps"
+   * (SYSTEM_ALERT_WINDOW) — resolves false when the permission is not granted.
+   */
+  pointerShow: (): Promise<boolean> => KickKey.pointerShow(),
+
+  /** Hides the on-screen mouse pointer overlay. */
+  pointerHide: (): Promise<void> => KickKey.pointerHide(),
+
+  /**
+   * Moves the on-screen pointer by a RELATIVE (dx, dy) delta, clamped to the
+   * visible app area. Called repeatedly while the user drags on the touchpad.
+   */
+  pointerMove: (dx: number, dy: number): Promise<void> =>
+    KickKey.pointerMove(dx, dy),
+
+  /** Opens the system "Display over other apps" settings for this app. */
+  openOverlaySettings: (): Promise<void> => KickKey.openOverlaySettings(),
 };
