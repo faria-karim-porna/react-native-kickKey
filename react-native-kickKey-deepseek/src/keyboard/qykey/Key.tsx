@@ -1,8 +1,8 @@
-// ============================================================
-// Key.tsx — "Chocolate bar" key, ported from qykey.
+﻿// ============================================================
+// Key.tsx -- "Chocolate bar" key, ported from qykey.
 //
 // Differences from the qykey original:
-//   - Vector-icon rendering (iconType/iconName/iconColor) removed —
+//   - Vector-icon rendering (iconType/iconName/iconColor) removed --
 //     icon fonts are unavailable in the IME process, so icons are
 //     passed as children (Text glyphs).
 //   - Optional onRepeatStart/onRepeatEnd added for backspace
@@ -60,7 +60,6 @@ const KeyComponent = ({
   onRepeatStart,
   onRepeatEnd,
 }: KeyProps) => {
-  const [pressed, setPressed] = useState(false);
   const [isActive, setIsActive] = useState(isStatusActive || false);
 
   useEffect(() => {
@@ -80,23 +79,26 @@ const KeyComponent = ({
     onPressHandlerRef.current = onPressHandler;
   }, [onSwipeLeft, onSwipeRight, onPressHandler]);
 
-  // ─── PanResponder — only for swipeable keys ──────────────────────────────────
+  // Ref to the swipeable View -- zero-re-render press visual via setNativeProps
+  const swipeViewRef = useRef<View>(null);
+
+  // Pan responder only for swipeable keys
   const panResponder = useRef(
     PanResponder.create({
-      // Claim responder immediately on touch
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
 
       onPanResponderGrant: () => {
-        setPressed(true);
+        // Imperatively dim -- NO setState, NO JS re-render
+        swipeViewRef.current?.setNativeProps({ opacity: 0.5 });
       },
 
       onPanResponderMove: () => {
-        // just track — no action mid-swipe
+        // just track -- no action mid-swipe
       },
 
       onPanResponderRelease: (_, g) => {
-        setPressed(false);
+        swipeViewRef.current?.setNativeProps({ opacity: 1 });
         if (g.dx < -30) {
           onSwipeLeftRef.current?.();
         } else if (g.dx > 30) {
@@ -108,27 +110,26 @@ const KeyComponent = ({
       },
 
       onPanResponderTerminate: () => {
-        setPressed(false);
+        swipeViewRef.current?.setNativeProps({ opacity: 1 });
       },
     }),
   ).current;
 
-  const keyStyles = [
+  const baseStyle = [
     styles.key,
     special && styles.specialKey,
     functionKey && styles.functionKey,
     type === 'mouse' && variantStyles[variant],
-    pressed && styles.keyPressed,
     type !== 'mouse' && (flex > 0 ? { flex } : language === 'bn-BD' ? { width: 25.65 } : { width: 33.75 }),
     style,
   ];
 
-  const keyContent = (
+  const renderContent = (isPressed: boolean) => (
     <>
       {isIcon ? (
         children
       ) : type === 'mouse' ? (
-        <Text style={[styles.btnText, variant === 'scroll' && { color: '#ffffff', opacity: 0.8 }, pressed && { opacity: 0.6 }]}>
+        <Text style={[styles.btnText, variant === 'scroll' && { color: '#ffffff', opacity: 0.8 }, isPressed && { opacity: 0.6 }]}>
           {children}
         </Text>
       ) : (
@@ -138,7 +139,7 @@ const KeyComponent = ({
             styles.keyText,
             hasActiveState && isActive && styles.keyActive,
             functionKey && { color: '#f2f2f2' },
-            pressed && { color: '#999' },
+            isPressed && { color: '#999' },
           ]}
         >
           {children}
@@ -149,31 +150,32 @@ const KeyComponent = ({
     </>
   );
 
-  // ─── Swipeable: use View + PanResponder (Pressable blocks swipe) ─────────────
+  // Swipeable: View + PanResponder (Pressable blocks swipe gestures)
+  // Press visual handled by setNativeProps -- zero re-renders during fast typing
   if (isSwipeable) {
     return (
-      <View style={keyStyles} {...panResponder.panHandlers}>
-        {keyContent}
+      <View ref={swipeViewRef} style={baseStyle} {...panResponder.panHandlers}>
+        {renderContent(false)}
       </View>
     );
   }
 
-  // ─── Normal: use Pressable ───────────────────────────────────────────────────
+  // Normal keys: use Pressable with native press state and zero delay
   return (
     <Pressable
+      unstable_pressDelay={0}
+      hitSlop={1}
       onPressIn={() => {
-        setPressed(true);
         if (hasActiveState) setIsActive((prev) => !prev);
         onPressHandler?.();
         onRepeatStart?.();
       }}
       onPressOut={() => {
-        setPressed(false);
         onRepeatEnd?.();
       }}
-      style={keyStyles}
+      style={({ pressed }) => [baseStyle, pressed && styles.keyPressed]}
     >
-      {keyContent}
+      {({ pressed }) => renderContent(pressed)}
     </Pressable>
   );
 };

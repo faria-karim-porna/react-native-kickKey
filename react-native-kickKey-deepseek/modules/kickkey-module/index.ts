@@ -68,4 +68,37 @@ export default {
   /** Records that the user selected an emoji, for recent-tray ordering. */
   recordEmojiUsed: (emoji: string): Promise<void> =>
     KickKey.recordEmojiUsed(emoji),
+
+  // ── Touchpad ──────────────────────────────────────────────────────────────
+
+  /**
+   * Moves the text cursor one step in the given direction using DPAD key events.
+   * Call repeatedly (throttled) while the user drags on the touchpad surface.
+   * direction: "left" | "right" | "up" | "down"
+   */
+  moveCursor: (direction: 'left' | 'right' | 'up' | 'down'): Promise<void> =>
+    KickKey.moveCursor(direction),
+
+  /**
+   * Sends a PAGE_UP or PAGE_DOWN key event to scroll the focused view.
+   * direction: "up" | "down"
+   */
+  scrollPage: (direction: 'up' | 'down'): Promise<void> =>
+    KickKey.scrollPage(direction),
+
+  /**
+   * Sends ALT + DPAD_LEFT (backward) or ALT + DPAD_RIGHT (forward) for
+   * word-by-word cursor movement or browser history navigation.
+   * direction: "backward" | "forward"
+   */
+  navigateHistory: (direction: 'backward' | 'forward'): Promise<void> =>
+    KickKey.navigateHistory(direction),
+
+  /**
+   * Simulates a mouse button click within IME constraints.
+   * button: "left"  → DPAD_CENTER (tap / confirm at cursor position)
+   *         "right" → KEYCODE_MENU (open context menu of the focused view)
+   */
+  mouseClick: (button: 'left' | 'right'): Promise<void> =>
+    KickKey.mouseClick(button),
 };

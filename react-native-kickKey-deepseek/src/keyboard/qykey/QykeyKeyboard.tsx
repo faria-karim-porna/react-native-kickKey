@@ -52,6 +52,10 @@ export default function QykeyKeyboard() {
     handleEmojiSelect,
     handleSuggestionSelect,
     handleTranscriptComplete,
+    handleMoveCursor,
+    handleScrollPage,
+    handleNavigateHistory,
+    handleMouseClick,
   } = useKeyboardState();
 
   const symHandler = () => handleSymbolToggle();
@@ -143,7 +147,12 @@ export default function QykeyKeyboard() {
             </>
           ) : (
             <View style={styles.touchpadArea}>
-              <Touchpad />
+              <Touchpad
+                onMoveCursor={handleMoveCursor}
+                onScrollPage={handleScrollPage}
+                onNavigateHistory={handleNavigateHistory}
+                onMouseClick={handleMouseClick}
+              />
             </View>
           )}
         </View>

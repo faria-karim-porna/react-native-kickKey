@@ -154,6 +154,74 @@ class KickKeyModule : Module() {
             hapticManager?.vibrate()
         }
 
+        // ── Touchpad: cursor movement ─────────────────────────────────────────
+        //
+        // Called repeatedly while the user drags on the touchpad surface.
+        // direction: "left" | "right" | "up" | "down"
+        // Each call sends one DPAD key event; JS controls the repeat rate.
+
+        Function("moveCursor") { direction: String ->
+            val ic = activeInputConnection ?: return@Function
+            val keyCode = when (direction) {
+                "left"  -> KeyEvent.KEYCODE_DPAD_LEFT
+                "right" -> KeyEvent.KEYCODE_DPAD_RIGHT
+                "up"    -> KeyEvent.KEYCODE_DPAD_UP
+                "down"  -> KeyEvent.KEYCODE_DPAD_DOWN
+                else    -> return@Function
+            }
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   keyCode))
+            hapticManager?.vibrate()
+        }
+
+        // ── Touchpad: scroll ─────────────────────────────────────────────────
+        //
+        // direction: "up" | "down"
+        // Sends PAGE_UP / PAGE_DOWN key events to the focused input connection.
+
+        Function("scrollPage") { direction: String ->
+            val ic = activeInputConnection ?: return@Function
+            val keyCode = if (direction == "up") KeyEvent.KEYCODE_PAGE_UP
+                          else                   KeyEvent.KEYCODE_PAGE_DOWN
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   keyCode))
+            hapticManager?.vibrate()
+        }
+
+        // ── Touchpad: nav backward / forward ─────────────────────────────────
+        //
+        // direction: "backward" | "forward"
+        // ALT + DPAD_LEFT = word-left / history-back
+        // ALT + DPAD_RIGHT = word-right / history-forward
+
+        Function("navigateHistory") { direction: String ->
+            val ic = activeInputConnection ?: return@Function
+            val keyCode = if (direction == "backward") KeyEvent.KEYCODE_DPAD_LEFT
+                          else                         KeyEvent.KEYCODE_DPAD_RIGHT
+            val metaState = KeyEvent.META_ALT_ON
+            ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_DOWN, keyCode, 0, metaState))
+            ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_UP,   keyCode, 0, metaState))
+            hapticManager?.vibrate()
+        }
+
+        // ── Touchpad: mouse L / R buttons ────────────────────────────────────
+        //
+        // button: "left" | "right"
+        // Left  = DPAD_CENTER (tap / confirm at cursor, best IME approximation)
+        // Right = KEYCODE_MENU (open context menu of the focused view)
+
+        Function("mouseClick") { button: String ->
+            val ic = activeInputConnection ?: return@Function
+            if (button == "left") {
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_DPAD_CENTER))
+            } else {
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MENU))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MENU))
+            }
+            hapticManager?.vibrate()
+        }
+
         // ── Phase 6: Clipboard ──────────────────────────────────────────────────
 
         Function("getClipboardHistory") {

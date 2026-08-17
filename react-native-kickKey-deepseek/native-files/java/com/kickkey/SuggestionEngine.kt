@@ -111,8 +111,17 @@ class SuggestionEngine(private val context: Context) {
     private fun computeAndEmit() {
         val ic = KickKeyModule.activeInputConnection ?: return
         val textBefore = ic.getTextBeforeCursor(100, 0)?.toString() ?: return
-        // The "current word" is everything after the last whitespace
-        currentWord = textBefore.trimEnd().split(Regex("\\s+")).lastOrNull() ?: ""
+
+        // If the user just typed whitespace, no active word is being typed
+        if (textBefore.isEmpty() || textBefore.last().isWhitespace()) {
+            currentWord = ""
+            currentSuggestions = emptyList()
+            emitSuggestions()
+            return
+        }
+
+        // The "current word" is everything after the last whitespace or punctuation
+        currentWord = textBefore.split(Regex("[\\s\\p{Punct}&&[^-]]+")).lastOrNull() ?: ""
 
         if (currentWord.isEmpty()) {
             currentSuggestions = emptyList()
@@ -126,22 +135,35 @@ class SuggestionEngine(private val context: Context) {
                 // Detect language: Bangla chars have code points > 0x0900
                 val isBangla = currentWord.any { it.code > 0x0900 }
                 val trie = if (isBangla) banglaTrie else englishTrie
+                val searchPrefix = if (isBangla) currentWord else currentWord.lowercase()
 
-                val prefixMatches = trie.search(currentWord, MAX_PREFIX_RESULTS)
+                val prefixMatches = trie.search(searchPrefix, MAX_PREFIX_RESULTS)
                 val fuzzyMatches = if (
-                    currentWord.length >= MIN_FUZZY_PREFIX_LEN &&
+                    searchPrefix.length >= MIN_FUZZY_PREFIX_LEN &&
                     prefixMatches.size < FINAL_SUGGESTION_COUNT
                 ) {
-                    trie.fuzzySearch(currentWord, maxDistance = 2, maxResults = MAX_FUZZY_RESULTS)
+                    trie.fuzzySearch(searchPrefix, maxDistance = 2, maxResults = MAX_FUZZY_RESULTS)
                 } else emptyList()
 
-                val userWords = userModel.getFrequentWords(currentWord)
+                val userWords = userModel.getFrequentWords(searchPrefix)
 
-                currentSuggestions = (userWords + prefixMatches + fuzzyMatches)
-                    .distinctBy { it.word }
+                val rawCandidates = (userWords + prefixMatches + fuzzyMatches)
+                    .distinctBy { it.word.lowercase() }
                     .sortedByDescending { it.score }
-                    .take(FINAL_SUGGESTION_COUNT)
-                    .map { it.word }
+                    .map { matchCasing(currentWord, it.word) }
+
+                val finalSuggestions = mutableListOf<String>()
+                val matchingCandidate = rawCandidates.firstOrNull { it.equals(currentWord, ignoreCase = true) }
+
+                if (matchingCandidate != null) {
+                    finalSuggestions.add(matchingCandidate)
+                    finalSuggestions.addAll(rawCandidates.filter { !it.equals(matchingCandidate, ignoreCase = true) })
+                } else {
+                    finalSuggestions.add(currentWord)
+                    finalSuggestions.addAll(rawCandidates)
+                }
+
+                currentSuggestions = finalSuggestions.take(FINAL_SUGGESTION_COUNT)
 
                 // Post emit back to main thread for ReactContext safety
                 handler.post { emitSuggestions() }
@@ -149,6 +171,17 @@ class SuggestionEngine(private val context: Context) {
                 Log.e(TAG, "Suggestion compute failed: ${e.message}")
             }
         }.start()
+    }
+
+    private fun matchCasing(source: String, target: String): String {
+        if (source.isEmpty() || target.isEmpty()) return target
+        if (source.all { it.isUpperCase() } && source.length > 1) {
+            return target.uppercase()
+        }
+        if (source.first().isUpperCase()) {
+            return target.replaceFirstChar { it.uppercase() }
+        }
+        return target
     }
 
     private fun emitSuggestions() {

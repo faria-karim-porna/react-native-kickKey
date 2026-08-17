@@ -273,6 +273,92 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         promise.resolve(null)
     }
 
+    // ── Touchpad: cursor movement ─────────────────────────────────────────────
+    //
+    // Called repeatedly while the user drags on the touchpad surface.
+    // direction: "left" | "right" | "up" | "down"
+    // Each call sends one DPAD key event so JS controls the repeat rate.
+
+    @ReactMethod
+    fun moveCursor(direction: String, promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
+            val keyCode = when (direction) {
+                "left"  -> KeyEvent.KEYCODE_DPAD_LEFT
+                "right" -> KeyEvent.KEYCODE_DPAD_RIGHT
+                "up"    -> KeyEvent.KEYCODE_DPAD_UP
+                "down"  -> KeyEvent.KEYCODE_DPAD_DOWN
+                else    -> { promise.resolve(null); return }
+            }
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   keyCode))
+            hapticManager?.vibrate()
+        }
+        promise.resolve(null)
+    }
+
+    // ── Touchpad: scroll ──────────────────────────────────────────────────────
+    //
+    // direction: "up" | "down"
+    // Sends PAGE_UP / PAGE_DOWN key events to the focused input connection.
+
+    @ReactMethod
+    fun scrollPage(direction: String, promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
+            val keyCode = if (direction == "up") KeyEvent.KEYCODE_PAGE_UP
+                          else                   KeyEvent.KEYCODE_PAGE_DOWN
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   keyCode))
+            hapticManager?.vibrate()
+        }
+        promise.resolve(null)
+    }
+
+    // ── Touchpad: nav backward / forward ─────────────────────────────────────
+    //
+    // direction: "backward" | "forward"
+    // ALT + DPAD_LEFT = word-left / history-back; ALT + DPAD_RIGHT = word-right / history-forward.
+
+    @ReactMethod
+    fun navigateHistory(direction: String, promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
+            val keyCode = if (direction == "backward") KeyEvent.KEYCODE_DPAD_LEFT
+                          else                         KeyEvent.KEYCODE_DPAD_RIGHT
+            val metaState = KeyEvent.META_ALT_ON
+            ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_DOWN, keyCode, 0, metaState))
+            ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_UP,   keyCode, 0, metaState))
+            hapticManager?.vibrate()
+        }
+        promise.resolve(null)
+    }
+
+    // ── Touchpad: mouse L / R buttons ─────────────────────────────────────────
+    //
+    // button: "left" | "right"
+    // Left  = performContextMenuAction(android.R.id.selectAll) as a selection tap proxy
+    //         (within IME constraints the closest to a "tap at cursor").
+    // Right = KEYCODE_MENU — triggers the context menu of the focused view.
+
+    @ReactMethod
+    fun mouseClick(button: String, promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
+            if (button == "left") {
+                // Best-effort within IME: place cursor / toggle selection
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_DPAD_CENTER))
+            } else {
+                // Right click — open context menu
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MENU))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MENU))
+            }
+            hapticManager?.vibrate()
+        }
+        promise.resolve(null)
+    }
+
     @ReactMethod
     fun getClipboardHistory(promise: Promise) {
         val history = clipboardHandler?.getHistory() ?: emptyList()

@@ -147,7 +147,7 @@ class KickKeyInputMethodService : InputMethodService() {
                         keyboardHeightPx
                     )
                     minimumHeight = keyboardHeightPx
-                    setBackgroundColor(0xFF0D0D1A.toInt())
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 }
                 container.addView(surfaceView, FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
@@ -822,6 +822,11 @@ class KickKeyInputMethodService : InputMethodService() {
         } catch (e: Exception) {
             Log.w(TAG, "disposeSurface error: ${e.message}")
         }
+    }
+
+    override fun onConfigureWindow(win: android.view.Window, isFullscreen: Boolean, isCandidatesOnly: Boolean) {
+        super.onConfigureWindow(win, isFullscreen, isCandidatesOnly)
+        win.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
     }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {

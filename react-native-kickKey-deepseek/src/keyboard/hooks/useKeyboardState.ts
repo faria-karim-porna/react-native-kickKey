@@ -57,6 +57,11 @@ export interface QykeyKeyboardState {
   handleEmojiSelect: (emoji: string) => void;
   handleSuggestionSelect: (word: string) => void;
   handleTranscriptComplete: (text: string) => void;
+  // ── Touchpad ──────────────────────────────────────────────────────────────
+  handleMoveCursor: (direction: 'left' | 'right' | 'up' | 'down') => void;
+  handleScrollPage: (direction: 'up' | 'down') => void;
+  handleNavigateHistory: (direction: 'backward' | 'forward') => void;
+  handleMouseClick: (button: 'left' | 'right') => void;
 }
 
 /** banglish types Roman letters → native phonetic engine converts to Bangla. */
@@ -209,6 +214,28 @@ export function useKeyboardState(): QykeyKeyboardState {
     playKeySound();
   }, []);
 
+  // ── Touchpad handlers ─────────────────────────────────────────────────────
+
+  /** Move the text cursor one DPAD step. Called throttled during surface drag. */
+  const handleMoveCursor = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
+    getKickKey()?.moveCursor(direction);
+  }, []);
+
+  /** Scroll the focused view one page up or down. */
+  const handleScrollPage = useCallback((direction: 'up' | 'down') => {
+    getKickKey()?.scrollPage(direction);
+  }, []);
+
+  /** Navigate backward/forward (ALT+DPAD). */
+  const handleNavigateHistory = useCallback((direction: 'backward' | 'forward') => {
+    getKickKey()?.navigateHistory(direction);
+  }, []);
+
+  /** Mouse L/R button action. */
+  const handleMouseClick = useCallback((button: 'left' | 'right') => {
+    getKickKey()?.mouseClick(button);
+  }, []);
+
   return {
     language, toggleMode, symbolModeStatus, isEmojiMode, suggestions,
     setToggleMode,
@@ -220,5 +247,6 @@ export function useKeyboardState(): QykeyKeyboardState {
     handleEmojiToggle, handleEmojiSelect,
     handleSuggestionSelect,
     handleTranscriptComplete,
+    handleMoveCursor, handleScrollPage, handleNavigateHistory, handleMouseClick,
   };
 }

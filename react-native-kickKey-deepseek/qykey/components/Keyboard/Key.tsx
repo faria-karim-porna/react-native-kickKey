@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, PanResponder } from "react-native";
 import { FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
 import styles from "../../assets/styles/styles";
@@ -47,7 +47,6 @@ const KeyComponent = ({
   isStatusActive?: boolean;
   language?: AppLanguage;
 }) => {
-  const [pressed, setPressed] = useState(false);
   const [isActive, setIsActive] = useState(isStatusActive || false);
 
   useEffect(() => {
@@ -56,7 +55,6 @@ const KeyComponent = ({
 
   const isSwipeable = !!(onSwipeLeft || onSwipeRight);
 
-  // Add these refs inside KeyComponent, before panResponder:
   const onSwipeLeftRef = useRef(onSwipeLeft);
   const onSwipeRightRef = useRef(onSwipeRight);
   const onPressHandlerRef = useRef(onPressHandler);
@@ -67,65 +65,63 @@ const KeyComponent = ({
     onPressHandlerRef.current = onPressHandler;
   }, [onSwipeLeft, onSwipeRight, onPressHandler]);
 
-  // ─── PanResponder — only for swipeable keys ──────────────────────────────────
+  // Ref to the swipeable View -- used for zero-re-render press visual via setNativeProps
+  const swipeViewRef = useRef<View>(null);
+
+  // Pan responder only for swipeable keys
   const panResponder = useRef(
     PanResponder.create({
-      // Claim responder immediately on touch
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
 
       onPanResponderGrant: () => {
-        setPressed(true);
+        // Imperatively dim -- NO setState, NO JS re-render
+        swipeViewRef.current?.setNativeProps({ opacity: 0.5 });
       },
 
       onPanResponderMove: () => {
-        // just track — no action mid-swipe
+        // just track -- no action mid-swipe
       },
 
       onPanResponderRelease: (_, g) => {
-        setPressed(false);
+        swipeViewRef.current?.setNativeProps({ opacity: 1 });
         if (g.dx < -30) {
-          onSwipeLeftRef.current?.(); // ← was onSwipeLeft?.()
+          onSwipeLeftRef.current?.();
         } else if (g.dx > 30) {
-          onSwipeRightRef.current?.(); // ← was onSwipeRight?.()
+          onSwipeRightRef.current?.();
         } else {
           if (hasActiveState) setIsActive((prev) => !prev);
-          onPressHandlerRef.current?.(); // ← was onPressHandler?.()
+          onPressHandlerRef.current?.();
         }
       },
 
       onPanResponderTerminate: () => {
-        setPressed(false);
+        swipeViewRef.current?.setNativeProps({ opacity: 1 });
       },
     }),
   ).current;
 
-  const keyStyles = [
+  const baseStyle = [
     styles.key,
     special && styles.specialKey,
     functionKey && styles.functionKey,
     type === "mouse" && variantStyles[variant],
-    pressed && styles.keyPressed,
     type !== "mouse" && (flex > 0 ? { flex } : language === "bn-BD" ? { width: 25.65 } : { width: 33.75 }),
     style,
   ];
 
-  const keyContent = (
+  const renderContent = (isPressed: boolean) => (
     <>
       {isIcon ? (
-        iconType === "material" ? (
-          <MaterialCommunityIcons
-            name={(iconName as any) || "access-point"}
-            size={hasActiveState && isActive ? 12 : 14}
-            color={iconColor || "#444"}
-          />
-        ) : iconType === "fontawesome" ? (
-          <FontAwesome5 name={iconName || "question"} size={hasActiveState && isActive ? 10 : 12} color={iconColor || "#444"} />
+        iconType === "material" && iconName ? (
+          <MaterialCommunityIcons name={iconName as any} size={14} color={iconColor || "#444"} />
+        ) : iconType === "fontawesome" && iconName ? (
+          <FontAwesome5 name={iconName as any} size={14} color={iconColor || "#444"} />
         ) : (
           children
         )
       ) : type === "mouse" ? (
-        <Text style={[styles.btnText, variant === "scroll" && { color: "#ffffff", opacity: 0.8 }, pressed && { opacity: 0.6 }]}>
+        <Text style={[styles.btnText, variant === "scroll" && { color: "#ffffff", opacity: 0.8 }, isPressed && { opacity: 0.6 }]}>
           {children}
         </Text>
       ) : (
@@ -135,7 +131,7 @@ const KeyComponent = ({
             styles.keyText,
             hasActiveState && isActive && styles.keyActive,
             functionKey && { color: "#f2f2f2" },
-            pressed && { color: "#999" },
+            isPressed && { color: "#999" },
           ]}
         >
           {children}
@@ -146,27 +142,28 @@ const KeyComponent = ({
     </>
   );
 
-  // ─── Swipeable: use View + PanResponder (Pressable blocks swipe) ─────────────
+  // Swipeable: View + PanResponder (Pressable blocks swipe gestures)
+  // Press visual handled by setNativeProps -- zero re-renders during fast typing
   if (isSwipeable) {
     return (
-      <View style={keyStyles} {...panResponder.panHandlers}>
-        {keyContent}
+      <View ref={swipeViewRef} style={baseStyle} {...panResponder.panHandlers}>
+        {renderContent(false)}
       </View>
     );
   }
 
-  // ─── Normal: use Pressable ───────────────────────────────────────────────────
+  // Normal keys: Pressable with native press state, zero extra re-renders
   return (
     <Pressable
+      unstable_pressDelay={0}
+      hitSlop={1}
       onPressIn={() => {
-        setPressed(true);
         if (hasActiveState) setIsActive((prev) => !prev);
         onPressHandler?.();
       }}
-      onPressOut={() => setPressed(false)}
-      style={keyStyles}
+      style={({ pressed }) => [baseStyle, pressed && styles.keyPressed]}
     >
-      {keyContent}
+      {({ pressed }) => renderContent(pressed)}
     </Pressable>
   );
 };
