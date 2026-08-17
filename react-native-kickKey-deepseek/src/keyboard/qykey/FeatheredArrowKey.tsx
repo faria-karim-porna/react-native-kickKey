@@ -1,18 +1,19 @@
 // ============================================================
 // FeatheredArrowKey.tsx — ported from qykey.
-// The qykey original draws an SVG arrow with react-native-svg;
-// SVG is unavailable in the IME process, so the same arrow shape
-// is rendered with a unicode glyph at matching size/color.
+// Renders the same feathered arrow SVG shape used in the original
+// qykey component: a "feathered" arrow (M12 4L4 20L12 16L20 20L12 4Z)
+// rendered via react-native-svg, rotated per direction.
 // ============================================================
 
 import React from 'react';
-import { Text } from 'react-native';
+import { View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
-const GLYPH: Record<'up' | 'down' | 'left' | 'right', string> = {
-  up: '▲',
-  down: '▼',
-  left: '◀',
-  right: '▶',
+const ROTATION: Record<'up' | 'down' | 'left' | 'right', string> = {
+  up: '0deg',
+  down: '180deg',
+  left: '-90deg',
+  right: '90deg',
 };
 
 const FeatheredArrowKeyComponent = ({
@@ -23,18 +24,11 @@ const FeatheredArrowKeyComponent = ({
   color?: string;
 }) => {
   return (
-    <Text
-      style={{
-        color,
-        fontSize: 8,
-        fontWeight: '700',
-        lineHeight: 10,
-        textAlign: 'center',
-        includeFontPadding: false,
-      }}
-    >
-      {GLYPH[direction]}
-    </Text>
+    <View style={{ transform: [{ rotate: ROTATION[direction] }] }}>
+      <Svg width="10" height="10" viewBox="0 0 24 24">
+        <Path d="M12 4L4 20L12 16L20 20L12 4Z" fill={color} />
+      </Svg>
+    </View>
   );
 };
 

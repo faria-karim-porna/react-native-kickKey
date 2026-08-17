@@ -117,14 +117,22 @@ export function useKeyboardState(): QykeyKeyboardState {
   }, []);
 
   const handleBackspaceRepeatStart = useCallback(() => {
-    if (backspaceRepeatRef.current) return;
+    if (backspaceRepeatRef.current || backspaceDelayRef.current) return;
     // Small delay before the auto-repeat kicks in
     backspaceDelayRef.current = setTimeout(() => {
-      backspaceRepeatRef.current = setInterval(() => {
-        getKickKey()?.sendBackspace()?.then?.((deleted: boolean) => {
-          // Nothing left to delete — stop repeating (and with it, the vibration)
-          if (!deleted) handleBackspaceRepeatEnd();
-        });
+      backspaceDelayRef.current = null;
+      backspaceRepeatRef.current = setInterval(async () => {
+        const result = getKickKey()?.sendBackspace();
+        // If sendBackspace returns a Promise, await it and check the result.
+        // If it returns nothing (undefined / non-thenable), we can't tell —
+        // but we still fire the sound. Either way, if the native side signals
+        // "nothing deleted" (false), stop the repeat immediately.
+        if (result && typeof result.then === 'function') {
+          const deleted: boolean = await result;
+          if (!deleted) {
+            handleBackspaceRepeatEnd();
+          }
+        }
       }, 80);
     }, 350);
   }, []);
