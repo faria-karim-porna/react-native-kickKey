@@ -64,8 +64,21 @@ export default function Touchpad({
   const accY = useRef(0);
   const lastDx = useRef(0);
   const lastDy = useRef(0);
+  // ── Per-frame pointer-move throttle (plan §17) ──
+  const pendingDelta = useRef({ x: 0, y: 0 });
+  const rafPending = useRef(false);
 
   const STEP_THRESHOLD = 14;
+
+  // Flushes accumulated deltas to native at most once per animation frame.
+  const flushPointerMove = useCallback(() => {
+    rafPending.current = false;
+    const { x, y } = pendingDelta.current;
+    pendingDelta.current = { x: 0, y: 0 };
+    if (x !== 0 || y !== 0) {
+      onPointerMoveRef.current?.(x, y);
+    }
+  }, []);
 
   // Show the desktop-style pointer while touchpad mode is active.
   // If the overlay permission is missing, show a banner instead (the touchpad
@@ -94,6 +107,8 @@ export default function Touchpad({
         accY.current = 0;
         lastDx.current = 0;
         lastDy.current = 0;
+        pendingDelta.current = { x: 0, y: 0 };
+        rafPending.current = false;
       },
 
       onPanResponderMove: (evt, gestureState) => {
@@ -105,8 +120,14 @@ export default function Touchpad({
         lastDx.current = gestureState.dx;
         lastDy.current = gestureState.dy;
 
-        // Move the on-screen desktop pointer (relative, trackpad-style)
-        onPointerMoveRef.current?.(deltaX, deltaY);
+        // Move the on-screen desktop pointer (relative, trackpad-style),
+        // batched and flushed once per animation frame (60Hz cap).
+        pendingDelta.current.x += deltaX;
+        pendingDelta.current.y += deltaY;
+        if (!rafPending.current) {
+          rafPending.current = true;
+          requestAnimationFrame(flushPointerMove);
+        }
 
         accX.current += deltaX;
         accY.current += deltaY;
@@ -135,6 +156,8 @@ export default function Touchpad({
         accY.current = 0;
         lastDx.current = 0;
         lastDy.current = 0;
+        pendingDelta.current = { x: 0, y: 0 };
+        rafPending.current = false;
       },
 
       onPanResponderTerminate: () => {
@@ -143,6 +166,8 @@ export default function Touchpad({
         accY.current = 0;
         lastDx.current = 0;
         lastDy.current = 0;
+        pendingDelta.current = { x: 0, y: 0 };
+        rafPending.current = false;
       },
     }),
   ).current;

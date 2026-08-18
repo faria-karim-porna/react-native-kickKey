@@ -3,11 +3,6 @@ package com.kickkey
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.PixelFormat
 import android.media.AudioManager
 import android.net.Uri
@@ -18,7 +13,6 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
-import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityManager
 import android.view.inputmethod.InputConnection
@@ -376,139 +370,27 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         promise.resolve(null)
     }
 
-    // ── Touchpad: on-screen mouse pointer overlay ─────────────────────────────
+    // ── Touchpad: on-screen mouse pointer overlay (M2 — RN cursor) ──────────
     //
-    // A desktop-style cursor drawn over the app screen (TYPE_APPLICATION_OVERLAY).
-    // The touchpad JS moves it with RELATIVE deltas while the user drags, exactly
-    // like a laptop trackpad. The pointer is clamped to the visible app area
-    // (below the status bar, above the keyboard) and stays put between drags.
+    // The cursor is now a React Native surface ("KickKeyPointer") managed by
+    // the PointerOverlay singleton in its own overlay window (a11y overlay
+    // first, app-overlay fallback). Native owns the position; the RN arrow
+    // never re-renders while moving.
     //
-    // Requires the user to grant "Display over other apps" (SYSTEM_ALERT_WINDOW);
-    // if it is not granted, pointerShow() resolves false and the touchpad still
-    // works for text-caret movement / scrolling / clicks on the focused view.
-
-    private var pointerView: View? = null
-    private var pointerX = 0f
-    private var pointerY = 0f
-
-    private val pointerSizePx: Int
-        get() = (28 * reactApplicationContext.resources.displayMetrics.density).toInt()
-    private val pointerMarginPx: Int
-        get() = (4 * reactApplicationContext.resources.displayMetrics.density).toInt()
-    private val screenWidthPx: Int
-        get() = reactApplicationContext.resources.displayMetrics.widthPixels
-    private val screenHeightPx: Int
-        get() = reactApplicationContext.resources.displayMetrics.heightPixels
-    private val pointerMinY: Int
-        get() = statusBarHeightPx() + pointerMarginPx
-    private val pointerMaxX: Int
-        get() = (screenWidthPx - pointerSizePx).coerceAtLeast(0)
-    private val pointerMaxY: Int
-        get() {
-            // Keep the pointer above the keyboard window (KEYBOARD_HEIGHT_DP in
-            // KickKeyInputMethodService is 275dp) so it stays on the app screen.
-            val keyboardH = (275 * reactApplicationContext.resources.displayMetrics.density).toInt()
-            return (screenHeightPx - keyboardH - pointerSizePx - pointerMarginPx).coerceAtLeast(pointerMinY)
-        }
-
-    private fun statusBarHeightPx(): Int {
-        val res = reactApplicationContext.resources
-        val id = res.getIdentifier("status_bar_height", "dimen", "android")
-        return if (id > 0) res.getDimensionPixelSize(id) else 0
-    }
-
-    private fun createPointerBitmap(size: Int): Bitmap {
-        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        val s = size.toFloat()
-        // Classic desktop arrow: tip top-left, tail bottom-right
-        val path = Path().apply {
-            moveTo(0.16f * s, 0.10f * s)
-            lineTo(0.16f * s, 0.66f * s)
-            lineTo(0.32f * s, 0.52f * s)
-            lineTo(0.45f * s, 0.80f * s)
-            lineTo(0.57f * s, 0.72f * s)
-            lineTo(0.45f * s, 0.46f * s)
-            lineTo(0.68f * s, 0.45f * s)
-            close()
-        }
-        val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0x66000000.toInt()
-            setShadowLayer(1.5f, 1.5f, 2f, 0x66000000.toInt())
-        }
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
-        val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.BLACK
-            style = Paint.Style.STROKE
-            strokeWidth = 1.5f
-        }
-        canvas.drawPath(path, shadow)
-        canvas.drawPath(path, fill)
-        canvas.drawPath(path, stroke)
-        return bmp
-    }
+    // All PointerOverlay calls run on the main thread (same pattern as before).
 
     @ReactMethod
     fun pointerShow(promise: Promise) {
-        val context = reactApplicationContext
-        if (!Settings.canDrawOverlays(context)) {
-            promise.resolve(false)
-            return
-        }
         Handler(Looper.getMainLooper()).post {
-            try {
-                if (pointerView == null) {
-                    val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                    val size = pointerSizePx
-                    val view = android.widget.ImageView(context).apply {
-                        setImageBitmap(createPointerBitmap(size))
-                    }
-                    val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                    } else {
-                        @Suppress("DEPRECATION")
-                        WindowManager.LayoutParams.TYPE_PHONE
-                    }
-                    val params = WindowManager.LayoutParams(
-                        size,
-                        size,
-                        type,
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                        PixelFormat.TRANSLUCENT
-                    ).apply {
-                        gravity = Gravity.TOP or Gravity.START
-                        x = (screenWidthPx - size) / 2
-                        y = (pointerMinY + pointerMaxY) / 2
-                    }
-                    pointerX = params.x.toFloat()
-                    pointerY = params.y.toFloat()
-                    wm.addView(view, params)
-                    pointerView = view
-                }
-                promise.resolve(true)
-            } catch (e: Exception) {
-                Log.w("KickKeyModule", "pointerShow failed: ${e.message}")
-                promise.resolve(false)
-            }
+            val ok = PointerOverlay.show(reactApplicationContext)
+            promise.resolve(ok)
         }
     }
 
     @ReactMethod
     fun pointerMove(dx: Double, dy: Double, promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            val view = pointerView ?: run { promise.resolve(null); return@post }
-            try {
-                pointerX = (pointerX + dx.toFloat()).coerceIn(0f, pointerMaxX.toFloat())
-                pointerY = (pointerY + dy.toFloat()).coerceIn(pointerMinY.toFloat(), pointerMaxY.toFloat())
-                val wm = reactApplicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                val params = view.layoutParams as WindowManager.LayoutParams
-                params.x = pointerX.toInt()
-                params.y = pointerY.toInt()
-                wm.updateViewLayout(view, params)
-            } catch (e: Exception) {
-                Log.w("KickKeyModule", "pointerMove failed: ${e.message}")
-            }
+            PointerOverlay.move(dx.toFloat(), dy.toFloat())
             promise.resolve(null)
         }
     }
@@ -516,14 +398,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun pointerHide(promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            val view = pointerView ?: run { promise.resolve(null); return@post }
-            try {
-                val wm = reactApplicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                wm.removeView(view)
-            } catch (e: Exception) {
-                Log.w("KickKeyModule", "pointerHide failed: ${e.message}")
-            }
-            pointerView = null
+            PointerOverlay.hide()
             promise.resolve(null)
         }
     }

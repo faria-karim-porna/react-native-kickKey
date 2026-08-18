@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { AppRegistry, LogBox, NativeModules, NativeEventEmitter } from 'react-native';
 import KeyboardScreen from './src/keyboard/KeyboardScreen';
 import FloatingPanel from './src/keyboard/overlay/FloatingPanel';
+import PointerRoot from './src/keyboard/pointer/PointerRoot';
 
 // Suppress non-critical warnings in the keyboard bundle
 LogBox.ignoreLogs([
@@ -146,3 +147,10 @@ AppRegistry.registerComponent('KickKeyKeyboard', () => KickKeyKeyboardRoot);
  * host.createSurface() in KickKeyAccessibilityService.kt
  */
 AppRegistry.registerComponent('KickKeyOverlay', () => FloatingPanel);
+
+/**
+ * Register the cursor component for the system-wide pointer.
+ * The name 'KickKeyPointer' MUST match the second argument of
+ * host.createSurface() in PointerOverlay.kt
+ */
+AppRegistry.registerComponent('KickKeyPointer', () => PointerRoot);
