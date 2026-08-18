@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.View
 import android.view.View.MeasureSpec
 import android.view.ViewTreeObserver
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import com.facebook.react.ReactHost
@@ -41,11 +42,47 @@ class KickKeyInputMethodService : InputMethodService() {
         // Used in error messages so they match the real timeout.
         private val TOTAL_WATCHDOG_MS: Long =
             STARTUP_WATCHDOG_MS + WATCHDOG_RETRY_MS * (MAX_WATCHDOG_ATTEMPTS - 1)
+
+        // M3: singleton so KickKeyModule (same :ime_process) can reach the IME.
+        @Volatile
+        var instance: KickKeyInputMethodService? = null
+            private set
     }
 
     /** Keyboard height in pixels, derived from dp × device density. */
     private val keyboardHeightPx: Int
         get() = (KEYBOARD_HEIGHT_DP * resources.displayMetrics.density).toInt()
+
+    // ── M3: touchpad strip mode ─────────────────────────────────────────────
+    // When the keyboard's touchpad tab is active, shrink the IME window to a
+    // thin strip so the pointer has the whole screen to move over (plan §5).
+    private var touchpadStripMode = false
+
+    private val stripHeightPx: Int
+        get() = (90 * resources.displayMetrics.density).toInt()
+
+    private val currentKeyboardHeightPx: Int
+        get() = if (touchpadStripMode) stripHeightPx else keyboardHeightPx
+
+    /** Main-thread only. Called from KickKeyModule.setTouchpadMode. */
+    fun setTouchpadStripMode(on: Boolean) {
+        if (touchpadStripMode == on) return
+        touchpadStripMode = on
+        val container = keyboardContainer
+        if (container != null) {
+            container.layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                currentKeyboardHeightPx
+            )
+            container.minimumHeight = currentKeyboardHeightPx
+            container.requestLayout()
+        }
+        window?.window?.setLayout(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.WRAP_CONTENT
+        )
+        Log.i(TAG, "Touchpad strip mode: $on (height=${currentKeyboardHeightPx}px)")
+    }
 
     private var reactSurface: ReactSurface? = null
     private var keyboardContainer: FrameLayout? = null
@@ -78,6 +115,7 @@ class KickKeyInputMethodService : InputMethodService() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         KickKeyModule.hapticManager     = HapticManager(this)
         KickKeyModule.banglaEngine      = BanglaInputEngine()
         KickKeyModule.suggestionEngine  = SuggestionEngine(this)
@@ -133,7 +171,7 @@ class KickKeyInputMethodService : InputMethodService() {
                             width = resources.displayMetrics.widthPixels
                         }
                         val height = minOf(
-                            keyboardHeightPx,
+                            currentKeyboardHeightPx,
                             (resources.displayMetrics.heightPixels * 0.9f).toInt().coerceAtLeast(1)
                         )
                         super.onMeasure(
@@ -144,9 +182,9 @@ class KickKeyInputMethodService : InputMethodService() {
                 }.apply {
                     layoutParams = FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
-                        keyboardHeightPx
+                        currentKeyboardHeightPx
                     )
-                    minimumHeight = keyboardHeightPx
+                    minimumHeight = currentKeyboardHeightPx
                     setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 }
                 container.addView(surfaceView, FrameLayout.LayoutParams(
@@ -921,6 +959,7 @@ class KickKeyInputMethodService : InputMethodService() {
     }
 
     override fun onDestroy() {
+        instance = null
         disposeSurface()
         KickKeyModule.hapticManager    = null
         KickKeyModule.banglaEngine     = null

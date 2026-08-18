@@ -4,6 +4,10 @@
 // scroll up/down buttons, nav backward/forward buttons, mouse
 // left/right buttons, and a desktop-style pointer overlay that
 // moves over the app screen with the drag (trackpad behavior).
+//
+// M3: DPAD caret stepping removed — native a11y service handles
+// cross-app clicks/scroll/back. Tap-to-click, L-drag, scroll
+// repeat, and forward-hint added.
 // ============================================================
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
@@ -13,62 +17,79 @@ import { Key } from './Key';
 import { FA5Icon } from './icons';
 
 export interface TouchpadProps {
-  onMoveCursor?: (direction: 'left' | 'right' | 'up' | 'down') => void;
   onScrollPage?: (direction: 'up' | 'down') => void;
-  onNavigateHistory?: (direction: 'backward' | 'forward') => void;
+  /** Start/stop held-button scroll repeat (carets). */
+  onScrollRepeatStart?: (direction: 'up' | 'down') => void;
+  onScrollRepeatEnd?: () => void;
+  /** Resolves false when Forward is unsupported (JS shows a hint). */
+  onNavigateHistory?: (direction: 'backward' | 'forward') => Promise<boolean> | boolean;
   onMouseClick?: (button: 'left' | 'right') => void;
-  /**
-   * Shows the desktop-style pointer over the app screen.
-   * Resolves true when the pointer is visible, false when the
-   * "Display over other apps" permission is missing.
-   */
+  /** L button press-in / press-out (native decides tap vs drag). */
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  /** Quick lift on the surface = left click (default on). */
+  tapToClick?: boolean;
   onPointerShow?: () => Promise<boolean> | boolean;
-  /** Hides the desktop-style pointer overlay. */
   onPointerHide?: () => void;
-  /** Moves the pointer by a relative (dx, dy) delta (trackpad-style). */
   onPointerMove?: (dx: number, dy: number) => void;
-  /** Opens the system "Display over other apps" settings. */
   onRequestPointerPermission?: () => void;
 }
 
 export default function Touchpad({
-  onMoveCursor,
   onScrollPage,
+  onScrollRepeatStart,
+  onScrollRepeatEnd,
   onNavigateHistory,
   onMouseClick,
+  onDragStart,
+  onDragEnd,
+  tapToClick = true,
   onPointerShow,
   onPointerHide,
   onPointerMove,
   onRequestPointerPermission,
 }: TouchpadProps) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
-  // True while the on-screen pointer is hidden because the user hasn't granted
-  // "Display over other apps" — shows a small banner on the touchpad surface.
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
+  const [forwardHint, setForwardHint] = useState(false);
 
-  const onMoveCursorRef = useRef(onMoveCursor);
+  const onScrollPageRef = useRef(onScrollPage);
+  const onNavigateHistoryRef = useRef(onNavigateHistory);
+  const onMouseClickRef = useRef(onMouseClick);
+  const onDragStartRef = useRef(onDragStart);
+  const onDragEndRef = useRef(onDragEnd);
   const onPointerMoveRef = useRef(onPointerMove);
   const onPointerShowRef = useRef(onPointerShow);
   const onPointerHideRef = useRef(onPointerHide);
   const onRequestPointerPermissionRef = useRef(onRequestPointerPermission);
+  const tapToClickRef = useRef(tapToClick);
 
   useEffect(() => {
-    onMoveCursorRef.current = onMoveCursor;
+    onScrollPageRef.current = onScrollPage;
+    onNavigateHistoryRef.current = onNavigateHistory;
+    onMouseClickRef.current = onMouseClick;
+    onDragStartRef.current = onDragStart;
+    onDragEndRef.current = onDragEnd;
     onPointerMoveRef.current = onPointerMove;
     onPointerShowRef.current = onPointerShow;
     onPointerHideRef.current = onPointerHide;
     onRequestPointerPermissionRef.current = onRequestPointerPermission;
-  }, [onMoveCursor, onPointerMove, onPointerShow, onPointerHide, onRequestPointerPermission]);
+    tapToClickRef.current = tapToClick;
+  }, [onScrollPage, onScrollRepeatStart, onScrollRepeatEnd, onNavigateHistory,
+      onMouseClick, onDragStart, onDragEnd, tapToClick,
+      onPointerMove, onPointerShow, onPointerHide, onRequestPointerPermission]);
 
-  const accX = useRef(0);
-  const accY = useRef(0);
   const lastDx = useRef(0);
   const lastDy = useRef(0);
   // ── Per-frame pointer-move throttle (plan §17) ──
   const pendingDelta = useRef({ x: 0, y: 0 });
   const rafPending = useRef(false);
 
-  const STEP_THRESHOLD = 14;
+  // ── Tap-to-click detection ──
+  const grantTimeRef = useRef(0);
+  const maxDisplacementRef = useRef(0);
+  const TAP_TO_CLICK_MAX_MS = 300;
+  const TAP_TO_CLICK_MAX_PX = 14;
 
   // Flushes accumulated deltas to native at most once per animation frame.
   const flushPointerMove = useCallback(() => {
@@ -81,8 +102,6 @@ export default function Touchpad({
   }, []);
 
   // Show the desktop-style pointer while touchpad mode is active.
-  // If the overlay permission is missing, show a banner instead (the touchpad
-  // still works for caret movement / scrolling / clicks on the focused view).
   const showPointerAndCheck = useCallback(() => {
     const result = onPointerShowRef.current?.();
     Promise.resolve(result)
@@ -103,12 +122,12 @@ export default function Touchpad({
       onPanResponderGrant: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
         setCursor({ x: locationX, y: locationY });
-        accX.current = 0;
-        accY.current = 0;
-        lastDx.current = 0;
-        lastDy.current = 0;
+        grantTimeRef.current = Date.now();
+        maxDisplacementRef.current = 0;
         pendingDelta.current = { x: 0, y: 0 };
         rafPending.current = false;
+        lastDx.current = 0;
+        lastDy.current = 0;
       },
 
       onPanResponderMove: (evt, gestureState) => {
@@ -120,6 +139,12 @@ export default function Touchpad({
         lastDx.current = gestureState.dx;
         lastDy.current = gestureState.dy;
 
+        // Track peak displacement for tap-to-click detection.
+        maxDisplacementRef.current = Math.max(
+          maxDisplacementRef.current,
+          Math.hypot(gestureState.dx, gestureState.dy),
+        );
+
         // Move the on-screen desktop pointer (relative, trackpad-style),
         // batched and flushed once per animation frame (60Hz cap).
         pendingDelta.current.x += deltaX;
@@ -128,46 +153,29 @@ export default function Touchpad({
           rafPending.current = true;
           requestAnimationFrame(flushPointerMove);
         }
-
-        accX.current += deltaX;
-        accY.current += deltaY;
-
-        while (accX.current >= STEP_THRESHOLD) {
-          onMoveCursorRef.current?.('right');
-          accX.current -= STEP_THRESHOLD;
-        }
-        while (accX.current <= -STEP_THRESHOLD) {
-          onMoveCursorRef.current?.('left');
-          accX.current += STEP_THRESHOLD;
-        }
-        while (accY.current >= STEP_THRESHOLD) {
-          onMoveCursorRef.current?.('down');
-          accY.current -= STEP_THRESHOLD;
-        }
-        while (accY.current <= -STEP_THRESHOLD) {
-          onMoveCursorRef.current?.('up');
-          accY.current += STEP_THRESHOLD;
-        }
       },
 
       onPanResponderRelease: () => {
         setCursor(null);
-        accX.current = 0;
-        accY.current = 0;
-        lastDx.current = 0;
-        lastDy.current = 0;
         pendingDelta.current = { x: 0, y: 0 };
         rafPending.current = false;
+        lastDx.current = 0;
+        lastDy.current = 0;
+        // Tap-to-click: quick lift, almost no movement → left click.
+        const quick =
+          Date.now() - grantTimeRef.current < TAP_TO_CLICK_MAX_MS &&
+          maxDisplacementRef.current < TAP_TO_CLICK_MAX_PX;
+        if (quick && tapToClickRef.current) {
+          onMouseClickRef.current?.('left');
+        }
       },
 
       onPanResponderTerminate: () => {
         setCursor(null);
-        accX.current = 0;
-        accY.current = 0;
-        lastDx.current = 0;
-        lastDy.current = 0;
         pendingDelta.current = { x: 0, y: 0 };
         rafPending.current = false;
+        lastDx.current = 0;
+        lastDy.current = 0;
       },
     }),
   ).current;
@@ -219,7 +227,7 @@ export default function Touchpad({
         >
           <Pressable onPress={showPointerAndCheck}>
             <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>
-              Mouse pointer hidden — enable “Display over other apps”
+              Mouse pointer hidden — enable "Display over other apps"
             </Text>
           </Pressable>
           <Pressable onPress={() => onRequestPointerPermissionRef.current?.()}>
@@ -238,6 +246,26 @@ export default function Touchpad({
         </View>
       )}
 
+      {/* Forward not supported hint */}
+      {forwardHint && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 78,
+            alignSelf: 'center',
+            zIndex: 10,
+            backgroundColor: 'rgba(0, 0, 0, 0.78)',
+            borderRadius: 8,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+          }}
+        >
+          <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>
+            Forward is not supported on this Android version
+          </Text>
+        </View>
+      )}
+
       <View style={styles.touchpadButtons}>
         {/* Nav Buttons Row */}
         <View style={styles.touchpadButtonArea}>
@@ -253,7 +281,8 @@ export default function Touchpad({
           <Key
             variant="mouse"
             type="mouse"
-            onPressHandler={() => onMouseClick?.('left')}
+            onPressHandler={() => onDragStartRef.current?.()}
+            onRepeatEnd={() => onDragEndRef.current?.()}
           >
             <Text style={styles.btnText}>L</Text>
           </Key>
@@ -265,7 +294,9 @@ export default function Touchpad({
             variant="scroll"
             isIcon
             type="mouse"
-            onPressHandler={() => onScrollPage?.('up')}
+            onPressHandler={() => onScrollPageRef.current?.('up')}
+            onRepeatStart={() => onScrollRepeatStart?.('up')}
+            onRepeatEnd={() => onScrollRepeatEnd?.()}
           >
             <FA5Icon name="caret-up" size={14} color="#f2f2f2" />
           </Key>
@@ -273,7 +304,9 @@ export default function Touchpad({
             variant="scroll"
             isIcon
             type="mouse"
-            onPressHandler={() => onScrollPage?.('down')}
+            onPressHandler={() => onScrollPageRef.current?.('down')}
+            onRepeatStart={() => onScrollRepeatStart?.('down')}
+            onRepeatEnd={() => onScrollRepeatEnd?.()}
           >
             <FA5Icon name="caret-down" size={14} color="#f2f2f2" />
           </Key>
@@ -284,7 +317,15 @@ export default function Touchpad({
             variant="nav"
             isIcon
             type="mouse"
-            onPressHandler={() => onNavigateHistory?.('forward')}
+            onPressHandler={() => {
+              const result = onNavigateHistoryRef.current?.('forward');
+              Promise.resolve(result).then((handled) => {
+                if (handled === false) {
+                  setForwardHint(true);
+                  setTimeout(() => setForwardHint(false), 1500);
+                }
+              });
+            }}
           >
             <FA5Icon name="chevron-right" size={12} color="#888" />
           </Key>
@@ -292,7 +333,7 @@ export default function Touchpad({
           <Key
             variant="mouse"
             type="mouse"
-            onPressHandler={() => onMouseClick?.('right')}
+            onPressHandler={() => onMouseClickRef.current?.('right')}
           >
             <Text style={styles.btnText}>R</Text>
           </Key>

@@ -1,15 +1,19 @@
 package com.kickkey
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.content.Intent
+import android.graphics.Path
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.FrameLayout
 import com.facebook.react.ReactHost
 import com.facebook.react.common.LifecycleState
@@ -45,6 +49,14 @@ class KickKeyAccessibilityService : AccessibilityService() {
         // constant as the IME (KEYBOARD_HEIGHT_DP in KickKeyInputMethodService).
         private const val PANEL_MARGIN_DP = 12
         private const val PANEL_HEIGHT_DP = 300
+
+        // ── Gesture timing (M3) ──
+        private const val TAP_DURATION_MS = 60L            // left-click tap
+        private const val LONG_PRESS_DURATION_MS = 600L    // right-click proxy
+        private const val SCROLL_SWIPE_DURATION_MS = 300L  // swipe fallback
+        private const val SCROLL_SWIPE_DISTANCE_PX = 200   // swipe fallback length
+        private const val DRAG_MIN_DISTANCE_PX = 24        // below this = tap, not drag
+        private const val SCROLL_THROTTLE_MS = 150L        // repeat-scroll cap
 
         // Singleton so KickKeyModule (same :ime_process) reaches the service
         // without any IPC. @Volatile: written on the system binder thread
@@ -122,12 +134,14 @@ class KickKeyAccessibilityService : AccessibilityService() {
             }
             buttonCallback = null
         }
+        gestureQueue.clear()
         hideFloatingPanel()
         instance = null
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
+        gestureQueue.clear()
         hideFloatingPanel()
         instance = null
         super.onDestroy()
@@ -224,6 +238,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
         }
         panelSurface = null
         panelSurfaceTask = null
+        gestureQueue.clear()
         Log.i(TAG, "Floating panel hidden")
     }
 
@@ -255,5 +270,187 @@ class KickKeyAccessibilityService : AccessibilityService() {
                 resumeHostWhenReady(host, attempt + 1)
             }
         }, 50)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // M3 — Cross-app input injection (main-thread only; KickKeyModule posts)
+    // ════════════════════════════════════════════════════════════════════════
+
+    // Serialized gesture queue: dispatchGesture only accepts one gesture at a
+    // time, so taps/swipes queue up and fire with completion callbacks (plan §17).
+    private val gestureQueue = ArrayDeque<GestureDescription>()
+    private var gestureInFlight = false
+    private var lastScrollDispatchMs = 0L
+
+    // L-button drag state
+    private var isDragging = false
+    private var dragStartX = 0f
+    private var dragStartY = 0f
+    private var dragEndX = 0f
+    private var dragEndY = 0f
+    private var dragMoved = false
+
+    // ── Clicks ──────────────────────────────────────────────────────────────
+
+    /** Left click: a real tap at (x, y). Clicks over the panel itself are ignored. */
+    fun tapAt(x: Float, y: Float) {
+        if (isPointInPanel(x, y)) {
+            Log.i(TAG, "tap ignored — target inside floating panel")
+            return
+        }
+        dispatchGestureSafe(buildTapGesture(x, y, TAP_DURATION_MS))
+    }
+
+    /** Right click: a long-press at (x, y) — Android's context-menu equivalent. */
+    fun longPressAt(x: Float, y: Float) {
+        if (isPointInPanel(x, y)) return
+        dispatchGestureSafe(buildTapGesture(x, y, LONG_PRESS_DURATION_MS))
+    }
+
+    // ── Drag (L held + moving the touchpad) ────────────────────────────────
+    // One continuous stroke from the press point to the release point — the
+    // closest a11y equivalent to a physical mouse drag (plan §5).
+
+    fun beginDrag() {
+        dragStartX = PointerOverlay.cursorX
+        dragStartY = PointerOverlay.cursorY
+        dragEndX = dragStartX
+        dragEndY = dragStartY
+        dragMoved = false
+        isDragging = true
+    }
+
+    /** Fed from KickKeyModule.pointerMove while the L button is held. */
+    fun onDragDelta(dx: Float, dy: Float) {
+        if (!isDragging) return
+        dragEndX = PointerOverlay.cursorX
+        dragEndY = PointerOverlay.cursorY
+        val moved = kotlin.math.hypot(
+            (dragEndX - dragStartX).toDouble(),
+            (dragEndY - dragStartY).toDouble()
+        )
+        if (moved >= DRAG_MIN_DISTANCE_PX) dragMoved = true
+    }
+
+    fun endDrag() {
+        if (!isDragging) return
+        isDragging = false
+        if (dragMoved) {
+            dispatchGestureSafe(buildSwipeGesture(
+                dragStartX, dragStartY, dragEndX, dragEndY, 200L
+            ))
+        } else {
+            // Pressed L without moving → plain left click.
+            tapAt(dragEndX, dragEndY)
+        }
+    }
+
+    // ── Scrolling ───────────────────────────────────────────────────────────
+    // Priority (plan §12): ① ACTION_SCROLL on the focused node, ② throttled
+    // swipe stroke at the cursor. (Pro-mode wheel events are M4.)
+
+    /** Returns true when the scroll was handled. direction: "up" | "down" */
+    fun scrollAt(direction: String, x: Float, y: Float): Boolean {
+        val nodeAction = if (direction == "up") {
+            AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
+        } else {
+            AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+        }
+        if (performScrollOnFocusedNode(nodeAction)) return true
+
+        // Swipe fallback — throttled so held-button repeats don't pile up.
+        val now = SystemClock.uptimeMillis()
+        if (now - lastScrollDispatchMs < SCROLL_THROTTLE_MS) return true
+        lastScrollDispatchMs = now
+
+        val maxY = resources.displayMetrics.heightPixels.toFloat()
+        // "up" = see content above = finger swipes DOWN (y increases downward)
+        val fromY = (if (direction == "up") y - SCROLL_SWIPE_DISTANCE_PX
+                     else y + SCROLL_SWIPE_DISTANCE_PX).coerceIn(0f, maxY)
+        val toY = (if (direction == "up") y + SCROLL_SWIPE_DISTANCE_PX
+                   else y - SCROLL_SWIPE_DISTANCE_PX).coerceIn(0f, maxY)
+        dispatchGestureSafe(buildSwipeGesture(x, fromY, x, toY, SCROLL_SWIPE_DURATION_MS))
+        return true
+    }
+
+    /** Forward chevron: no global action exists; best effort = scroll-forward on the focused node. */
+    fun scrollForwardOnNode(): Boolean =
+        performScrollOnFocusedNode(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+
+    /** Walks up from the focused node performing [action] until one handles it. */
+    private fun performScrollOnFocusedNode(action: Int): Boolean {
+        val root = rootInActiveWindow ?: return false
+        var node: AccessibilityNodeInfo? = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+        var handled = false
+        while (node != null) {
+            if (node.performAction(action)) {
+                handled = true
+                break
+            }
+            val parent = node.parent ?: break
+            node = parent
+        }
+        // Note: node.recycle() omitted for brevity; add per-node recycling in M5
+        // hardening if you target API < 33 (33+ made recycle() a no-op).
+        return handled
+    }
+
+    // ── Back / Home ─────────────────────────────────────────────────────────
+
+    fun navigateBack(): Boolean = performGlobalAction(GLOBAL_ACTION_BACK)
+
+    // ── Gesture queue + builders ────────────────────────────────────────────
+
+    private fun dispatchGestureSafe(gesture: GestureDescription) {
+        gestureQueue.addLast(gesture)
+        pumpGestureQueue()
+    }
+
+    private fun pumpGestureQueue() {
+        if (gestureInFlight) return
+        val next = gestureQueue.removeFirstOrNull() ?: return
+        gestureInFlight = true
+        val callback = object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                gestureInFlight = false
+                pumpGestureQueue()
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                gestureInFlight = false
+                pumpGestureQueue()
+            }
+        }
+        dispatchGesture(next, callback, mainHandler)
+    }
+
+    /** Tap / long-press: a single-point stroke of [durationMs]. */
+    private fun buildTapGesture(x: Float, y: Float, durationMs: Long): GestureDescription {
+        val path = Path().apply { moveTo(x, y) }
+        return GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path, 0, durationMs))
+            .build()
+    }
+
+    /** Swipe / drag: a straight line from (fromX, fromY) to (toX, toY). */
+    private fun buildSwipeGesture(
+        fromX: Float, fromY: Float, toX: Float, toY: Float, durationMs: Long
+    ): GestureDescription {
+        val path = Path().apply {
+            moveTo(fromX, fromY)
+            lineTo(toX, toY)
+        }
+        return GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path, 0, durationMs))
+            .build()
+    }
+
+    /** True when (x, y) falls inside the floating panel window — taps there are ignored. */
+    private fun isPointInPanel(x: Float, y: Float): Boolean {
+        val container = panelContainer ?: return false
+        val lp = container.layoutParams as? WindowManager.LayoutParams ?: return false
+        val w = if (container.width > 0) container.width else panelWidthPx
+        val h = if (container.height > 0) container.height else panelHeightPx
+        return x >= lp.x && x <= lp.x + w && y >= lp.y && y <= lp.y + h
     }
 }

@@ -58,10 +58,13 @@ export interface QykeyKeyboardState {
   handleSuggestionSelect: (word: string) => void;
   handleTranscriptComplete: (text: string) => void;
   // ── Touchpad ──────────────────────────────────────────────────────────────
-  handleMoveCursor: (direction: 'left' | 'right' | 'up' | 'down') => void;
   handleScrollPage: (direction: 'up' | 'down') => void;
-  handleNavigateHistory: (direction: 'backward' | 'forward') => void;
+  handleScrollRepeatStart: (direction: 'up' | 'down') => void;
+  handleScrollRepeatEnd: () => void;
+  handleNavigateHistory: (direction: 'backward' | 'forward') => Promise<boolean>;
   handleMouseClick: (button: 'left' | 'right') => void;
+  handleDragStart: () => void;
+  handleDragEnd: () => void;
   // ── Touchpad: on-screen pointer overlay ──────────────────────────────────
   handlePointerShow: () => Promise<boolean>;
   handlePointerHide: () => void;
@@ -83,6 +86,28 @@ export function useKeyboardState(): QykeyKeyboardState {
 
   const backspaceRepeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const backspaceDelayRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollRepeatDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollRepeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [tapToClick, setTapToClick] = useState(true);
+
+  useEffect(() => {
+    getKickKey()
+      ?.getPreferences()
+      ?.then((prefs: any) => {
+        if (prefs && typeof prefs.tapToClick === 'boolean') {
+          setTapToClick(prefs.tapToClick);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Touchpad: IME strip mode (M3) ──────────────────────────────────────
+  // Native shrinks the IME window to a thin strip so the pointer has the
+  // whole screen (no-op when the panel is open / IME hidden).
+  useEffect(() => {
+    getKickKey()?.setTouchpadMode?.(toggleMode);
+  }, [toggleMode]);
 
   // ── Native event listeners ───────────────────────────────────────────────
 
@@ -110,6 +135,8 @@ export function useKeyboardState(): QykeyKeyboardState {
     return () => {
       if (backspaceDelayRef.current) clearTimeout(backspaceDelayRef.current);
       if (backspaceRepeatRef.current) clearInterval(backspaceRepeatRef.current);
+      if (scrollRepeatDelayRef.current) clearTimeout(scrollRepeatDelayRef.current);
+      if (scrollRepeatRef.current) clearInterval(scrollRepeatRef.current);
     };
   }, []);
 
@@ -221,24 +248,52 @@ export function useKeyboardState(): QykeyKeyboardState {
 
   // ── Touchpad handlers ─────────────────────────────────────────────────────
 
-  /** Move the text cursor one DPAD step. Called throttled during surface drag. */
-  const handleMoveCursor = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
-    getKickKey()?.moveCursor(direction);
-  }, []);
-
-  /** Scroll the focused view one page up or down. */
+  /** Scroll the focused view / app one step up or down. */
   const handleScrollPage = useCallback((direction: 'up' | 'down') => {
     getKickKey()?.scrollPage(direction);
   }, []);
 
-  /** Navigate backward/forward (ALT+DPAD). */
-  const handleNavigateHistory = useCallback((direction: 'backward' | 'forward') => {
-    getKickKey()?.navigateHistory(direction);
+  /** Held scroll caret → auto-repeat (mirrors backspace repeat: 350ms delay, 150ms tick). */
+  const handleScrollRepeatStart = useCallback((direction: 'up' | 'down') => {
+    if (scrollRepeatRef.current || scrollRepeatDelayRef.current) return;
+    scrollRepeatDelayRef.current = setTimeout(() => {
+      scrollRepeatDelayRef.current = null;
+      scrollRepeatRef.current = setInterval(() => {
+        getKickKey()?.scrollPage(direction);
+      }, 150);
+    }, 350);
   }, []);
 
-  /** Mouse L/R button action. */
+  const handleScrollRepeatEnd = useCallback(() => {
+    if (scrollRepeatDelayRef.current) {
+      clearTimeout(scrollRepeatDelayRef.current);
+      scrollRepeatDelayRef.current = null;
+    }
+    if (scrollRepeatRef.current) {
+      clearInterval(scrollRepeatRef.current);
+      scrollRepeatRef.current = null;
+    }
+  }, []);
+
+  /** Back/Forward. Resolves false when Forward is unsupported. */
+  const handleNavigateHistory = useCallback((direction: 'backward' | 'forward') => {
+    const res = getKickKey()?.navigateHistory(direction);
+    return res && typeof res.then === 'function' ? res : Promise.resolve(true);
+  }, []);
+
+  /** Mouse L/R button action (native: tap / long-press under the cursor). */
   const handleMouseClick = useCallback((button: 'left' | 'right') => {
     getKickKey()?.mouseClick(button);
+  }, []);
+
+  /** L button press-in — arm a native drag at the cursor. */
+  const handleDragStart = useCallback(() => {
+    getKickKey()?.dragStart();
+  }, []);
+
+  /** L button press-out — dispatch the drag stroke (or a tap). */
+  const handleDragEnd = useCallback(() => {
+    getKickKey()?.dragEnd();
   }, []);
 
   // ── Touchpad: on-screen pointer overlay ──────────────────────────────────
@@ -278,7 +333,9 @@ export function useKeyboardState(): QykeyKeyboardState {
     handleEmojiToggle, handleEmojiSelect,
     handleSuggestionSelect,
     handleTranscriptComplete,
-    handleMoveCursor, handleScrollPage, handleNavigateHistory, handleMouseClick,
+    handleScrollPage, handleScrollRepeatStart, handleScrollRepeatEnd,
+    handleNavigateHistory, handleMouseClick,
+    handleDragStart, handleDragEnd, tapToClick,
     handlePointerShow, handlePointerHide, handlePointerMove, handleRequestPointerPermission,
   };
 }

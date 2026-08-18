@@ -311,63 +311,97 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     // ── Touchpad: scroll ──────────────────────────────────────────────────────
     //
     // direction: "up" | "down"
-    // Sends PAGE_UP / PAGE_DOWN key events to the focused input connection.
+    // M3: service-first (node scroll / swipe), InputConnection fallback.
 
     @ReactMethod
     fun scrollPage(direction: String, promise: Promise) {
-        val ic = activeInputConnection
-        if (ic != null) {
-            val keyCode = if (direction == "up") KeyEvent.KEYCODE_PAGE_UP
-                          else                   KeyEvent.KEYCODE_PAGE_DOWN
-            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
-            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   keyCode))
-            hapticManager?.vibrate()
+        val svc = KickKeyAccessibilityService.instance
+        Handler(Looper.getMainLooper()).post {
+            if (svc != null) {
+                svc.scrollAt(direction, PointerOverlay.cursorX, PointerOverlay.cursorY)
+            } else {
+                val ic = activeInputConnection
+                if (ic != null) {
+                    val keyCode = if (direction == "up") KeyEvent.KEYCODE_PAGE_UP
+                                  else                   KeyEvent.KEYCODE_PAGE_DOWN
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   keyCode))
+                    hapticManager?.vibrate()
+                }
+            }
+            promise.resolve(null)
         }
-        promise.resolve(null)
     }
 
     // ── Touchpad: nav backward / forward ─────────────────────────────────────
     //
     // direction: "backward" | "forward"
-    // ALT + DPAD_LEFT = word-left / history-back; ALT + DPAD_RIGHT = word-right / history-forward.
+    // M3: service-first (GLOBAL_ACTION_BACK / scroll-forward), DPAD fallback.
+    // Now resolves Boolean: true = handled, false = unsupported.
 
     @ReactMethod
     fun navigateHistory(direction: String, promise: Promise) {
-        val ic = activeInputConnection
-        if (ic != null) {
-            val keyCode = if (direction == "backward") KeyEvent.KEYCODE_DPAD_LEFT
-                          else                         KeyEvent.KEYCODE_DPAD_RIGHT
-            val metaState = KeyEvent.META_ALT_ON
-            ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_DOWN, keyCode, 0, metaState))
-            ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_UP,   keyCode, 0, metaState))
-            hapticManager?.vibrate()
+        val svc = KickKeyAccessibilityService.instance
+        Handler(Looper.getMainLooper()).post {
+            if (direction == "backward") {
+                val handled = if (svc != null) {
+                    svc.navigateBack()
+                } else {
+                    // Fallback: ALT + DPAD_LEFT (word-left / history-back).
+                    val ic = activeInputConnection
+                    if (ic != null) {
+                        val metaState = KeyEvent.META_ALT_ON
+                        ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_DOWN,
+                            KeyEvent.KEYCODE_DPAD_LEFT, 0, metaState))
+                        ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_UP,
+                            KeyEvent.KEYCODE_DPAD_LEFT, 0, metaState))
+                        hapticManager?.vibrate()
+                    }
+                    true
+                }
+                promise.resolve(handled)
+            } else {
+                // Forward: no GLOBAL_ACTION_FORWARD and a11y cannot inject keys.
+                // Best effort = scroll-forward on the focused node; JS shows a
+                // subtle hint when this resolves false. (Pro mode = M4.)
+                promise.resolve(svc?.scrollForwardOnNode() ?: false)
+            }
         }
-        promise.resolve(null)
     }
 
     // ── Touchpad: mouse L / R buttons ─────────────────────────────────────────
     //
     // button: "left" | "right"
-    // Left  = performContextMenuAction(android.R.id.selectAll) as a selection tap proxy
-    //         (within IME constraints the closest to a "tap at cursor").
-    // Right = KEYCODE_MENU — triggers the context menu of the focused view.
+    // M3: service-first (tapAt / longPressAt at cursor), InputConnection fallback.
 
     @ReactMethod
     fun mouseClick(button: String, promise: Promise) {
-        val ic = activeInputConnection
-        if (ic != null) {
-            if (button == "left") {
-                // Best-effort within IME: place cursor / toggle selection
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_DPAD_CENTER))
+        val svc = KickKeyAccessibilityService.instance
+        Handler(Looper.getMainLooper()).post {
+            if (svc != null) {
+                // Cross-app path: inject a real tap / long-press under the cursor.
+                if (button == "left") {
+                    svc.tapAt(PointerOverlay.cursorX, PointerOverlay.cursorY)
+                } else {
+                    svc.longPressAt(PointerOverlay.cursorX, PointerOverlay.cursorY)
+                }
+                hapticManager?.vibrate()
             } else {
-                // Right click — open context menu
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MENU))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MENU))
+                // Fallback: a11y disabled → previous text-field behavior.
+                val ic = activeInputConnection
+                if (ic != null) {
+                    if (button == "left") {
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_DPAD_CENTER))
+                    } else {
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MENU))
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MENU))
+                    }
+                    hapticManager?.vibrate()
+                }
             }
-            hapticManager?.vibrate()
+            promise.resolve(null)
         }
-        promise.resolve(null)
     }
 
     // ── Touchpad: on-screen mouse pointer overlay (M2 — RN cursor) ──────────
@@ -391,6 +425,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     fun pointerMove(dx: Double, dy: Double, promise: Promise) {
         Handler(Looper.getMainLooper()).post {
             PointerOverlay.move(dx.toFloat(), dy.toFloat())
+            KickKeyAccessibilityService.instance?.onDragDelta(dx.toFloat(), dy.toFloat())
             promise.resolve(null)
         }
     }
@@ -399,6 +434,35 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     fun pointerHide(promise: Promise) {
         Handler(Looper.getMainLooper()).post {
             PointerOverlay.hide()
+            promise.resolve(null)
+        }
+    }
+
+    // ── Touchpad: IME strip mode + drag (M3) ───────────────────────────────
+
+    /** Shrinks the IME window to a thin strip while the touchpad tab is active. */
+    @ReactMethod
+    fun setTouchpadMode(on: Boolean, promise: Promise) {
+        Handler(Looper.getMainLooper()).post {
+            KickKeyInputMethodService.instance?.setTouchpadStripMode(on)
+            promise.resolve(null)
+        }
+    }
+
+    /** L button pressed — arm a drag at the cursor's current position. */
+    @ReactMethod
+    fun dragStart(promise: Promise) {
+        Handler(Looper.getMainLooper()).post {
+            KickKeyAccessibilityService.instance?.beginDrag()
+            promise.resolve(null)
+        }
+    }
+
+    /** L button released — dispatch a drag stroke, or a tap if nothing moved. */
+    @ReactMethod
+    fun dragEnd(promise: Promise) {
+        Handler(Looper.getMainLooper()).post {
+            KickKeyAccessibilityService.instance?.endDrag()
             promise.resolve(null)
         }
     }

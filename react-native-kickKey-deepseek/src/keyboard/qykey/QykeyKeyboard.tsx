@@ -52,10 +52,14 @@ export default function QykeyKeyboard() {
     handleEmojiSelect,
     handleSuggestionSelect,
     handleTranscriptComplete,
-    handleMoveCursor,
     handleScrollPage,
+    handleScrollRepeatStart,
+    handleScrollRepeatEnd,
     handleNavigateHistory,
     handleMouseClick,
+    handleDragStart,
+    handleDragEnd,
+    tapToClick,
     handlePointerShow,
     handlePointerHide,
     handlePointerMove,
@@ -152,10 +156,14 @@ export default function QykeyKeyboard() {
           ) : (
             <View style={styles.touchpadArea}>
               <Touchpad
-                onMoveCursor={handleMoveCursor}
                 onScrollPage={handleScrollPage}
+                onScrollRepeatStart={handleScrollRepeatStart}
+                onScrollRepeatEnd={handleScrollRepeatEnd}
                 onNavigateHistory={handleNavigateHistory}
                 onMouseClick={handleMouseClick}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                tapToClick={tapToClick}
                 onPointerShow={handlePointerShow}
                 onPointerHide={handlePointerHide}
                 onPointerMove={handlePointerMove}

@@ -87,17 +87,19 @@ export default {
     KickKey.scrollPage(direction),
 
   /**
-   * Sends ALT + DPAD_LEFT (backward) or ALT + DPAD_RIGHT (forward) for
-   * word-by-word cursor movement or browser history navigation.
-   * direction: "backward" | "forward"
+   * Back/Forward navigation.
+   * - "backward" → system Back (GLOBAL_ACTION_BACK). Resolves true.
+   * - "forward"  → best-effort scroll-forward on the focused node; resolves
+   *   false when unsupported (no a11y API for Forward — pro mode in M4).
    */
-  navigateHistory: (direction: 'backward' | 'forward'): Promise<void> =>
+  navigateHistory: (direction: 'backward' | 'forward'): Promise<boolean> =>
     KickKey.navigateHistory(direction),
 
   /**
-   * Simulates a mouse button click within IME constraints.
-   * button: "left"  → DPAD_CENTER (tap / confirm at cursor position)
-   *         "right" → KEYCODE_MENU (open context menu of the focused view)
+   * Mouse button click at the current cursor position.
+   * "left"  → real tap (dispatchGesture) via the accessibility service;
+   *           text-field DPAD fallback when the service is off.
+   * "right" → long-press at the cursor (context-menu equivalent).
    */
   mouseClick: (button: 'left' | 'right'): Promise<void> =>
     KickKey.mouseClick(button),
@@ -123,6 +125,17 @@ export default {
 
   /** Opens the system "Display over other apps" settings for this app. */
   openOverlaySettings: (): Promise<void> => KickKey.openOverlaySettings(),
+
+  // ── Touchpad: IME strip mode + drag (M3) ────────────────────────────────
+
+  /** Shrinks the IME window to a thin strip while touchpad mode is active. */
+  setTouchpadMode: (on: boolean): Promise<void> => KickKey.setTouchpadMode(on),
+
+  /** L button pressed — arm a drag at the cursor. */
+  dragStart: (): Promise<void> => KickKey.dragStart(),
+
+  /** L button released — dispatch a drag stroke (or a tap if nothing moved). */
+  dragEnd: (): Promise<void> => KickKey.dragEnd(),
 
   // ── Accessibility service (M1) ──────────────────────────────────────────
 
