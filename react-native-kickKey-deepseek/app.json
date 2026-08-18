@@ -32,6 +32,7 @@
       "expo-router",
       "./plugins/withImeService",
       "./plugins/withKeyboardBundle",
+      "./plugins/withAccessibilityService",
       "expo-speech-recognition"
     ],
     "extra": {

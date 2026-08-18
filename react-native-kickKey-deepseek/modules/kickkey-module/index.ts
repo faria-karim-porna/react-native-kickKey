@@ -123,4 +123,18 @@ export default {
 
   /** Opens the system "Display over other apps" settings for this app. */
   openOverlaySettings: (): Promise<void> => KickKey.openOverlaySettings(),
+
+  // ── Accessibility service (M1) ──────────────────────────────────────────
+
+  /** True when KickKeyAccessibilityService is enabled in system accessibility settings. */
+  isAccessibilityEnabled: (): Promise<boolean> => KickKey.isAccessibilityEnabled(),
+
+  /** Deep-links to the system accessibility settings screen. */
+  openAccessibilitySettings: (): Promise<void> => KickKey.openAccessibilitySettings(),
+
+  /** Shows the floating KickKey panel (a11y service process only). */
+  showFloatingPanel: (): Promise<void> => KickKey.showFloatingPanel(),
+
+  /** Hides the floating KickKey panel (used by the panel's close button). */
+  hideFloatingPanel: (): Promise<void> => KickKey.hideFloatingPanel(),
 };

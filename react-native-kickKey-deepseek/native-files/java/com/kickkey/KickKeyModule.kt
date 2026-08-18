@@ -1,5 +1,6 @@
 package com.kickkey
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -19,6 +20,7 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityManager
 import android.view.inputmethod.InputConnection
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -716,6 +718,74 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE)
                 as android.view.inputmethod.InputMethodManager
         imm.showInputMethodPicker()
+        promise.resolve(null)
+    }
+
+    // ── Accessibility service (M1) ──────────────────────────────────────────
+
+    /**
+     * Resolves true when KickKeyAccessibilityService is enabled in the system
+     * accessibility settings. Works from any process (reads AccessibilityManager +
+     * Settings.Secure fallback; the a11y service singleton itself only exists in :ime_process).
+     */
+    @ReactMethod
+    fun isAccessibilityEnabled(promise: Promise) {
+        val context = reactApplicationContext
+        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+        val enabledViaManager = am
+            ?.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+            ?.any { info ->
+                val sInfo = info.resolveInfo?.serviceInfo
+                (sInfo?.packageName == context.packageName &&
+                    (sInfo.name == "com.kickkey.KickKeyAccessibilityService" ||
+                     sInfo.name?.endsWith("KickKeyAccessibilityService") == true)) ||
+                info.id?.contains("KickKeyAccessibilityService") == true
+            }
+            ?: false
+
+        // Fallback via Settings.Secure (mirrors isKeyboardEnabled check)
+        val enabledViaSecure = if (!enabledViaManager) {
+            val raw = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            ) ?: ""
+            raw.contains("KickKeyAccessibilityService")
+        } else false
+
+        promise.resolve(enabledViaManager || enabledViaSecure)
+    }
+
+    /** Deep-links to the system accessibility settings so the user can enable KickKey. */
+    @ReactMethod
+    fun openAccessibilitySettings(promise: Promise) {
+        try {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            reactApplicationContext.startActivity(intent)
+        } catch (e: Exception) {
+            Log.w("KickKeyModule", "openAccessibilitySettings failed: ${e.message}")
+        }
+        promise.resolve(null)
+    }
+
+    /**
+     * Shows the floating KickKey panel. Only meaningful in :ime_process (where the
+     * a11y service singleton lives); resolves without error elsewhere.
+     */
+    @ReactMethod
+    fun showFloatingPanel(promise: Promise) {
+        Handler(Looper.getMainLooper()).post {
+            KickKeyAccessibilityService.instance?.showFloatingPanel()
+        }
+        promise.resolve(null)
+    }
+
+    /** Hides the floating KickKey panel (used by the panel's own close button). */
+    @ReactMethod
+    fun hideFloatingPanel(promise: Promise) {
+        Handler(Looper.getMainLooper()).post {
+            KickKeyAccessibilityService.instance?.hideFloatingPanel()
+        }
         promise.resolve(null)
     }
 }

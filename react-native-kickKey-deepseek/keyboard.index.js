@@ -9,6 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import { AppRegistry, LogBox, NativeModules, NativeEventEmitter } from 'react-native';
 import KeyboardScreen from './src/keyboard/KeyboardScreen';
+import FloatingPanel from './src/keyboard/overlay/FloatingPanel';
 
 // Suppress non-critical warnings in the keyboard bundle
 LogBox.ignoreLogs([
@@ -138,3 +139,10 @@ function KickKeyKeyboardRoot() {
  * host.createSurface() in KickKeyInputMethodService.kt
  */
 AppRegistry.registerComponent('KickKeyKeyboard', () => KickKeyKeyboardRoot);
+
+/**
+ * Register the floating-panel component for the accessibility service.
+ * The name 'KickKeyOverlay' MUST match the second argument of
+ * host.createSurface() in KickKeyAccessibilityService.kt
+ */
+AppRegistry.registerComponent('KickKeyOverlay', () => FloatingPanel);
