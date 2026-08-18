@@ -2,6 +2,10 @@ Email: faria.karim.12@gmail.com
 Download Link: https://expo.dev/artifacts/eas/SH6GRn7QbekeDDUi_Pma_Mt30N9-lU8SlHg717umce8.apk
 Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon
 
+
+Bangla to English Conversion: https://chatgpt.com/c/6a3d5c31-c684-83e8-8b51-eda4710b19c4
+Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
+
 1. [Done] Fix keyboard Default View Settings
 2. [Done] Fix The Delay In The UI
 3. [Done] Add Qykey
