@@ -45,10 +45,8 @@ class KickKeyAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "KickKeyA11y"
 
-        // Panel = keyboard height + a slim header row. Same keyboard height
-        // constant as the IME (KEYBOARD_HEIGHT_DP in KickKeyInputMethodService).
-        private const val PANEL_MARGIN_DP = 12
-        private const val PANEL_HEIGHT_DP = 300
+        // Same keyboard height constant as the IME (KEYBOARD_HEIGHT_DP in KickKeyInputMethodService).
+        private const val KEYBOARD_HEIGHT_DP = 275
 
         // ── Gesture timing (M3) ──
         private const val TAP_DURATION_MS = 60L            // left-click tap
@@ -73,12 +71,8 @@ class KickKeyAccessibilityService : AccessibilityService() {
     private var panelSurfaceTask: TaskInterface<Void>? = null
     private var isPanelShowing = false
 
-    private val panelMarginPx: Int
-        get() = (PANEL_MARGIN_DP * resources.displayMetrics.density).toInt()
-    private val panelWidthPx: Int
-        get() = (resources.displayMetrics.widthPixels - 2 * panelMarginPx).coerceAtLeast(1)
-    private val panelHeightPx: Int
-        get() = (PANEL_HEIGHT_DP * resources.displayMetrics.density).toInt()
+    private val keyboardHeightPx: Int
+        get() = (KEYBOARD_HEIGHT_DP * resources.displayMetrics.density).toInt()
 
     // ── Service lifecycle ──────────────────────────────────────────────────
 
@@ -176,7 +170,10 @@ class KickKeyAccessibilityService : AccessibilityService() {
             panelSurface = surface
 
             val container = FrameLayout(this).apply {
-                layoutParams = FrameLayout.LayoutParams(panelWidthPx, panelHeightPx)
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    keyboardHeightPx
+                )
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
             }
             surface.view?.let { view ->
@@ -191,19 +188,18 @@ class KickKeyAccessibilityService : AccessibilityService() {
 
             val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val params = WindowManager.LayoutParams(
-                panelWidthPx,
-                panelHeightPx,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                keyboardHeightPx,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or      // never steal keyboard focus
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or // touches outside pass through
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
             ).apply {
-                // Position: bottom-center of the screen. x/y are absolute screen
-                // coordinates with gravity TOP|START (dragging arrives later).
-                gravity = Gravity.TOP or Gravity.START
-                x = panelMarginPx
-                y = resources.displayMetrics.heightPixels - panelHeightPx - panelMarginPx
+                // Position: bottom of the screen, full width (exact same position as IME keyboard)
+                gravity = Gravity.BOTTOM
+                x = 0
+                y = 0
             }
 
             wm.addView(container, params)
@@ -214,7 +210,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
             // mechanism the IME watchdog uses). Poll until the JS signals
             // readiness (keyboardReady), then resume — idempotent if already up.
             resumeHostWhenReady(host, 0)
-            Log.i(TAG, "Floating panel shown (${panelWidthPx}x${panelHeightPx})")
+            Log.i(TAG, "Floating panel shown (MATCH_PARENT x ${keyboardHeightPx}px at bottom)")
         } catch (e: Throwable) {
             Log.e(TAG, "showFloatingPanel failed", e)
         }
@@ -447,10 +443,10 @@ class KickKeyAccessibilityService : AccessibilityService() {
 
     /** True when (x, y) falls inside the floating panel window — taps there are ignored. */
     private fun isPointInPanel(x: Float, y: Float): Boolean {
+        if (!isPanelShowing) return false
         val container = panelContainer ?: return false
-        val lp = container.layoutParams as? WindowManager.LayoutParams ?: return false
-        val w = if (container.width > 0) container.width else panelWidthPx
-        val h = if (container.height > 0) container.height else panelHeightPx
-        return x >= lp.x && x <= lp.x + w && y >= lp.y && y <= lp.y + h
+        val screenHeight = resources.displayMetrics.heightPixels.toFloat()
+        val h = if (container.height > 0) container.height.toFloat() else keyboardHeightPx.toFloat()
+        return y >= (screenHeight - h)
     }
 }
