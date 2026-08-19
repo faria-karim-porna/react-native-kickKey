@@ -131,8 +131,9 @@ object PointerOverlay {
      */
     fun move(dx: Float, dy: Float) {
         val view = cursorView ?: return
+        val ctx = appContext ?: return
         try {
-            val wm = appContext?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
+            val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
             val size = cursorSizePx
             cursorX = (cursorX + dx).coerceIn(0f, (screenWidthPx() - size).coerceAtLeast(0).toFloat())
             cursorY = (cursorY + dy).coerceIn(0f, (screenHeightPx() - size).coerceAtLeast(0).toFloat())
@@ -200,14 +201,15 @@ object PointerOverlay {
             }
             return
         }
+        val ctx = appContext ?: return
         try {
-            val wm = appContext?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
+            val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
             val size = cursorSizePx
 
             // Detach from previous parent if already attached to avoid IllegalStateException
             (surfaceView.parent as? ViewGroup)?.removeView(surfaceView)
 
-            val container = FrameLayout(appContext).apply {
+            val container = FrameLayout(ctx).apply {
                 layoutParams = FrameLayout.LayoutParams(size, size)
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
             }
