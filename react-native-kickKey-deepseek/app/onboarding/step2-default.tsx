@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import SetupProgress from '../../components/SetupProgress';
 import { useSetupStatus } from '../../hooks/useSetupStatus';
 import { useKickKeyBridge } from '../../hooks/useKickKeyBridge';
+import { CheckCircleIcon, StepCircle } from '../../components/OnboardingIcons';
 
 export default function Step2Default() {
   const router = useRouter();
@@ -20,7 +21,9 @@ export default function Step2Default() {
     <SafeAreaView style={styles.container}>
       <SetupProgress currentStep={2} />
 
-      <Text style={styles.emoji}>✅</Text>
+      <View style={styles.iconContainer}>
+        <CheckCircleIcon size={56} />
+      </View>
       <Text style={styles.title}>Set as Default</Text>
       <Text style={styles.description}>
         Almost there! Now set KickKey as your default keyboard so it opens
@@ -28,14 +31,17 @@ export default function Step2Default() {
       </Text>
 
       <View style={styles.card}>
-        <Text style={styles.cardStep}>1. Tap the button below</Text>
-        <Text style={styles.cardStep}>2. Select "KickKey Keyboard" as default</Text>
-        <Text style={styles.cardStep}>3. Come back to this app</Text>
+        <StepCircle number={1} text="Tap the button below" />
+        <StepCircle number={2} text='Select "KickKey Keyboard" as default' />
+        <StepCircle number={3} text="Come back to this app" />
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={() => showInputMethodPicker()}>
+      <Pressable
+        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+        onPress={() => showInputMethodPicker()}
+      >
         <Text style={styles.buttonText}>Set Default Keyboard</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       <Text style={styles.hint}>
         This screen will automatically advance once KickKey is your default keyboard.
@@ -45,12 +51,12 @@ export default function Step2Default() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', padding: 24, paddingTop: 60 },
-  emoji: { fontSize: 56, textAlign: 'center', marginBottom: 16 },
+  container: { flex: 1, backgroundColor: 'transparent', padding: 24, paddingTop: 60 },
+  iconContainer: { alignItems: 'center', marginBottom: 16 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 12 },
   description: { fontSize: 14, color: '#777', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   card: {
-    backgroundColor: '#e0e5ec',
+    backgroundColor: 'rgba(224,229,236,0.92)',
     borderRadius: 12,
     padding: 18,
     marginBottom: 24,
@@ -69,7 +75,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
   },
-  cardStep: { color: '#444', fontSize: 13, marginBottom: 8, lineHeight: 18, fontWeight: '500' },
+
   button: {
     backgroundColor: '#00BCD4',
     paddingVertical: 16,
@@ -89,6 +95,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 5,
+  },
+  buttonPressed: {
+    backgroundColor: '#009aa8',
+    transform: [{ translateY: 1 }],
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
+    borderTopColor: 'rgba(0,0,0,0.25)',
+    borderLeftColor: 'rgba(0,0,0,0.25)',
+    shadowColor: '#000',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 2,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   hint: { color: '#999', fontSize: 12, textAlign: 'center', marginTop: 16 },
