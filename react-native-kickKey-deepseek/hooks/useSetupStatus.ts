@@ -5,6 +5,7 @@ import { useKickKeyBridge } from './useKickKeyBridge';
 interface SetupStatus {
   isEnabled: boolean;
   isDefault: boolean;
+  isOverlayGranted: boolean;
   isFullySetUp: boolean;
   refresh: () => Promise<void>;
 }
@@ -12,18 +13,21 @@ interface SetupStatus {
 const POLL_INTERVAL_MS = 2000;
 
 export function useSetupStatus(): SetupStatus {
-  const { isKeyboardEnabled, isDefaultKeyboard } = useKickKeyBridge();
+  const { isKeyboardEnabled, isDefaultKeyboard, isOverlayGranted: checkOverlay } = useKickKeyBridge();
   const [isEnabled, setIsEnabled] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
+  const [isOverlayGranted, setIsOverlayGranted] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = async () => {
-    const [enabled, def] = await Promise.all([
+    const [enabled, def, overlay] = await Promise.all([
       isKeyboardEnabled(),
       isDefaultKeyboard(),
+      checkOverlay(),
     ]);
     setIsEnabled(enabled);
     setIsDefault(def);
+    setIsOverlayGranted(overlay);
   };
 
   useEffect(() => {
@@ -43,6 +47,7 @@ export function useSetupStatus(): SetupStatus {
   return {
     isEnabled,
     isDefault,
+    isOverlayGranted,
     isFullySetUp: isEnabled && isDefault,
     refresh,
   };

@@ -5,7 +5,7 @@ import SetupProgress from '../../components/SetupProgress';
 import { useSettingsStore } from '../../store/settingsStore';
 import { CelebrateIcon } from '../../components/OnboardingIcons';
 
-export default function Step3Done() {
+export default function Step4Done() {
   const router = useRouter();
   const setOnboardingComplete = useSettingsStore((s) => s.setOnboardingComplete);
 
@@ -16,7 +16,7 @@ export default function Step3Done() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <SetupProgress currentStep={3} />
+      <SetupProgress currentStep={4} />
 
       <View style={styles.iconContainer}>
         <CelebrateIcon size={64} />

@@ -123,6 +123,9 @@ export default {
   pointerMove: (dx: number, dy: number): Promise<void> =>
     KickKey.pointerMove(dx, dy),
 
+  /** Returns true when "Display over other apps" (SYSTEM_ALERT_WINDOW) is granted. */
+  isOverlayGranted: (): Promise<boolean> => KickKey.isOverlayGranted(),
+
   /** Opens the system "Display over other apps" settings for this app. */
   openOverlaySettings: (): Promise<void> => KickKey.openOverlaySettings(),
 

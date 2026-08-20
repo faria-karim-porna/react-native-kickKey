@@ -2,13 +2,13 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
 interface SetupProgressProps {
-  currentStep: 1 | 2 | 3;
+  currentStep: 1 | 2 | 3 | 4;
 }
 
 export default function SetupProgress({ currentStep }: SetupProgressProps) {
   return (
     <View style={styles.row}>
-      {[1, 2, 3].map((step) => (
+      {[1, 2, 3, 4].map((step) => (
         <View
           key={step}
           style={[

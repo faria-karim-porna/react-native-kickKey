@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Path, Circle } from 'react-native-svg';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 
 // ─── Keyboard Icon (replaces ⌨️) ──────────────────────────────────────────
 // Uses the same FA5 "keyboard" path from icons.tsx
@@ -82,6 +82,26 @@ export function CelebrateIcon({ size = 64 }: { size?: number }) {
       <Path d="M12 10l2 2-2 2-2-2z" fill="#00BCD4" />
       {/* Sparkle right */}
       <Path d="M52 10l2 2-2 2-2-2z" fill="#00BCD4" />
+    </Svg>
+  );
+}
+
+// ─── Overlay Icon (replaces 🖼️ for Display over other apps) ────────────────
+export function OverlayIcon({ size = 56 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 56 56">
+      {/* Background window */}
+      <Rect x="4" y="8" width="48" height="38" rx="4" fill="#E0E5EC" stroke="#00BCD4" strokeWidth="2" />
+      {/* Title bar */}
+      <Rect x="4" y="8" width="48" height="10" rx="4" fill="#00BCD4" />
+      {/* Dots on title bar */}
+      <Circle cx="12" cy="13" r="2" fill="#fff" />
+      <Circle cx="18" cy="13" r="2" fill="#fff" />
+      {/* Overlay window (floating on top) */}
+      <Rect x="14" y="18" width="32" height="22" rx="3" fill="#fff" stroke="#0097A7" strokeWidth="1.5" strokeDasharray="4 2" />
+      {/* Arrow indicating overlay */}
+      <Path d="M30 26l-4 4 4 4" stroke="#00BCD4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d="M26 30h12" stroke="#00BCD4" strokeWidth="2.5" strokeLinecap="round" fill="none" />
     </Svg>
   );
 }

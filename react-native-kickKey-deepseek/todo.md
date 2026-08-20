@@ -1,6 +1,6 @@
 Email: educationworldfkp2@gmail.com
-Download Link: https://expo.dev/artifacts/eas/JWappsif_iUIuO4f_ewUXVMKtKHrKFyDhlJ31SIkPbM.apk
-Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon
+Download Link: https://expo.dev/artifacts/eas/KnFychVRWa-0DQa-_-6rekL8M7VCS-La8mLXEZ54--k.apk
+Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps
 
 
 Bangla to English Conversion: https://chatgpt.com/c/6a3d5c31-c684-83e8-8b51-eda4710b19c4

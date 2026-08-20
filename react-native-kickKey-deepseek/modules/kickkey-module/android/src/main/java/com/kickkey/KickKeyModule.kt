@@ -396,6 +396,11 @@ class KickKeyModule : Module() {
             }
         }
 
+        Function("isOverlayGranted") {
+            val context = appContext.reactContext ?: return@Function false
+            Settings.canDrawOverlays(context)
+        }
+
         Function("openOverlaySettings") {
             val context = appContext.reactContext ?: return@Function
             try {

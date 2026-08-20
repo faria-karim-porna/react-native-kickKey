@@ -18,7 +18,8 @@ export default function OnboardingLayout() {
       >
         <Stack.Screen name="step1-enable" />
         <Stack.Screen name="step2-default" />
-        <Stack.Screen name="step3-done" />
+        <Stack.Screen name="step3-overlay" />
+        <Stack.Screen name="step4-done" />
       </Stack>
     </View>
   );

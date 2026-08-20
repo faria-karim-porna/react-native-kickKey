@@ -468,6 +468,12 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     }
 
     @ReactMethod
+    fun isOverlayGranted(promise: Promise) {
+        val context = reactApplicationContext
+        promise.resolve(Settings.canDrawOverlays(context))
+    }
+
+    @ReactMethod
     fun openOverlaySettings(promise: Promise) {
         try {
             val context = reactApplicationContext

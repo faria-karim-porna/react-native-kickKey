@@ -4,47 +4,53 @@ import { useRouter } from 'expo-router';
 import SetupProgress from '../../components/SetupProgress';
 import { useSetupStatus } from '../../hooks/useSetupStatus';
 import { useKickKeyBridge } from '../../hooks/useKickKeyBridge';
-import { CheckCircleIcon, StepCircle } from '../../components/OnboardingIcons';
+import { OverlayIcon, StepCircle } from '../../components/OnboardingIcons';
 
-export default function Step2Default() {
+export default function Step3Overlay() {
   const router = useRouter();
-  const { isDefault } = useSetupStatus();
-  const { showInputMethodPicker } = useKickKeyBridge();
+  const { isOverlayGranted } = useSetupStatus();
+  const { openOverlaySettings } = useKickKeyBridge();
 
   useEffect(() => {
-    if (isDefault) {
-      router.push('/onboarding/step3-overlay');
+    if (isOverlayGranted) {
+      router.push('/onboarding/step4-done');
     }
-  }, [isDefault]);
+  }, [isOverlayGranted]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <SetupProgress currentStep={2} />
+      <SetupProgress currentStep={3} />
 
       <View style={styles.iconContainer}>
-        <CheckCircleIcon size={56} />
+        <OverlayIcon size={56} />
       </View>
-      <Text style={styles.title}>Set as Default</Text>
+      <Text style={styles.title}>Display Over Other Apps</Text>
       <Text style={styles.description}>
-        Almost there! Now set KickKey as your default keyboard so it opens
-        automatically whenever you tap a text field.
+        Allow KickKey to draw over other apps so the touchpad cursor
+        can appear anywhere on screen. This is optional but recommended
+        for the full touchpad experience.
       </Text>
 
       <View style={styles.card}>
         <StepCircle number={1} text="Tap the button below" />
-        <StepCircle number={2} text='Select "KickKey Keyboard" as default' />
-        <StepCircle number={3} text="Come back to this app" />
+        <StepCircle number={2} text='Find "KickKey" in the list' />
+        <StepCircle number={3} text="Toggle the permission on" />
+        <StepCircle number={4} text="Come back to this app" />
       </View>
 
       <Pressable
         style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-        onPress={() => showInputMethodPicker()}
+        onPress={() => openOverlaySettings()}
       >
-        <Text style={styles.buttonText}>Set Default Keyboard</Text>
+        <Text style={styles.buttonText}>Open Overlay Settings</Text>
+      </Pressable>
+
+      <Pressable style={styles.skipButton} onPress={() => router.push('/onboarding/step4-done')}>
+        <Text style={styles.skipText}>Skip for now</Text>
       </Pressable>
 
       <Text style={styles.hint}>
-        This screen will automatically advance once KickKey is your default keyboard.
+        You can always enable this later in Settings.
       </Text>
     </SafeAreaView>
   );
@@ -60,7 +66,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 18,
     marginBottom: 24,
-    // Neumorphic raised effect (chocolate bar style)
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
     borderTopColor: 'rgba(0,0,0,0.15)',
@@ -75,13 +80,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
   },
-
   button: {
     backgroundColor: '#00BCD4',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    // Neumorphic raised effect
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
     borderTopColor: 'rgba(0,0,0,0.1)',
@@ -112,5 +115,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  hint: { color: '#999', fontSize: 12, textAlign: 'center', marginTop: 16 },
+  skipButton: { paddingVertical: 12, alignItems: 'center', marginTop: 8 },
+  skipText: { color: '#999', fontSize: 14, textDecorationLine: 'underline' },
+  hint: { color: '#999', fontSize: 12, textAlign: 'center', marginTop: 8 },
 });
