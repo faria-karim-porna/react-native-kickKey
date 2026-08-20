@@ -33,13 +33,23 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2a2a40',
+    backgroundColor: '#c8ccd0',
+    // Inset neumorphic effect
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.12)',
+    borderLeftColor: 'rgba(0,0,0,0.12)',
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.6)',
+    borderRightColor: 'rgba(255,255,255,0.6)',
   },
   dotActive: {
     backgroundColor: '#00BCD4',
     width: 24,
   },
   dotComplete: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00BCD4',
+    opacity: 0.6,
   },
 });

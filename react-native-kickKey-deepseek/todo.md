@@ -1,5 +1,5 @@
-Email: faria.karim.12@gmail.com
-Download Link: https://expo.dev/artifacts/eas/SH6GRn7QbekeDDUi_Pma_Mt30N9-lU8SlHg717umce8.apk
+Email: educationworldfkp2@gmail.com
+Download Link: https://expo.dev/artifacts/eas/JWappsif_iUIuO4f_ewUXVMKtKHrKFyDhlJ31SIkPbM.apk
 Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon
 
 

@@ -33,10 +33,29 @@ export default function Step3Done() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a1a', padding: 24, paddingTop: 60, justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: '#ffffff', padding: 24, paddingTop: 60, justifyContent: 'center' },
   emoji: { fontSize: 64, textAlign: 'center', marginBottom: 16 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 12 },
-  description: { fontSize: 14, color: '#aaa', textAlign: 'center', lineHeight: 20, marginBottom: 32 },
-  button: { backgroundColor: '#00BCD4', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: '#000', fontSize: 16, fontWeight: '700' },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 12 },
+  description: { fontSize: 14, color: '#777', textAlign: 'center', lineHeight: 20, marginBottom: 32 },
+  button: {
+    backgroundColor: '#00BCD4',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    // Neumorphic raised effect
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderLeftColor: 'rgba(0,0,0,0.1)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: 'rgba(255,255,255,0.6)',
+    borderRightColor: 'rgba(255,255,255,0.6)',
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: -2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

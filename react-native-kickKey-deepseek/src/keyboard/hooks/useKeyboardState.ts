@@ -65,6 +65,7 @@ export interface QykeyKeyboardState {
   handleMouseClick: (button: 'left' | 'right') => void;
   handleDragStart: () => void;
   handleDragEnd: () => void;
+  tapToClick: boolean;
   // ── Touchpad: on-screen pointer overlay ──────────────────────────────────
   handlePointerShow: () => Promise<boolean>;
   handlePointerHide: () => void;
