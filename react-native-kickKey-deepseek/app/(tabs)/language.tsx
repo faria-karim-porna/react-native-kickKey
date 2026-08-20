@@ -41,16 +41,31 @@ export default function LanguageScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a1a' },
+  container: { flex: 1, backgroundColor: '#e0e5ec' },
   content: { padding: 20, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
-  subtitle: { color: '#888', fontSize: 13, lineHeight: 18, marginBottom: 24 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#333', marginBottom: 8 },
+  subtitle: { color: '#777', fontSize: 13, lineHeight: 18, marginBottom: 24 },
   row: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#13132a', borderRadius: 12, padding: 18, marginBottom: 12,
+    backgroundColor: 'rgba(224,229,236,0.92)',
+    borderRadius: 12, padding: 18, marginBottom: 12,
     borderWidth: 2, borderColor: 'transparent',
+    // Neumorphic raised effect
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(0,0,0,0.15)',
+    borderLeftColor: 'rgba(0,0,0,0.15)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: 'rgba(255,255,255,0.8)',
+    borderRightColor: 'rgba(255,255,255,0.8)',
+    shadowColor: '#000',
+    shadowOffset: { width: -3, height: -3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
   rowSelected: { borderColor: '#00BCD4' },
-  rowLabel: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  rowNative: { color: '#888', fontSize: 13, marginTop: 2 },
+  rowLabel: { color: '#333', fontSize: 16, fontWeight: '600' },
+  rowNative: { color: '#777', fontSize: 13, marginTop: 2 },
 });

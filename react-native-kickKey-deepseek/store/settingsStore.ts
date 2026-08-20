@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ThemeName = 'dark' | 'light' | 'amoled' | 'custom';
+export type CursorType = 'line' | 'block' | 'underline' | 'arrow' | 'pointer' | 'crosshair' | 'grab';
 
 export interface ThemeColors {
   keyboardBg: string;
@@ -36,6 +37,14 @@ interface SettingsState {
   setKeyHeight: (v: number) => void;
   setKeyBorderRadius: (v: number) => void;
   setFontSize: (v: number) => void;
+
+  // Cursor
+  cursorType: CursorType;
+  cursorColor: string;
+  cursorSize: number;
+  setCursorType: (type: CursorType) => void;
+  setCursorColor: (color: string) => void;
+  setCursorSize: (size: number) => void;
 
   // Feedback
   hapticEnabled: boolean;
@@ -84,6 +93,13 @@ export const useSettingsStore = create<SettingsState>()(
       setKeyHeight: (keyHeight) => set({ keyHeight }),
       setKeyBorderRadius: (keyBorderRadius) => set({ keyBorderRadius }),
       setFontSize: (fontSize) => set({ fontSize }),
+
+      cursorType: 'line',
+      cursorColor: '#00BCD4',
+      cursorSize: 24,
+      setCursorType: (cursorType) => set({ cursorType }),
+      setCursorColor: (cursorColor) => set({ cursorColor }),
+      setCursorSize: (cursorSize) => set({ cursorSize }),
 
       hapticEnabled: true,
       soundEnabled: false,

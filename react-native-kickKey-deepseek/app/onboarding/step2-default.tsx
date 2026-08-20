@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: '#00BCD4',
+    backgroundColor: '#8594aa',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   buttonPressed: {
-    backgroundColor: '#009aa8',
+    backgroundColor: '#707f9a',
     transform: [{ translateY: 1 }],
     borderTopWidth: 2,
     borderLeftWidth: 2,

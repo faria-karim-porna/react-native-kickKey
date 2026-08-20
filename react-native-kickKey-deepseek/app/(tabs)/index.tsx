@@ -2,6 +2,7 @@ import React from 'react';
 import {
   View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useSetupStatus } from '../../hooks/useSetupStatus';
 import { useSettingsStore } from '../../store/settingsStore';
 
@@ -28,7 +29,7 @@ export default function HomeScreen() {
             <TextInput
               style={styles.testInput}
               placeholder="Tap here and start typing..."
-              placeholderTextColor="#555"
+              placeholderTextColor="#999"
               value={testText}
               onChangeText={setTestText}
               multiline
@@ -49,30 +50,73 @@ function StatusRow({
       {isText ? (
         <Text style={styles.statusTextValue}>{value as string}</Text>
       ) : (
-        <Text style={[styles.statusValue, { color: value ? '#4CAF50' : '#f44336' }]}>
-          {value ? '✅ Yes' : '❌ No'}
-        </Text>
+        <View style={styles.statusValueRow}>
+          <Svg width={16} height={16} viewBox="0 0 24 24">
+            {value ? (
+              <Path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="#4CAF50" />
+            ) : (
+              <Path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="#f44336" />
+            )}
+          </Svg>
+          <Text style={[styles.statusValue, { color: value ? '#4CAF50' : '#f44336' }]}>
+            {value ? 'Yes' : 'No'}
+          </Text>
+        </View>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a1a' },
+  container: { flex: 1, backgroundColor: '#e0e5ec' },
   scroll: { padding: 20, paddingTop: 12 },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#00BCD4' },
-  subtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
-  statusCard: { backgroundColor: '#13132a', borderRadius: 12, padding: 18, marginBottom: 28 },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#333' },
+  subtitle: { fontSize: 14, color: '#777', marginBottom: 24 },
+  statusCard: {
+    backgroundColor: 'rgba(224,229,236,0.92)',
+    borderRadius: 12,
+    padding: 18,
+    marginBottom: 28,
+    // Neumorphic raised effect
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderTopColor: 'rgba(0,0,0,0.15)',
+    borderLeftColor: 'rgba(0,0,0,0.15)',
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomColor: 'rgba(255,255,255,0.8)',
+    borderRightColor: 'rgba(255,255,255,0.8)',
+    shadowColor: '#000',
+    shadowOffset: { width: -3, height: -3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
   statusRow: {
     flexDirection: 'row', justifyContent: 'space-between',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#1f1f3a',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.08)',
   },
-  statusLabel: { color: '#ccc', fontSize: 14 },
-  statusValue: { fontSize: 14, fontWeight: '600' },
+  statusLabel: { color: '#444', fontSize: 14 },
+  statusValueRow: { flexDirection: 'row', alignItems: 'center' },
+  statusValue: { fontSize: 14, fontWeight: '600', marginLeft: 6 },
   statusTextValue: { color: '#00BCD4', fontSize: 14, fontWeight: '600' },
-  sectionLabel: { color: '#888', fontSize: 12, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
+  sectionLabel: { color: '#777', fontSize: 12, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
   testInput: {
-    backgroundColor: '#13132a', borderRadius: 12, padding: 16,
-    color: '#fff', fontSize: 16, minHeight: 100, textAlignVertical: 'top',
+    backgroundColor: '#d1d9e6',
+    borderRadius: 12,
+    padding: 16,
+    color: '#333',
+    fontSize: 16,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    // Neumorphic inset effect
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopColor: 'rgba(0,0,0,0.15)',
+    borderLeftColor: 'rgba(0,0,0,0.15)',
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.7)',
+    borderRightColor: 'rgba(255,255,255,0.7)',
   },
 });

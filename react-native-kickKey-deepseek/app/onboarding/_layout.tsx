@@ -9,10 +9,14 @@ export default function OnboardingLayout() {
       {/* Circuit-board pattern behind all onboarding screens */}
       <Circuit animated />
 
+      {/* Semi-transparent overlay so circuit is subtle & text is legible */}
+      <View style={styles.overlay} />
+
       <Stack
         screenOptions={{
           headerShown: false,
-          animation: 'slide_from_right',
+          animation: 'fade',
+          animationDuration: 250,
           contentStyle: { backgroundColor: 'transparent' },
         }}
       >
@@ -29,5 +33,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#e0e5ecac',
   },
 });
