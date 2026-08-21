@@ -1,8 +1,6 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
-import CircuitBackground from './CircuitBackground';
 
 const ICON_PATHS: Record<string, string> = {
   home: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z',
@@ -25,8 +23,6 @@ function TabIcon({ name, color, size, focused }: { name: string; color: string |
 
 export default function TabsLayout() {
   return (
-    <View style={styles.root}>
-      <CircuitBackground />
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -91,13 +87,5 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
-    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-});
