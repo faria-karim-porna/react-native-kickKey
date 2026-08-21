@@ -53,35 +53,15 @@ class KickKeyInputMethodService : InputMethodService() {
     private val keyboardHeightPx: Int
         get() = (KEYBOARD_HEIGHT_DP * resources.displayMetrics.density).toInt()
 
-    // ── M3: touchpad strip mode ─────────────────────────────────────────────
-    // When the keyboard's touchpad tab is active, shrink the IME window to a
-    // thin strip so the pointer has the whole screen to move over (plan §5).
-    private var touchpadStripMode = false
-
-    private val stripHeightPx: Int
-        get() = (90 * resources.displayMetrics.density).toInt()
-
+    // ── Touchpad mode ───────────────────────────────────────────────────────
     private val currentKeyboardHeightPx: Int
-        get() = if (touchpadStripMode) stripHeightPx else keyboardHeightPx
+        get() = keyboardHeightPx
 
     /** Main-thread only. Called from KickKeyModule.setTouchpadMode. */
     fun setTouchpadStripMode(on: Boolean) {
-        if (touchpadStripMode == on) return
-        touchpadStripMode = on
-        val container = keyboardContainer
-        if (container != null) {
-            container.layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                currentKeyboardHeightPx
-            )
-            container.minimumHeight = currentKeyboardHeightPx
-            container.requestLayout()
-        }
-        window?.window?.setLayout(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT
-        )
-        Log.i(TAG, "Touchpad strip mode: $on (height=${currentKeyboardHeightPx}px)")
+        // Keep keyboard at full height (275dp) so the touchpad area and its controls
+        // remain fully visible without moving the keyboard down.
+        Log.i(TAG, "Touchpad mode: $on (height=${keyboardHeightPx}px)")
     }
 
     private var reactSurface: ReactSurface? = null
@@ -944,11 +924,17 @@ class KickKeyInputMethodService : InputMethodService() {
         }
     }
 
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        PointerOverlay.hide()
+    }
+
     override fun onFinishInput() {
         super.onFinishInput()
         val pending = KickKeyModule.banglaEngine?.flush() ?: ""
         if (pending.isNotEmpty()) KickKeyModule.activeInputConnection?.commitText(pending, 1)
         KickKeyModule.activeInputConnection = null
+        PointerOverlay.hide()
     }
 
     override fun onWindowHidden() {
@@ -956,10 +942,12 @@ class KickKeyInputMethodService : InputMethodService() {
         KickKeyModule.activeInputConnection = null
         KickKeyModule.banglaEngine?.reset()
         KickKeyModule.suggestionEngine?.reset()
+        PointerOverlay.hide()
     }
 
     override fun onDestroy() {
         instance = null
+        PointerOverlay.hide()
         disposeSurface()
         KickKeyModule.hapticManager    = null
         KickKeyModule.banglaEngine     = null

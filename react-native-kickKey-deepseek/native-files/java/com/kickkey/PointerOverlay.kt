@@ -2,6 +2,10 @@ package com.kickkey
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
@@ -10,132 +14,139 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityManager
-import android.widget.FrameLayout
-import com.facebook.react.ReactHost
-import com.facebook.react.common.LifecycleState
-import com.facebook.react.interfaces.fabric.ReactSurface
 
 /**
- * M2 — the system-wide on-screen mouse cursor.
+ * M2 — the system-wide on-screen mouse cursor and touch-through touchpad overlay.
  *
- * The cursor is a small React Native surface ("KickKeyPointer", from the
- * keyboard ReactHost / keyboard.bundle) placed in its own overlay window.
- * Native owns the position (cursorX/cursorY); the RN arrow never re-renders
- * while moving — movement is pure WindowManager.updateViewLayout().
+ * Cursor is drawn by a pure-native [CursorView] (Canvas-based) rendered as a modern
+ * macOS / Windows 11 style sleek pointer with soft drop shadow and crisp outline.
+ * Screen overlay is drawn by a pure-native [TouchpadOverlayView] (Canvas-based)
+ * covering the entire screen except the keyboard area with 50% opacity red.
+ * Movement is pure WindowManager.updateViewLayout() — no re-renders.
  *
- * Window type priority (plan §6):
- *   1. TYPE_ACCESSIBILITY_OVERLAY — KickKeyAccessibilityService enabled
- *      (no SYSTEM_ALERT_WINDOW needed).
- *   2. TYPE_APPLICATION_OVERLAY (or TYPE_PHONE on API 24-25) — IME-only
- *      fallback, requires "Display over other apps".
+ * Window type priority:
+ *   1. TYPE_ACCESSIBILITY_OVERLAY — KickKeyAccessibilityService enabled (no
+ *      SYSTEM_ALERT_WINDOW permission needed).
+ *   2. TYPE_APPLICATION_OVERLAY (API 26+) or TYPE_PHONE — "Display over other
+ *      apps" granted.
  *   3. Neither → show() returns false; JS shows the permission banner.
  *
- * Threading: all methods are MAIN-THREAD ONLY. KickKeyModule posts to the
- * main looper before calling (same pattern as the removed ImageView code).
- *
- * The surface is created lazily on first show and kept alive for the process
- * lifetime (a tiny static arrow — no per-move re-renders).
+ * All public methods are MAIN-THREAD ONLY. KickKeyModule posts to the main
+ * looper before calling.
  */
 object PointerOverlay {
 
     private const val TAG = "KickKeyPointer"
-    private const val CURSOR_SIZE_DP = 32
+
+    /** Modern cursor arrow size in dp. */
+    private const val CURSOR_SIZE_DP = 28
+    /** Keyboard height in dp to calculate the overlay area excluding keyboard. */
+    private const val KEYBOARD_HEIGHT_DP = 275
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var appContext: Context? = null
-    private var cursorSurface: ReactSurface? = null
     private var cursorView: View? = null
+    private var screenOverlayView: View? = null
     private var visible = false
 
-    // Single source of truth for the cursor position (screen coordinates of
-    // the window's top-left corner). Read by M3's click/scroll methods.
+    /** Screen coordinates of the cursor's hotspot (top-left of the window). */
     var cursorX = 0f
         private set
     var cursorY = 0f
         private set
 
     private val cursorSizePx: Int
-        get() = (CURSOR_SIZE_DP * (appContext?.resources?.displayMetrics?.density ?: 1f)).toInt()
+        get() = (CURSOR_SIZE_DP * (appContext?.resources?.displayMetrics?.density ?: 3f)).toInt()
 
-    private fun screenWidthPx(): Int = appContext?.resources?.displayMetrics?.widthPixels ?: 0
-    private fun screenHeightPx(): Int = appContext?.resources?.displayMetrics?.heightPixels ?: 0
+    private val keyboardHeightPx: Int
+        get() = (KEYBOARD_HEIGHT_DP * (appContext?.resources?.displayMetrics?.density ?: 3f)).toInt()
 
-    private fun isAccessibilityServiceEnabled(context: Context): Boolean {
-        // Direct singleton check (same :ime_process)
+    private fun screenWidthPx(): Int {
+        val ctx = appContext ?: return 1080
+        val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            wm?.currentWindowMetrics?.bounds?.width()
+                ?: ctx.resources.displayMetrics.widthPixels
+        } else {
+            val dm = android.util.DisplayMetrics()
+            @Suppress("DEPRECATION")
+            wm?.defaultDisplay?.getRealMetrics(dm)
+            if (dm.widthPixels > 0) dm.widthPixels else ctx.resources.displayMetrics.widthPixels
+        }
+    }
+
+    private fun screenHeightPx(): Int {
+        val ctx = appContext ?: return 1920
+        val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            wm?.currentWindowMetrics?.bounds?.height()
+                ?: ctx.resources.displayMetrics.heightPixels
+        } else {
+            val dm = android.util.DisplayMetrics()
+            @Suppress("DEPRECATION")
+            wm?.defaultDisplay?.getRealMetrics(dm)
+            if (dm.heightPixels > 0) dm.heightPixels else ctx.resources.displayMetrics.heightPixels
+        }
+    }
+
+    // ── Window type resolution ─────────────────────────────────────────────
+
+    private fun isAccessibilityServiceEnabled(ctx: Context): Boolean {
         if (KickKeyAccessibilityService.instance != null) return true
-
-        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
-        val enabledViaManager = am
-            ?.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+        val am = ctx.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+        val via = am?.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
             ?.any { info ->
-                val sInfo = info.resolveInfo?.serviceInfo
-                (sInfo?.packageName == context.packageName &&
-                    (sInfo.name == "com.kickkey.KickKeyAccessibilityService" ||
-                     sInfo.name?.endsWith("KickKeyAccessibilityService") == true)) ||
+                val si = info.resolveInfo?.serviceInfo
+                (si?.packageName == ctx.packageName &&
+                    (si.name == "com.kickkey.KickKeyAccessibilityService" ||
+                     si.name?.endsWith("KickKeyAccessibilityService") == true)) ||
                 info.id?.contains("KickKeyAccessibilityService") == true
-            }
-            ?: false
-
-        if (enabledViaManager) return true
-
+            } ?: false
+        if (via) return true
         val raw = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: ""
+            ctx.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
         return raw.contains("KickKeyAccessibilityService")
     }
 
-    /** Returns the window type to use, or null when no overlay channel exists. */
-    private fun resolveWindowType(context: Context): Int? {
-        if (isAccessibilityServiceEnabled(context)) {
+    private fun resolveWindowType(ctx: Context): Int? {
+        if (isAccessibilityServiceEnabled(ctx))
             return WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-        }
         return when {
-            Settings.canDrawOverlays(context) -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                } else {
-                    @Suppress("DEPRECATION")
-                    WindowManager.LayoutParams.TYPE_PHONE
-                }
-            }
+            Settings.canDrawOverlays(ctx) -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
             else -> null
         }
     }
 
+    // ── Public API ────────────────────────────────────────────────────────
+
     /**
-     * Shows the cursor. Returns false when no overlay channel is available
-     * (JS then shows the permission banner). Main thread only.
+     * Shows the cursor overlay and touch-through red screen overlay. Returns false when no overlay channel is
+     * available (JS then shows the permission banner). Main thread only.
      */
     fun show(context: Context): Boolean {
-        if (visible) return true
         appContext = context.applicationContext
         val type = resolveWindowType(context) ?: return false
-
-        if (cursorSurface == null) {
-            if (!createSurface(context)) return false
-        }
-        visible = true
-        attachWindow(type, 0)
+        if (visible && cursorView != null && screenOverlayView != null) return true
+        attachWindow(type)
         return true
     }
 
     /**
-     * Moves the cursor by a RELATIVE (dx, dy) delta, clamped to the whole
-     * screen (0..screenW, 0..screenH — no "above the keyboard" limit).
-     * Main thread only. Called at most once per frame from JS.
+     * Moves the cursor by a relative (dx, dy) delta, clamped to the screen.
+     * Main thread only.
      */
     fun move(dx: Float, dy: Float) {
         val view = cursorView ?: return
-        val ctx = appContext ?: return
+        val ctx  = appContext ?: return
         try {
-            val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
+            val wm   = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
             val size = cursorSizePx
-            cursorX = (cursorX + dx).coerceIn(0f, (screenWidthPx() - size).coerceAtLeast(0).toFloat())
+            cursorX = (cursorX + dx).coerceIn(0f, (screenWidthPx()  - size).coerceAtLeast(0).toFloat())
             cursorY = (cursorY + dy).coerceIn(0f, (screenHeightPx() - size).coerceAtLeast(0).toFloat())
             val params = view.layoutParams as WindowManager.LayoutParams
             params.x = cursorX.toInt()
@@ -146,84 +157,62 @@ object PointerOverlay {
         }
     }
 
-    /** Hides the cursor (window removed; the surface stays alive). Main thread only. */
+    /** Hides the cursor window and screen overlay. Main thread only. */
     fun hide() {
-        if (!visible && cursorView == null) return
+        if (!visible && cursorView == null && screenOverlayView == null) return
         visible = false
+        val wm = appContext?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
         try {
-            cursorView?.let { container ->
-                (container as? FrameLayout)?.removeAllViews()
-                (appContext?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager)?.removeView(container)
-            }
+            screenOverlayView?.let { v -> wm?.removeView(v) }
         } catch (e: Exception) {
-            Log.w(TAG, "hide failed: ${e.message}")
+            Log.w(TAG, "hide screenOverlayView failed: ${e.message}")
+        }
+        screenOverlayView = null
+        try {
+            cursorView?.let { v -> wm?.removeView(v) }
+        } catch (e: Exception) {
+            Log.w(TAG, "hide cursorView failed: ${e.message}")
         }
         cursorView = null
-        Log.i(TAG, "Cursor hidden")
+        Log.i(TAG, "Cursor and overlay hidden")
     }
 
     fun isVisible(): Boolean = visible
 
-    // ── Internals ──────────────────────────────────────────────────────────
+    // ── Internals ─────────────────────────────────────────────────────────
 
-    private fun createSurface(context: Context): Boolean {
-        return try {
-            val app = context.applicationContext as KickKeyApplication
-            val host = app.keyboardReactHost
-            val surface = host.createSurface(app, "KickKeyPointer", null)
-            surface.start()
-            cursorSurface = surface
-            // Fabric needs the host RESUMED to apply mount items (same mechanism
-            // as the IME watchdog). PointerRoot signals readiness via keyboardReady().
-            resumeHostWhenReady(host, 0)
-            Log.i(TAG, "Cursor ReactSurface created and started")
-            true
-        } catch (e: Throwable) {
-            Log.e(TAG, "createSurface failed", e)
-            false
-        }
-    }
-
-    /**
-     * Attaches the surface view to the overlay window. The surface view can be
-     * null briefly right after start(); retry for ~1s. Aborts if hide() ran.
-     */
-    private fun attachWindow(type: Int, attempt: Int) {
-        if (!visible) return
-        val surface = cursorSurface ?: return
-        val surfaceView = surface.view
-        if (surfaceView == null) {
-            if (attempt < 10) {
-                mainHandler.postDelayed({ attachWindow(type, attempt + 1) }, 100)
-            } else {
-                Log.e(TAG, "Cursor surface view never appeared — resetting for next show")
-                visible = false
-            }
-            return
-        }
+    private fun attachWindow(type: Int) {
         val ctx = appContext ?: return
         try {
             val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
             val size = cursorSizePx
+            val screenW = screenWidthPx()
+            val screenH = screenHeightPx()
+            val kbH = keyboardHeightPx
+            val overlayH = (screenH - kbH).coerceAtLeast(0)
 
-            // Detach from previous parent if already attached to avoid IllegalStateException
-            (surfaceView.parent as? ViewGroup)?.removeView(surfaceView)
-
-            val container = FrameLayout(ctx).apply {
-                layoutParams = FrameLayout.LayoutParams(size, size)
-                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            // Centre on first show; preserve position on subsequent shows.
+            if (cursorX == 0f && cursorY == 0f) {
+                cursorX = (screenW  - size) / 2f
+                cursorY = (overlayH - size) / 2f
             }
-            container.addView(
-                surfaceView,
-                FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.MATCH_PARENT
-                )
-            )
 
-            val params = WindowManager.LayoutParams(
-                size,
-                size,
+            // Clean up existing views if any
+            try {
+                screenOverlayView?.let { v -> wm.removeView(v) }
+            } catch (e: Exception) {}
+            screenOverlayView = null
+
+            try {
+                cursorView?.let { v -> wm.removeView(v) }
+            } catch (e: Exception) {}
+            cursorView = null
+
+            // 1. Red 50% opacity touch-through screen overlay (covers entire screen above keyboard)
+            val redOverlay = TouchpadOverlayView(ctx)
+            val overlayParams = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                overlayH,
                 type,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -231,50 +220,161 @@ object PointerOverlay {
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
-                // Center on screen on first show; preserve position between subsequent drags
-                if (cursorX == 0f && cursorY == 0f) {
-                    cursorX = (screenWidthPx() - size) / 2f
-                    cursorY = (screenHeightPx() - size) / 2f
-                }
+                x = 0
+                y = 0
+            }
+            wm.addView(redOverlay, overlayParams)
+            screenOverlayView = redOverlay
+
+            // 2. Cursor View (Modern Sleek Pointer)
+            val view = CursorView(ctx)
+            val params = WindowManager.LayoutParams(
+                size, size,
+                type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
                 x = cursorX.toInt()
                 y = cursorY.toInt()
             }
 
-            wm.addView(container, params)
-            cursorView = container
-            Log.i(TAG, "Cursor window attached (type=$type, $size x $size px at $cursorX,$cursorY)")
+            wm.addView(view, params)
+            cursorView = view
+            visible = true
+            Log.i(TAG, "Cursor & screen overlay attached (type=$type, overlayH=${overlayH}px, cursor=${size}px at $cursorX,$cursorY)")
         } catch (e: Throwable) {
             Log.e(TAG, "attachWindow failed", e)
             visible = false
             cursorView = null
+            screenOverlayView = null
         }
     }
 
-    /**
-     * Polls (50ms × up to 600 ≈ 30s) for the keyboard JS mount signal, then
-     * resumes the keyboard ReactHost so Fabric's DispatchUIFrameCallback applies
-     * this surface's mount items. Idempotent if the host is already RESUMED.
-     */
-    private fun resumeHostWhenReady(host: ReactHost, attempt: Int) {
-        if (!visible) return
-        if (attempt >= 600) {
-            Log.w(TAG, "Cursor: JS never signalled readiness — cursor may stay blank (see Troubleshooting §6)")
-            return
+    // ── Native touch-through red overlay drawing ───────────────────────────
+
+    private class TouchpadOverlayView(ctx: Context) : View(ctx) {
+        private val paint = Paint().apply {
+            color = Color.argb(128, 255, 0, 0) // 50% opacity red (#80FF0000)
+            style = Paint.Style.FILL
         }
-        mainHandler.postDelayed({
-            if (!visible) return@postDelayed
-            if (host.lifecycleState == LifecycleState.RESUMED) return@postDelayed
-            if (KickKeyModule.keyboardJsReady) {
-                try {
-                    host.onHostResume(null)
-                    Log.i(TAG, "Cursor: host resumed (lifecycle=${host.lifecycleState})")
-                } catch (e: Exception) {
-                    Log.w(TAG, "Cursor: host resume failed: ${e.message}")
-                    resumeHostWhenReady(host, attempt + 1)
-                }
-            } else {
-                resumeHostWhenReady(host, attempt + 1)
+
+        init {
+            setWillNotDraw(false)
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        }
+    }
+
+    // ── Native cursor drawing (Modern macOS / Windows 11 sleek style) ──────
+
+    /**
+     * A lightweight View that draws a modern macOS / Windows 11 style sleek
+     * mouse-pointer arrow with a soft drop shadow, crisp white body, and dark outline.
+     *
+     * The arrow tip is at the View's top-left corner (0,0) (the hotspot used by
+     * M3's click/scroll methods via [cursorX]/[cursorY]).
+     */
+    private class CursorView(ctx: Context) : View(ctx) {
+
+        // Ambient soft shadow (outer diffuse)
+        private val ambientShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(45, 0, 0, 0)
+            style = Paint.Style.FILL
+        }
+
+        // Contact shadow (inner darker)
+        private val contactShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(75, 0, 0, 0)
+            style = Paint.Style.FILL
+        }
+
+        // Crisp white fill
+        private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+        }
+
+        // Refined dark slate outline
+        private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(235, 18, 18, 30)
+            style = Paint.Style.STROKE
+            strokeWidth = 2.4f
+            strokeJoin = Paint.Join.ROUND
+            strokeCap = Paint.Cap.ROUND
+        }
+
+        private val arrowPath = Path()
+        private val ambientShadowPath = Path()
+        private val contactShadowPath = Path()
+
+        init {
+            setWillNotDraw(false)
+        }
+
+        override fun onSizeChanged(w: Int, h: Int, oldW: Int, oldH: Int) {
+            super.onSizeChanged(w, h, oldW, oldH)
+            buildModernArrow(w.toFloat(), h.toFloat())
+        }
+
+        /**
+         * Builds a modern macOS / Windows 11 style sleek pointer cursor.
+         * Normalized points on a 24 x 30 grid.
+         */
+        private fun buildModernArrow(w: Float, h: Float) {
+            val pts = arrayOf(
+                floatArrayOf(0f,    0f),    // tip
+                floatArrayOf(0f,    21f),   // left edge down
+                floatArrayOf(5.5f,  16.5f), // inner notch
+                floatArrayOf(10.5f, 26.5f), // tail left
+                floatArrayOf(14.2f, 24.6f), // tail right
+                floatArrayOf(9.2f,  14.8f), // tail top-right notch
+                floatArrayOf(17.8f, 14.8f), // right wing
+                floatArrayOf(0f,    0f)     // back to tip
+            )
+
+            val scaleX = w / 24f
+            val scaleY = h / 30f
+
+            arrowPath.reset()
+            arrowPath.moveTo(pts[0][0] * scaleX, pts[0][1] * scaleY)
+            for (i in 1 until pts.size) {
+                arrowPath.lineTo(pts[i][0] * scaleX, pts[i][1] * scaleY)
             }
-        }, 50)
+            arrowPath.close()
+
+            // Ambient soft shadow (offset down-right)
+            val ambOffsetX = 2.5f * scaleX
+            val ambOffsetY = 3.5f * scaleY
+            ambientShadowPath.reset()
+            ambientShadowPath.moveTo(pts[0][0] * scaleX + ambOffsetX, pts[0][1] * scaleY + ambOffsetY)
+            for (i in 1 until pts.size) {
+                ambientShadowPath.lineTo(pts[i][0] * scaleX + ambOffsetX, pts[i][1] * scaleY + ambOffsetY)
+            }
+            ambientShadowPath.close()
+
+            // Contact shadow
+            val contactOffsetX = 1.2f * scaleX
+            val contactOffsetY = 1.6f * scaleY
+            contactShadowPath.reset()
+            contactShadowPath.moveTo(pts[0][0] * scaleX + contactOffsetX, pts[0][1] * scaleY + contactOffsetY)
+            for (i in 1 until pts.size) {
+                contactShadowPath.lineTo(pts[i][0] * scaleX + contactOffsetX, pts[i][1] * scaleY + contactOffsetY)
+            }
+            contactShadowPath.close()
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            canvas.drawPath(ambientShadowPath, ambientShadowPaint)
+            canvas.drawPath(contactShadowPath, contactShadowPaint)
+            canvas.drawPath(arrowPath, fillPaint)
+            canvas.drawPath(arrowPath, strokePaint)
+        }
     }
 }

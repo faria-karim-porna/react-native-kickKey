@@ -103,12 +103,15 @@ export function useKeyboardState(): QykeyKeyboardState {
       .catch(() => {});
   }, []);
 
-  // ── Touchpad: IME strip mode (M3) ──────────────────────────────────────
-  // Native shrinks the IME window to a thin strip so the pointer has the
-  // whole screen (no-op when the panel is open / IME hidden).
+  // ── Touchpad: IME strip mode & pointer overlay ───────────────────────────
   useEffect(() => {
     getKickKey()?.setTouchpadMode?.(toggleMode);
-  }, [toggleMode]);
+    if (toggleMode) {
+      handlePointerShow();
+    } else {
+      handlePointerHide();
+    }
+  }, [toggleMode, handlePointerShow, handlePointerHide]);
 
   // ── Native event listeners ───────────────────────────────────────────────
 
@@ -124,6 +127,8 @@ export function useKeyboardState(): QykeyKeyboardState {
       setSymbolModeStatus(0);
       setIsEmojiMode(false);
       setSuggestions([]);
+      setToggleMode(false);
+      getKickKey()?.pointerHide?.();
     });
 
     return () => {
