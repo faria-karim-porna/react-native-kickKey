@@ -18,7 +18,7 @@ export default function ToggleRow({ label, description, value, onValueChange }: 
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: '#c8ccd0', true: '#00BCD4' }}
+        trackColor={{ false: '#c8ccd0', true: '#8594aa' }}
         thumbColor="#fff"
       />
     </View>
@@ -35,6 +35,6 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   textContainer: { flex: 1, marginRight: 12 },
-  label: { color: '#333', fontSize: 15, fontWeight: '500' },
-  description: { color: '#777', fontSize: 12, marginTop: 2 },
+  label: { color: '#444', fontSize: 15, fontWeight: '500' },
+  description: { color: '#888', fontSize: 12, marginTop: 2 },
 });

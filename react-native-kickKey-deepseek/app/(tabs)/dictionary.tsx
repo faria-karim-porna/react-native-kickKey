@@ -44,7 +44,7 @@ export default function DictionaryScreen() {
           <TextInput
             style={styles.input}
             placeholder="Add a word..."
-            placeholderTextColor="#999"
+            placeholderTextColor="#8a8a8a"
             value={input}
             onChangeText={setInput}
             onSubmitEditing={handleAdd}
@@ -73,7 +73,7 @@ export default function DictionaryScreen() {
                 <Svg width={18} height={18} viewBox="0 0 24 24">
                   <Path
                     d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                    fill="#999"
+                    fill="#8a8a8a"
                   />
                 </Svg>
               </TouchableOpacity>
@@ -86,11 +86,11 @@ export default function DictionaryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#e0e5ec' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   flex: { flex: 1 },
   header: { padding: 20, paddingBottom: 8 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#333', marginBottom: 6 },
-  subtitle: { color: '#777', fontSize: 13, lineHeight: 18 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#444', marginBottom: 6 },
+  subtitle: { color: '#888', fontSize: 13, lineHeight: 18 },
   inputRow: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 12, gap: 10 },
   input: {
     flex: 1,
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#333',
+    color: '#444',
     fontSize: 15,
     // Neumorphic inset effect
     borderTopWidth: 2,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   addButtonPressed: {
-    backgroundColor: '#707f9a',
+    backgroundColor: '#dcdde1',
     transform: [{ translateY: 1 }],
     borderTopWidth: 2,
     borderLeftWidth: 2,
@@ -166,6 +166,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
   },
-  wordText: { color: '#333', fontSize: 15 },
-  empty: { color: '#999', textAlign: 'center', marginTop: 40, fontSize: 14 },
+  wordText: { color: '#444', fontSize: 15 },
+  empty: { color: '#8a8a8a', textAlign: 'center', marginTop: 40, fontSize: 14 },
 });

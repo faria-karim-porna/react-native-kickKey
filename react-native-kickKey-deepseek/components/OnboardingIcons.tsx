@@ -11,7 +11,7 @@ export function KeyboardIcon({ size = 56 }: { size?: number }) {
   const width = size * (576 / 512);
   return (
     <Svg width={width} height={size} viewBox="0 0 576 512">
-      <Path d={KEYBOARD_PATH} fill="#00BCD4" />
+      <Path d={KEYBOARD_PATH} fill="#8594aa" />
     </Svg>
   );
 }
@@ -20,7 +20,7 @@ export function KeyboardIcon({ size = 56 }: { size?: number }) {
 export function CheckCircleIcon({ size = 56 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 56 56">
-      <Circle cx="28" cy="28" r="26" fill="#00BCD4" stroke="#0097A7" strokeWidth="2" />
+      <Circle cx="28" cy="28" r="26" fill="#8594aa" stroke="#2c2b2b" strokeWidth="2" />
       <Path
         d="M16 28l8 8 16-16"
         stroke="#fff"
@@ -40,27 +40,27 @@ export function CelebrateIcon({ size = 64 }: { size?: number }) {
       {/* Trophy cup */}
       <Path
         d="M20 12h24v16c0 8-5.37 14.67-12 16-6.63-1.33-12-8-12-16V12z"
-        fill="#FFD700"
-        stroke="#E6B800"
+        fill="#8594aa"
+        stroke="#8a8a8a"
         strokeWidth="1.5"
       />
       {/* Trophy base */}
       <Path
         d="M26 44h12v4H26z"
-        fill="#FFD700"
-        stroke="#E6B800"
+        fill="#8594aa"
+        stroke="#8a8a8a"
         strokeWidth="1.5"
       />
       <Path
         d="M23 48h18v3H23z"
-        fill="#FFD700"
-        stroke="#E6B800"
+        fill="#8594aa"
+        stroke="#8a8a8a"
         strokeWidth="1.5"
       />
       {/* Left handle */}
       <Path
         d="M20 16H14c0 6 2 10 6 12"
-        stroke="#E6B800"
+        stroke="#8a8a8a"
         strokeWidth="2.5"
         strokeLinecap="round"
         fill="none"
@@ -68,7 +68,7 @@ export function CelebrateIcon({ size = 64 }: { size?: number }) {
       {/* Right handle */}
       <Path
         d="M44 16h6c0 6-2 10-6 12"
-        stroke="#E6B800"
+        stroke="#8a8a8a"
         strokeWidth="2.5"
         strokeLinecap="round"
         fill="none"
@@ -79,9 +79,9 @@ export function CelebrateIcon({ size = 64 }: { size?: number }) {
         fill="#fff"
       />
       {/* Sparkle left */}
-      <Path d="M12 10l2 2-2 2-2-2z" fill="#00BCD4" />
+      <Path d="M12 10l2 2-2 2-2-2z" fill="#8594aa" />
       {/* Sparkle right */}
-      <Path d="M52 10l2 2-2 2-2-2z" fill="#00BCD4" />
+      <Path d="M52 10l2 2-2 2-2-2z" fill="#8594aa" />
     </Svg>
   );
 }
@@ -91,17 +91,17 @@ export function OverlayIcon({ size = 56 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 56 56">
       {/* Background window */}
-      <Rect x="4" y="8" width="48" height="38" rx="4" fill="#E0E5EC" stroke="#00BCD4" strokeWidth="2" />
+      <Rect x="4" y="8" width="48" height="38" rx="4" fill="#E0E5EC" stroke="#8594aa" strokeWidth="2" />
       {/* Title bar */}
-      <Rect x="4" y="8" width="48" height="10" rx="4" fill="#00BCD4" />
+      <Rect x="4" y="8" width="48" height="10" rx="4" fill="#8594aa" />
       {/* Dots on title bar */}
       <Circle cx="12" cy="13" r="2" fill="#fff" />
       <Circle cx="18" cy="13" r="2" fill="#fff" />
       {/* Overlay window (floating on top) */}
-      <Rect x="14" y="18" width="32" height="22" rx="3" fill="#fff" stroke="#0097A7" strokeWidth="1.5" strokeDasharray="4 2" />
+      <Rect x="14" y="18" width="32" height="22" rx="3" fill="#fff" stroke="#2c2b2b" strokeWidth="1.5" strokeDasharray="4 2" />
       {/* Arrow indicating overlay */}
-      <Path d="M30 26l-4 4 4 4" stroke="#00BCD4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <Path d="M26 30h12" stroke="#00BCD4" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+      <Path d="M30 26l-4 4 4 4" stroke="#8594aa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d="M26 30h12" stroke="#8594aa" strokeWidth="2.5" strokeLinecap="round" fill="none" />
     </Svg>
   );
 }
@@ -133,7 +133,7 @@ const stepStyles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#00BCD4',
+    backgroundColor: '#8594aa',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,

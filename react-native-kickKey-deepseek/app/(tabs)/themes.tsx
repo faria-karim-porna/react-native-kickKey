@@ -34,11 +34,11 @@ export default function ThemesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#e0e5ec' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   scroll: { padding: 20, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#333', marginBottom: 20 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#444', marginBottom: 20 },
   sectionLabel: {
-    color: '#777', fontSize: 12, textTransform: 'uppercase',
+    color: '#888', fontSize: 12, textTransform: 'uppercase',
     marginBottom: 10, marginTop: 8, letterSpacing: 0.5,
   },
 });

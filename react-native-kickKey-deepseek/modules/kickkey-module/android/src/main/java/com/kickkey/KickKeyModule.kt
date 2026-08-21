@@ -493,7 +493,7 @@ class KickKeyModule : Module() {
                 "themeKeyBg"      to (prefs.getString("themeKeyBg",      "#1e1e2e") ?: "#1e1e2e"),
                 "themeKeyText"    to (prefs.getString("themeKeyText",    "#ffffff") ?: "#ffffff"),
                 "specialKeyBg"    to (prefs.getString("specialKeyBg",   "#2a2a40") ?: "#2a2a40"),
-                "themePrimary"    to (prefs.getString("themePrimary",   "#00BCD4") ?: "#00BCD4"),
+                "themePrimary"    to (prefs.getString("themePrimary",   "#8594aa") ?: "#8594aa"),
                 "keyHeight"       to prefs.getInt("keyHeight",        48),
                 "keyBorderRadius" to prefs.getInt("keyBorderRadius",   6),
                 "fontSize"        to prefs.getInt("fontSize",          16),

@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.6)',
     borderRightColor: 'rgba(255,255,255,0.6)',
   },
-  tagActive: { backgroundColor: '#00BCD4' },
-  text: { color: '#666', fontSize: 11, fontWeight: '700' },
+  tagActive: { backgroundColor: '#8594aa' },
+  text: { color: '#888', fontSize: 11, fontWeight: '700' },
   textActive: { color: '#fff' },
 });

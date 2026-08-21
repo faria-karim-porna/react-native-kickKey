@@ -20,8 +20,8 @@ const CURSOR_TYPES: { type: CursorType; label: string }[] = [
 ];
 
 const CURSOR_COLORS = [
-  '#00BCD4', '#ffffff', '#333333', '#f44336',
-  '#4CAF50', '#FFC107', '#FF9800', '#9C27B0',
+  '#8594aa', '#ffffff', '#2c2b2b', '#f2f2f2',
+  '#8a8a8a', '#c8ccd0', '#d1d9e6', '#888',
 ];
 
 function CursorPreview({ type, color, size }: { type: CursorType; color: string; size: number }) {
@@ -106,9 +106,9 @@ function SliderRow({
         step={1}
         value={value}
         onValueChange={onChange}
-        minimumTrackTintColor="#00BCD4"
+        minimumTrackTintColor="#8594aa"
         maximumTrackTintColor="#c8ccd0"
-        thumbTintColor="#00BCD4"
+        thumbTintColor="#8594aa"
       />
     </View>
   );
@@ -239,7 +239,7 @@ export default function SettingsScreen() {
               onPress={() => setCursorType(type)}
               activeOpacity={0.8}
             >
-              <CursorPreview type={type} color={cursorType === type ? '#00BCD4' : '#555'} size={cursorSize} />
+              <CursorPreview type={type} color={cursorType === type ? '#8594aa' : '#888'} size={cursorSize} />
               <Text style={[styles.cursorTypeLabel, cursorType === type && styles.cursorTypeLabelActive]}>
                 {label}
               </Text>
@@ -283,7 +283,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <View style={styles.a11yRow}>
             <Text style={styles.a11yLabel}>Accessibility Service</Text>
-            <Text style={[styles.a11yValue, { color: a11yEnabled ? '#4CAF50' : '#f44336' }]}>
+            <Text style={[styles.a11yValue, { color: a11yEnabled ? '#8594aa' : '#8a8a8a' }]}>
               {a11yEnabled === null ? 'Checking…' : a11yEnabled ? 'Enabled' : 'Disabled'}
             </Text>
           </View>
@@ -332,11 +332,11 @@ const card = {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#e0e5ec' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   scroll: { padding: 20, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#333', marginBottom: 20 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#444', marginBottom: 20 },
   sectionLabel: {
-    color: '#777', fontSize: 12, textTransform: 'uppercase',
+    color: '#888', fontSize: 12, textTransform: 'uppercase',
     marginBottom: 8, marginTop: 16, letterSpacing: 0.5,
   },
 
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   sliderRow: { marginBottom: 16 },
   sliderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   sliderLabel: { color: '#444', fontSize: 13 },
-  sliderValue: { color: '#00BCD4', fontSize: 13, fontWeight: '600' },
+  sliderValue: { color: '#8594aa', fontSize: 13, fontWeight: '600' },
 
   // ── Cursor type grid ──
   cursorTypeGrid: {
@@ -382,11 +382,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   cursorTypeCardActive: {
-    borderColor: '#00BCD4',
+    borderColor: '#8594aa',
     borderWidth: 2,
   },
-  cursorTypeLabel: { color: '#666', fontSize: 11, fontWeight: '600' },
-  cursorTypeLabelActive: { color: '#00BCD4' },
+  cursorTypeLabel: { color: '#888', fontSize: 11, fontWeight: '600' },
+  cursorTypeLabelActive: { color: '#8594aa' },
 
   // ── Color palette ──
   colorPalette: {
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   },
   colorSwatchActive: {
     borderWidth: 2,
-    borderColor: '#00BCD4',
+    borderColor: '#8594aa',
   },
 
   // ── Cursor size preview ──
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
   },
-  a11yLabel: { color: '#333', fontSize: 15 },
+  a11yLabel: { color: '#444', fontSize: 15 },
   a11yValue: { fontSize: 13, fontWeight: '600' },
   a11yButton: {
     backgroundColor: '#8594aa',
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   a11yButtonPressed: {
-    backgroundColor: '#707f9a',
+    backgroundColor: '#dcdde1',
     transform: [{ translateY: 1 }],
     borderTopWidth: 2,
     borderLeftWidth: 2,
@@ -484,6 +484,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   a11yButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  a11yHint: { color: '#777', fontSize: 12, lineHeight: 17, paddingBottom: 12 },
-  footnote: { color: '#999', fontSize: 12, textAlign: 'center', marginTop: 24 },
+  a11yHint: { color: '#888', fontSize: 12, lineHeight: 17, paddingBottom: 12 },
+  footnote: { color: '#8a8a8a', fontSize: 12, textAlign: 'center', marginTop: 24 },
 });

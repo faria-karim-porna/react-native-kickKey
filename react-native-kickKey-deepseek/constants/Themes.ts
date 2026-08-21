@@ -16,7 +16,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       keyText:        '#ffffff',
       specialKeyBg:   '#2a2a40',
       specialKeyText: '#ffffff',
-      themePrimary:   '#00BCD4',
+      themePrimary:   '#8594aa',
     },
   },
   {

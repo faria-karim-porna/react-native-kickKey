@@ -587,7 +587,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
             putString("themeKeyBg",      prefs.getString("themeKeyBg",      "#1e1e2e") ?: "#1e1e2e")
             putString("themeKeyText",    prefs.getString("themeKeyText",    "#ffffff") ?: "#ffffff")
             putString("specialKeyBg",    prefs.getString("specialKeyBg",   "#2a2a40") ?: "#2a2a40")
-            putString("themePrimary",    prefs.getString("themePrimary",   "#00BCD4") ?: "#00BCD4")
+            putString("themePrimary",    prefs.getString("themePrimary",   "#8594aa") ?: "#8594aa")
             putInt("keyHeight",          prefs.getInt("keyHeight",        48))
             putInt("keyBorderRadius",     prefs.getInt("keyBorderRadius",   6))
             putInt("fontSize",          prefs.getInt("fontSize",          16))

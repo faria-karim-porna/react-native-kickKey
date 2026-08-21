@@ -45,11 +45,11 @@ const styles = StyleSheet.create({
     borderRightColor: 'rgba(255,255,255,0.6)',
   },
   dotActive: {
-    backgroundColor: '#00BCD4',
+    backgroundColor: '#8594aa',
     width: 24,
   },
   dotComplete: {
-    backgroundColor: '#00BCD4',
+    backgroundColor: '#8594aa',
     opacity: 0.6,
   },
 });

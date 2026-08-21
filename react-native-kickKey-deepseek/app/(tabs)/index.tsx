@@ -29,7 +29,7 @@ export default function HomeScreen() {
             <TextInput
               style={styles.testInput}
               placeholder="Tap here and start typing..."
-              placeholderTextColor="#999"
+              placeholderTextColor="#8a8a8a"
               value={testText}
               onChangeText={setTestText}
               multiline
@@ -53,12 +53,12 @@ function StatusRow({
         <View style={styles.statusValueRow}>
           <Svg width={16} height={16} viewBox="0 0 24 24">
             {value ? (
-              <Path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="#4CAF50" />
+              <Path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="#8594aa" />
             ) : (
-              <Path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="#f44336" />
+              <Path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="#8a8a8a" />
             )}
           </Svg>
-          <Text style={[styles.statusValue, { color: value ? '#4CAF50' : '#f44336' }]}>
+          <Text style={[styles.statusValue, { color: value ? '#8594aa' : '#8a8a8a' }]}>
             {value ? 'Yes' : 'No'}
           </Text>
         </View>
@@ -68,10 +68,10 @@ function StatusRow({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#e0e5ec' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   scroll: { padding: 20, paddingTop: 12 },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#333' },
-  subtitle: { fontSize: 14, color: '#777', marginBottom: 24 },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#444' },
+  subtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
   statusCard: {
     backgroundColor: 'rgba(224,229,236,0.92)',
     borderRadius: 12,
@@ -99,14 +99,12 @@ const styles = StyleSheet.create({
   statusLabel: { color: '#444', fontSize: 14 },
   statusValueRow: { flexDirection: 'row', alignItems: 'center' },
   statusValue: { fontSize: 14, fontWeight: '600', marginLeft: 6 },
-  statusTextValue: { color: '#00BCD4', fontSize: 14, fontWeight: '600' },
-  sectionLabel: { color: '#777', fontSize: 12, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
+  statusTextValue: { color: '#8594aa', fontSize: 14, fontWeight: '600' },
+  sectionLabel: { color: '#888', fontSize: 12, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
   testInput: {
     backgroundColor: '#d1d9e6',
     borderRadius: 12,
-    padding: 16,
-    color: '#333',
-    fontSize: 16,
+    padding: 16,    color: '#444', fontSize: 16,
     minHeight: 100,
     textAlignVertical: 'top',
     // Neumorphic inset effect

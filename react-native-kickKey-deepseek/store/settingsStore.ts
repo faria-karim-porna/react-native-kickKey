@@ -80,7 +80,7 @@ export const useSettingsStore = create<SettingsState>()(
         keyText:        '#ffffff',
         specialKeyBg:   '#2a2a40',
         specialKeyText: '#ffffff',
-        themePrimary:   '#00BCD4',
+        themePrimary:   '#8594aa',
       },
       setTheme: (theme) => set({ theme }),
       setThemeColors: (colors) =>
@@ -95,7 +95,7 @@ export const useSettingsStore = create<SettingsState>()(
       setFontSize: (fontSize) => set({ fontSize }),
 
       cursorType: 'line',
-      cursorColor: '#00BCD4',
+      cursorColor: '#8594aa',
       cursorSize: 24,
       setCursorType: (cursorType) => set({ cursorType }),
       setCursorColor: (cursorColor) => set({ cursorColor }),

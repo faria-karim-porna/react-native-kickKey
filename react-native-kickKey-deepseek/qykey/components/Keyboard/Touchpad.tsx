@@ -155,10 +155,10 @@ export default function Touchpad({
               width: 14,
               height: 14,
               borderRadius: 7,
-              backgroundColor: "rgba(0, 188, 212, 0.5)",
+              backgroundColor: "rgba(133, 148, 170, 0.5)",
               borderWidth: 2,
-              borderColor: "#00BCD4",
-              shadowColor: "#00BCD4",
+              borderColor: "#8594aa",
+              shadowColor: "#8594aa",
               shadowOffset: { width: 0, height: 0 },
               shadowOpacity: 0.8,
               shadowRadius: 4,
@@ -192,7 +192,7 @@ export default function Touchpad({
           <Pressable onPress={() => onRequestPointerPermissionRef.current?.()}>
             <Text
               style={{
-                color: "#00BCD4",
+                color: "#8594aa",
                 fontSize: 9,
                 fontWeight: "bold",
                 textAlign: "center",

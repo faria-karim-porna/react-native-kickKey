@@ -58,10 +58,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
   },
-  cardSelected: { borderColor: '#00BCD4' },
+  cardSelected: { borderColor: '#8594aa' },
   preview: { borderRadius: 8, padding: 8, marginBottom: 10 },
   previewRow: { flexDirection: 'row', gap: 4, marginBottom: 4 },
   previewKey: { flex: 1, height: 18, borderRadius: 3 },
-  label: { color: '#333', fontSize: 14, fontWeight: '600' },
-  checkmark: { position: 'absolute', top: 12, right: 12, color: '#00BCD4', fontSize: 16, fontWeight: 'bold' },
+  label: { color: '#444', fontSize: 14, fontWeight: '600' },
+  checkmark: { position: 'absolute', top: 12, right: 12, color: '#8594aa', fontSize: 16, fontWeight: 'bold' },
 });
