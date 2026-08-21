@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   overlay: { ...StyleSheet.absoluteFill, backgroundColor: '#e0e5ecac' },
   container: { flex: 1, backgroundColor: 'transparent' },
-  content: { padding: 20, paddingTop: 12 },
+  content: { padding: 20, paddingTop: 12, paddingBottom: 100 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#444', marginBottom: 8 },
   subtitle: { color: '#888', fontSize: 13, lineHeight: 18, marginBottom: 24 },
   row: {

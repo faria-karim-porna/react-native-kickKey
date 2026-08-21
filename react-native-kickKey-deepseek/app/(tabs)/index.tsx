@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   overlay: { ...StyleSheet.absoluteFill, backgroundColor: "#e0e5ecac" },
   container: { flex: 1, backgroundColor: "transparent" },
-  scroll: { padding: 20, paddingTop: 12 },
+  scroll: { padding: 20, paddingTop: 12, paddingBottom: 100 },
   title: { fontSize: 32, fontWeight: "bold", color: "#444" },
   subtitle: { fontSize: 14, color: "#888", marginBottom: 24 },
   statusCard: {

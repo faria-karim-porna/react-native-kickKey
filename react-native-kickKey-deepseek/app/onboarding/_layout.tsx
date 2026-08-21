@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#e0e5ecac',
   },
 });

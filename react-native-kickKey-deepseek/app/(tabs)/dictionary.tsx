@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   addButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  list: { paddingHorizontal: 20, paddingBottom: 20 },
+  list: { paddingHorizontal: 20, paddingBottom: 100 },
   wordRow: {
     flexDirection: "row",
     justifyContent: "space-between",
