@@ -123,6 +123,14 @@ export default {
   pointerMove: (dx: number, dy: number): Promise<void> =>
     KickKey.pointerMove(dx, dy),
 
+  /**
+   * Tells the overlay the exact screen Y (in pixels) of the top of the main key
+   * area. Call this from QykeyKeyboard's mainKeysContainer onLayout/measureInWindow
+   * so the red overlay height stops at the main keys, not at the toggle row above.
+   */
+  pointerSetOverlayTopY: (yPx: number): Promise<void> =>
+    KickKey.pointerSetOverlayTopY(yPx),
+
   /** Returns true when "Display over other apps" (SYSTEM_ALERT_WINDOW) is granted. */
   isOverlayGranted: (): Promise<boolean> => KickKey.isOverlayGranted(),
 

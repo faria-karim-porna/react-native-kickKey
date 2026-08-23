@@ -53,6 +53,15 @@ object PointerOverlay {
     private var visible = false
     private var currentWindowType: Int? = null
 
+    /**
+     * Explicit overlay top-Y set by JS via pointerSetOverlayTopY().
+     * JS measures the exact on-screen Y of mainKeysContainer (the main keyboard
+     * area) so the overlay height stops precisely at the top of the key rows,
+     * NOT at the top of the toggle/slider row above them.
+     * -1 means "not set yet; fall back to container measurement".
+     */
+    var overlayTopYOverride: Int = -1
+
     /** Screen coordinates of the cursor's hotspot (top-left of the window). */
     var cursorX = 0f
         private set
@@ -84,10 +93,17 @@ object PointerOverlay {
     }
 
     /**
-     * Calculates the exact Y-coordinate (pixels) of the top edge of the keyboard.
-     * The red overlay will stretch from y=0 (top of screen) down to this coordinate.
+     * Calculates the exact Y-coordinate (pixels) of the top edge of the main
+     * keyboard area (below the toggle/slider row).
+     * Priority:
+     *   1. [overlayTopYOverride] — set by JS from measureInWindow on mainKeysContainer
+     *   2. Native container getLocationOnScreen (top of whole panel, fallback)
+     *   3. Arithmetic fallback (screen height − keyboard height dp)
      */
     fun getKeyboardTopY(): Int {
+        // 1. JS-supplied precise coordinate from mainKeysContainer.measureInWindow
+        if (overlayTopYOverride > 0) return overlayTopYOverride
+
         val loc = IntArray(2)
         KickKeyAccessibilityService.instance?.panelContainer?.let { container ->
             if (container.isAttachedToWindow && container.height > 0) {

@@ -438,6 +438,22 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         }
     }
 
+    /**
+     * Called by JS (QykeyKeyboard via measureInWindow on mainKeysContainer) to
+     * give the overlay the exact screen Y of the top of the main key area.
+     * This ensures the red overlay height stops at the main keys, not the toggle row.
+     * [yPx] is already in physical pixels (measureInWindow returns px on Android).
+     */
+    @ReactMethod
+    fun pointerSetOverlayTopY(yPx: Double, promise: Promise) {
+        Handler(Looper.getMainLooper()).post {
+            PointerOverlay.overlayTopYOverride = yPx.toInt().coerceAtLeast(0)
+            // Re-snap the overlay height if it's already visible
+            PointerOverlay.updateOverlayBounds()
+            promise.resolve(null)
+        }
+    }
+
     // ── Touchpad: IME strip mode + drag (M3) ───────────────────────────────
 
     /** Shrinks the IME window to a thin strip while the touchpad tab is active. */

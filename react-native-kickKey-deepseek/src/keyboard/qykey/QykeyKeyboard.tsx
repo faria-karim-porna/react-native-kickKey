@@ -13,7 +13,7 @@
 //               converts them to Bangla (commitKey(code, 'bn'))
 // ============================================================
 
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { View } from 'react-native';
 import styles from './styles';
 import Touchpad from './Touchpad';
@@ -27,6 +27,7 @@ import { KeyboardTopKeys } from './KeyboardTopKeys';
 import { EmojiBoard } from './EmojiBoard';
 import { Circuit } from './circuit/Circuit';
 import { useKeyboardState } from '../hooks/useKeyboardState';
+import KickKey from '../../../modules/kickkey-module';
 
 export type AppLanguage = 'en-US' | 'bn-BD' | 'banglish';
 
@@ -68,6 +69,24 @@ export default function QykeyKeyboard() {
 
   const symHandler = () => handleSymbolToggle();
   const sliderHandler = () => setToggleMode(!toggleMode);
+
+  // ── Overlay top-Y measurement ──────────────────────────────────────────────
+  // We measure the on-screen Y of the mainKeysContainer (the key rows below the
+  // toggle/slider row) via measureInWindow and report it to PointerOverlay.
+  // This ensures the red cursor overlay ends exactly at the top of the key rows,
+  // not at the top of the entire keyboard panel (which includes the toggle row).
+  const mainKeysRef = useRef<View>(null);
+
+  const onMainKeysLayout = useCallback(() => {
+    const view = mainKeysRef.current;
+    if (!view) return;
+    view.measureInWindow((_x, y, _w, _h) => {
+      if (y > 0) {
+        // y is already in physical pixels on Android (measureInWindow uses px).
+        KickKey.pointerSetOverlayTopY?.(y).catch(() => {});
+      }
+    });
+  }, []);
   const emojiModeHandler = () => handleEmojiToggle();
 
   return (
@@ -93,7 +112,7 @@ export default function QykeyKeyboard() {
           ) : null}
         </View>
 
-        <View style={styles.mainKeysContainer}>
+        <View ref={mainKeysRef} style={styles.mainKeysContainer} onLayout={onMainKeysLayout}>
           {!toggleMode ? (
             <>
               {isEmojiMode ? (
