@@ -25,7 +25,7 @@ const FeatheredArrowKeyComponent = ({
 }) => {
   return (
     <View style={{ transform: [{ rotate: ROTATION[direction] }] }}>
-      <Svg width="10" height="10" viewBox="0 0 24 24">
+      <Svg width="14" height="14" viewBox="0 0 24 24">
         <Path d="M12 4L4 20L12 16L20 20L12 4Z" fill={color} />
       </Svg>
     </View>

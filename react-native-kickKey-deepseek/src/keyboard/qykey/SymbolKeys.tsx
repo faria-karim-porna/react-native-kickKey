@@ -75,13 +75,13 @@ export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter }:
       {/* 4. Z Row (Shift + F1-F7 + Backspace) */}
       <View style={styles.line}>
         <Key special style={styles.wider} isIcon>
-          <MDIIcon name="arrow-up-bold-outline" size={14} color="#2c2b2b" />
+          <MDIIcon name="arrow-up-bold-outline" size={16} color="#2c2b2b" />
         </Key>
         {['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7'].map((f) => (
           <Key key={f} functionKey>{f}</Key>
         ))}
         <Key special style={styles.wider} isIcon onPressHandler={onBackspace}>
-          <MDIIcon name="backspace-outline" size={14} color="#2c2b2b" />
+          <MDIIcon name="backspace-outline" size={16} color="#2c2b2b" />
         </Key>
       </View>
 
@@ -96,7 +96,7 @@ export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter }:
           ))}
         </View>
         <Key special style={styles.wider} isIcon onPressHandler={onEnter}>
-          <MDIIcon name="keyboard-return" size={14} color="#2c2b2b" />
+          <MDIIcon name="keyboard-return" size={16} color="#2c2b2b" />
         </Key>
       </View>
     </View>

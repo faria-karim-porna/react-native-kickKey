@@ -194,17 +194,17 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
 
   return (
     <>
-      <Key special style={{ width: 35 }} hasActiveState onPressHandler={() => emojiModeHandler?.()}>
+      <Key special style={{ width: 38 }} hasActiveState onPressHandler={() => emojiModeHandler?.()}>
         🙂
       </Key>
       <View style={styles.suggestionsContainer}>{renderSuggestionsBar()}</View>
-      <Key special style={{ width: 40 }} hasActiveState onPressHandler={() => symHandler?.()}>
+      <Key special style={{ width: 44 }} hasActiveState onPressHandler={() => symHandler?.()}>
         SYM
       </Key>
       <Key
         special
         isIcon
-        style={{ width: 35 }}
+        style={{ width: 38 }}
         hasActiveState
         isStatusActive={isMicrophoneActive}
         onPressHandler={handleVoicePress}

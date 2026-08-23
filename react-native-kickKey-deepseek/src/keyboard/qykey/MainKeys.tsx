@@ -89,8 +89,8 @@ const MainKeysComponent = ({
           hasActiveState
           onPressHandler={() => setIsCapsOn(!isCapsOn)}
         >
-          {/* Same as qykey: arrow-up-bold-outline shrinks 14 → 12 when active */}
-          <MDIIcon name="arrow-up-bold-outline" size={isCapsOn ? 12 : 14} color="#444" />
+          {/* Same as qykey: arrow-up-bold-outline shrinks 16 → 14 when active */}
+          <MDIIcon name="arrow-up-bold-outline" size={isCapsOn ? 14 : 16} color="#444" />
         </Key>
         {(language === 'bn-BD'
           ? isCapsOn
@@ -116,7 +116,7 @@ const MainKeysComponent = ({
           onRepeatStart={onBackspaceRepeatStart}
           onRepeatEnd={onBackspaceRepeatEnd}
         >
-          <MDIIcon name="backspace-outline" size={14} color="#444" />
+          <MDIIcon name="backspace-outline" size={16} color="#444" />
         </Key>
       </View>
 
@@ -154,7 +154,7 @@ const MainKeysComponent = ({
           isIcon
           onPressHandler={onEnter}
         >
-          <MDIIcon name="keyboard-return" size={14} color="#444" />
+          <MDIIcon name="keyboard-return" size={16} color="#444" />
         </Key>
       </View>
     </>

@@ -51,16 +51,16 @@ export default function SystemKeysMore({ onPrev, onBackspace, onEnter }: SystemK
       {/* 4. Utility Icons Row */}
       <View style={[styles.line, styles.utilityLine]}>
         <Key special style={styles.wider} isIcon>
-          <MDIIcon name="arrow-up-bold-outline" size={14} color="#2c2b2b" />
+          <MDIIcon name="arrow-up-bold-outline" size={16} color="#2c2b2b" />
         </Key>
         <View style={styles.utilityLineInner}>
-          <Key functionKey isIcon><FA5Icon name="sun" size={12} color="#444" /></Key>
-          <Key functionKey isIcon><FA5Icon name="search" size={12} color="#444" /></Key>
-          <Key functionKey isIcon><FA5Icon name="cog" size={12} color="#444" /></Key>
-          <Key functionKey isIcon><FA5Icon name="power-off" size={12} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="sun" size={14} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="search" size={14} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="cog" size={14} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="power-off" size={14} color="#444" /></Key>
         </View>
         <Key special style={styles.wider} isIcon onPressHandler={onBackspace}>
-          <MDIIcon name="backspace-outline" size={14} color="#2c2b2b" />
+          <MDIIcon name="backspace-outline" size={16} color="#2c2b2b" />
         </Key>
       </View>
 
@@ -70,12 +70,12 @@ export default function SystemKeysMore({ onPrev, onBackspace, onEnter }: SystemK
           Ctrl
         </Key>
         <View style={styles.lastLineInner}>
-          <Key functionKey isIcon><FA5Icon name="volume-mute" size={12} color="#444" /></Key>
-          <Key functionKey isIcon><FA5Icon name="volume-down" size={12} color="#444" /></Key>
-          <Key functionKey isIcon><FA5Icon name="volume-up" size={12} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="volume-mute" size={14} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="volume-down" size={14} color="#444" /></Key>
+          <Key functionKey isIcon><FA5Icon name="volume-up" size={14} color="#444" /></Key>
         </View>
         <Key special style={styles.wider} isIcon onPressHandler={onEnter}>
-          <MDIIcon name="keyboard-return" size={14} color="#2c2b2b" />
+          <MDIIcon name="keyboard-return" size={16} color="#2c2b2b" />
         </Key>
       </View>
     </View>

@@ -43,7 +43,7 @@ object PointerOverlay {
     /** Modern cursor arrow size in dp. */
     private const val CURSOR_SIZE_DP = 28
     /** Keyboard height in dp to calculate the overlay area excluding keyboard. */
-    private const val KEYBOARD_HEIGHT_DP = 275
+    private const val KEYBOARD_HEIGHT_DP = 330
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
