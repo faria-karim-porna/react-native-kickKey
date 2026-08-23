@@ -96,8 +96,8 @@ function StatusRow({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "transparent" },
   scroll: { padding: 20, paddingTop: 12, paddingBottom: 100 },
-  title: { fontSize: 32, fontWeight: "bold", color: "#444" },
-  subtitle: { fontSize: 14, color: "#888", marginBottom: 24 },
+  title: { fontSize: 32, fontWeight: "bold", color: "#2c2b2b" },
+  subtitle: { fontSize: 14, color: "#666", marginBottom: 24 },
   statusCard: {
     backgroundColor: "rgba(224,229,236,0.92)",
     borderRadius: 12,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   statusValue: { fontSize: 14, fontWeight: "600", marginLeft: 6 },
   statusTextValue: { color: "#8594aa", fontSize: 14, fontWeight: "600" },
   sectionLabel: {
-    color: "#888",
+    color: "#666",
     fontSize: 12,
     textTransform: "uppercase",
     marginBottom: 8,

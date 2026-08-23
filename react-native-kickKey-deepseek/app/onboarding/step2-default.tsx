@@ -53,8 +53,8 @@ export default function Step2Default() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent', padding: 24, paddingTop: 60 },
   iconContainer: { alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 12 },
-  description: { fontSize: 14, color: '#777', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#2c2b2b', textAlign: 'center', marginBottom: 12 },
+  description: { fontSize: 14, color: '#555', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   card: {
     backgroundColor: 'rgba(224,229,236,0.92)',
     borderRadius: 12,
@@ -112,5 +112,5 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  hint: { color: '#999', fontSize: 12, textAlign: 'center', marginTop: 16 },
+  hint: { color: '#777', fontSize: 12, textAlign: 'center', marginTop: 16 },
 });

@@ -43,8 +43,8 @@ export default function LanguageScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 20, paddingTop: 12, paddingBottom: 100 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#444', marginBottom: 8 },
-  subtitle: { color: '#888', fontSize: 13, lineHeight: 18, marginBottom: 24 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#2c2b2b', marginBottom: 8 },
+  subtitle: { color: '#666', fontSize: 13, lineHeight: 18, marginBottom: 24 },
   row: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: 'rgba(224,229,236,0.92)',
@@ -67,5 +67,5 @@ const styles = StyleSheet.create({
   },
   rowSelected: { borderColor: '#8594aa' },
   rowLabel: { color: '#444', fontSize: 16, fontWeight: '600' },
-  rowNative: { color: '#888', fontSize: 13, marginTop: 2 },
+  rowNative: { color: '#666', fontSize: 13, marginTop: 2 },
 });

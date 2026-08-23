@@ -334,9 +334,9 @@ const card = {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   scroll: { padding: 20, paddingTop: 12, paddingBottom: 100 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#444', marginBottom: 20 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#2c2b2b', marginBottom: 20 },
   sectionLabel: {
-    color: '#888', fontSize: 12, textTransform: 'uppercase',
+    color: '#666', fontSize: 12, textTransform: 'uppercase',
     marginBottom: 8, marginTop: 16, letterSpacing: 0.5,
   },
 
@@ -344,6 +344,7 @@ const styles = StyleSheet.create({
   card: {
     ...card,
     paddingHorizontal: 16,
+    paddingVertical: 16,
   },
 
   // ── Slider ──
@@ -385,7 +386,7 @@ const styles = StyleSheet.create({
     borderColor: '#8594aa',
     borderWidth: 2,
   },
-  cursorTypeLabel: { color: '#888', fontSize: 11, fontWeight: '600' },
+  cursorTypeLabel: { color: '#666', fontSize: 11, fontWeight: '600' },
   cursorTypeLabelActive: { color: '#8594aa' },
 
   // ── Color palette ──
@@ -484,6 +485,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   a11yButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  a11yHint: { color: '#888', fontSize: 12, lineHeight: 17, paddingBottom: 12 },
-  footnote: { color: '#8a8a8a', fontSize: 12, textAlign: 'center', marginTop: 24 },
+  a11yHint: { color: '#666', fontSize: 12, lineHeight: 17, paddingBottom: 12 },
+  footnote: { color: '#777', fontSize: 12, textAlign: 'center', marginTop: 24 },
 });

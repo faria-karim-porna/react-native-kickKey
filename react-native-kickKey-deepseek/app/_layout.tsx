@@ -79,6 +79,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#e0e5ecac',
+    backgroundColor: '#e0e5ecdd',
   },
 });

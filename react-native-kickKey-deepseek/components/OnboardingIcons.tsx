@@ -144,7 +144,7 @@ const stepStyles = StyleSheet.create({
     fontWeight: '700',
   },
   text: {
-    color: '#444',
+    color: '#2c2b2b',
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',

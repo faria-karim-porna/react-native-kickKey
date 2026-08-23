@@ -62,6 +62,6 @@ const styles = StyleSheet.create({
   preview: { borderRadius: 8, padding: 8, marginBottom: 10 },
   previewRow: { flexDirection: 'row', gap: 4, marginBottom: 4 },
   previewKey: { flex: 1, height: 18, borderRadius: 3 },
-  label: { color: '#444', fontSize: 14, fontWeight: '600' },
+  label: { color: '#2c2b2b', fontSize: 14, fontWeight: '600' },
   checkmark: { position: 'absolute', top: 12, right: 12, color: '#8594aa', fontSize: 16, fontWeight: 'bold' },
 });

@@ -36,9 +36,9 @@ export default function ThemesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   scroll: { padding: 20, paddingTop: 12, paddingBottom: 100 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#444', marginBottom: 20 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#2c2b2b', marginBottom: 20 },
   sectionLabel: {
-    color: '#888', fontSize: 12, textTransform: 'uppercase',
+    color: '#666', fontSize: 12, textTransform: 'uppercase',
     marginBottom: 10, marginTop: 8, letterSpacing: 0.5,
   },
 });

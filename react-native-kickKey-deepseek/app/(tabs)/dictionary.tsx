@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "transparent" },
   flex: { flex: 1 },
   header: { padding: 20, paddingBottom: 8 },
-  title: { fontSize: 26, fontWeight: "bold", color: "#444", marginBottom: 6 },
-  subtitle: { color: "#888", fontSize: 13, lineHeight: 18 },
+  title: { fontSize: 26, fontWeight: "bold", color: "#2c2b2b", marginBottom: 6 },
+  subtitle: { color: "#666", fontSize: 13, lineHeight: 18 },
   inputRow: {
     flexDirection: "row",
     paddingHorizontal: 20,
@@ -189,5 +189,5 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   wordText: { color: "#444", fontSize: 15 },
-  empty: { color: "#8a8a8a", textAlign: "center", marginTop: 40, fontSize: 14 },
+  empty: { color: "#777", textAlign: "center", marginTop: 40, fontSize: 14 },
 });
