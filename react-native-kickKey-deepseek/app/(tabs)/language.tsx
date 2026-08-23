@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSettingsStore } from '../../store/settingsStore';
 import LanguageTag from '../../components/LanguageTag';
 
@@ -10,12 +10,13 @@ const LANGUAGES: Array<{ code: 'en' | 'bn'; label: string; native: string }> = [
 ];
 
 export default function LanguageScreen() {
+  const { bottom } = useSafeAreaInsets();
   const language    = useSettingsStore((s) => s.language);
   const setLanguage  = useSettingsStore((s) => s.setLanguage);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={[styles.content, { paddingBottom: 80 + bottom }]}>
         <Text style={styles.title}>Language</Text>
         <Text style={styles.subtitle}>
           Choose your default typing language. You can always switch
@@ -43,7 +44,7 @@ export default function LanguageScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
-  content: { padding: 20, paddingTop: 12, paddingBottom: 100 },
+  content: { padding: 20, paddingTop: 12 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#2c2b2b', marginBottom: 8 },
   subtitle: { color: '#666', fontSize: 13, lineHeight: 18, marginBottom: 24 },
   row: {

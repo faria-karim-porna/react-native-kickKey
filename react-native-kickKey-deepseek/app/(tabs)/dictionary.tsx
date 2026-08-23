@@ -10,12 +10,13 @@ import {
   Platform,
   Pressable,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useKickKeyBridge } from "../../hooks/useKickKeyBridge";
 
 export default function DictionaryScreen() {
+  const { bottom } = useSafeAreaInsets();
   const customWords = useSettingsStore((s) => s.customWords);
   const addCustomWord = useSettingsStore((s) => s.addCustomWord);
   const removeCustomWord = useSettingsStore((s) => s.removeCustomWord);
@@ -36,7 +37,7 @@ export default function DictionaryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -73,7 +74,7 @@ export default function DictionaryScreen() {
           <FlatList
             data={customWords}
             keyExtractor={(item) => item}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: 80 + bottom }]}
             ListEmptyComponent={
               <Text style={styles.empty}>
                 No custom words yet. Add one above.
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   addButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  list: { paddingHorizontal: 20, paddingBottom: 100 },
+  list: { paddingHorizontal: 20 },
   wordRow: {
     flexDirection: "row",
     justifyContent: "space-between",

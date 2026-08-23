@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useSetupStatus } from "../../hooks/useSetupStatus";
 import { useSettingsStore } from "../../store/settingsStore";
@@ -15,10 +15,11 @@ export default function HomeScreen() {
   const { isEnabled, isDefault, isFullySetUp } = useSetupStatus();
   const language = useSettingsStore((s) => s.language);
   const [testText, setTestText] = React.useState("");
+  const { bottom } = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scroll}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 80 + bottom }]}>
           <Text style={styles.title}>KickKey</Text>
           <Text style={styles.subtitle}>Your custom keyboard</Text>
 
@@ -95,7 +96,7 @@ function StatusRow({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "transparent" },
-  scroll: { padding: 20, paddingTop: 12, paddingBottom: 100 },
+  scroll: { padding: 20, paddingTop: 12 },
   title: { fontSize: 32, fontWeight: "bold", color: "#2c2b2b" },
   subtitle: { fontSize: 14, color: "#666", marginBottom: 24 },
   statusCard: {
