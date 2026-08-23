@@ -20,8 +20,11 @@ const CURSOR_TYPES: { type: CursorType; label: string }[] = [
 ];
 
 const CURSOR_COLORS = [
-  '#8594aa', '#ffffff', '#2c2b2b', '#f2f2f2',
-  '#8a8a8a', '#c8ccd0', '#d1d9e6', '#888',
+  // Neutrals
+  '#2c2b2b', '#444', '#8a8a8a', '#ffffff',
+  // Vibrant
+  '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71',
+  '#3498db', '#9b59b6', '#e91e63', '#00bcd4',
 ];
 
 function CursorPreview({ type, color, size }: { type: CursorType; color: string; size: number }) {
