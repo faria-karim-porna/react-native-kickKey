@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ThemeName = 'dark' | 'light' | 'amoled' | 'custom';
-export type CursorType = 'line' | 'block' | 'underline' | 'arrow' | 'pointer' | 'crosshair' | 'grab';
+export type CursorType = 'classic' | 'bubble' | 'sharp' | 'motion' | 'solid' | 'dot' | 'crosshair' | 'target' | 'dashed' | 'loading' | 'sparkle' | 'pointer' | 'hand' | 'click' | 'fast' | 'energy' | 'refresh' | 'filled' | 'play' | 'bold' | 'underline' | 'outline' | 'thick' | 'thin' | 'small';
 
 export interface ThemeColors {
   keyboardBg: string;
@@ -94,7 +94,7 @@ export const useSettingsStore = create<SettingsState>()(
       setKeyBorderRadius: (keyBorderRadius) => set({ keyBorderRadius }),
       setFontSize: (fontSize) => set({ fontSize }),
 
-      cursorType: 'line',
+      cursorType: 'classic',
       cursorColor: '#8594aa',
       cursorSize: 24,
       setCursorType: (cursorType) => set({ cursorType }),

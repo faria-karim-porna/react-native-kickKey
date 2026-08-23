@@ -11,13 +11,31 @@ import KickKey from '../../modules/kickkey-module';
 // ─── Cursor type definitions ────────────────────────────────────────────────
 
 const CURSOR_TYPES: { type: CursorType; label: string }[] = [
-  { type: 'line',      label: 'Line' },
-  { type: 'block',     label: 'Block' },
-  { type: 'underline', label: 'Underline' },
-  { type: 'arrow',     label: 'Arrow' },
-  { type: 'pointer',   label: 'Pointer' },
-  { type: 'crosshair', label: 'Cross' },
-  { type: 'grab',      label: 'Grab' },
+  { type: 'classic',     label: 'Classic' },
+  { type: 'bubble',      label: 'Bubble' },
+  { type: 'sharp',       label: 'Sharp' },
+  { type: 'motion',      label: 'Motion' },
+  { type: 'solid',       label: 'Solid' },
+  { type: 'dot',         label: 'Dot' },
+  { type: 'crosshair',   label: 'Crosshair' },
+  { type: 'target',      label: 'Target' },
+  { type: 'dashed',      label: 'Dashed' },
+  { type: 'loading',     label: 'Loading' },
+  { type: 'sparkle',     label: 'Sparkle' },
+  { type: 'pointer',     label: 'Pointer' },
+  { type: 'hand',        label: 'Hand' },
+  { type: 'click',       label: 'Click' },
+  { type: 'fast',        label: 'Fast' },
+  { type: 'energy',      label: 'Energy' },
+  { type: 'refresh',     label: 'Refresh' },
+  { type: 'filled',      label: 'Filled' },
+  { type: 'play',        label: 'Play' },
+  { type: 'bold',        label: 'Bold' },
+  { type: 'underline',   label: 'Underline' },
+  { type: 'outline',     label: 'Outline' },
+  { type: 'thick',       label: 'Thick' },
+  { type: 'thin',        label: 'Thin' },
+  { type: 'small',       label: 'Small' },
 ];
 
 const CURSOR_COLORS = [
@@ -31,58 +49,289 @@ const CURSOR_COLORS = [
 function CursorPreview({ type, color, size }: { type: CursorType; color: string; size: number }) {
   const s = Math.round(size * 0.6);
   switch (type) {
-    case 'line':
-      return (
-        <Svg width={s} height={s} viewBox="0 0 24 24">
-          <Line x1="12" y1="2" x2="12" y2="22" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-        </Svg>
-      );
-    case 'block':
-      return (
-        <Svg width={s} height={s} viewBox="0 0 24 24">
-          <Rect x="6" y="3" width="12" height="18" rx="1" fill={color} />
-        </Svg>
-      );
-    case 'underline':
-      return (
-        <Svg width={s} height={s} viewBox="0 0 24 24">
-          <Line x1="4" y1="19" x2="20" y2="19" stroke={color} strokeWidth="3" strokeLinecap="round" />
-        </Svg>
-      );
-    case 'arrow':
+    case 'classic':
       return (
         <Svg width={s} height={s} viewBox="0 0 24 24">
           <Path
-            d="M4 2l14 10.5-5.5 1.5 3.5 7-2.5 1.2-3.5-7L4 22V2z"
+            d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z"
+            stroke={color}
+            strokeWidth="1.5"
+            fill="none"
+          />
+        </Svg>
+      );
+    case 'bubble':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M6 4c0 0 2-1 6-1s6 2 6 2l-4 8 3 6-2.5 1.2-3-6L6 18V4z"
+            stroke={color}
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      );
+    case 'sharp':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M5 2l14 11-6 1 3.5 7-2.5 1.2-3.5-7L5 22V2z"
+            stroke={color}
+            strokeWidth="1.5"
+            fill="none"
+          />
+        </Svg>
+      );
+    case 'motion':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M4 2l12 9.5-5 1.5 3 6-2.5 1.2-3-6L4 20V2z"
             fill={color}
           />
+          <Path
+            d="M9 12l-3 6-2 1"
+            stroke={color}
+            strokeWidth="1.5"
+            fill="none"
+          />
+        </Svg>
+      );
+    case 'solid':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M4 2l16 12-6 1 4 7-2.5 1.2-4-7L4 22V2z"
+            fill={color}
+          />
+        </Svg>
+      );
+    case 'dot':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M5 3l12 9-5 1.5 3 6-2.5 1.2-3-6L5 21V3z"
+            fill={color}
+          />
+          <Circle cx="16" cy="18" r="2.5" fill={color} />
+        </Svg>
+      );
+    case 'crosshair':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Circle cx="12" cy="12" r="8" stroke={color} strokeWidth="1.5" fill="none" />
+          <Line x1="12" y1="4" x2="12" y2="20" stroke={color} strokeWidth="1.5" />
+          <Line x1="4" y1="12" x2="20" y2="12" stroke={color} strokeWidth="1.5" />
+          <Circle cx="12" cy="12" r="2" fill={color} />
+        </Svg>
+      );
+    case 'target':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z"
+            fill={color}
+          />
+          <Circle cx="8" cy="8" r="4" stroke={color} strokeWidth="1.5" fill="none" />
+          <Circle cx="8" cy="8" r="1" fill={color} />
+        </Svg>
+      );
+    case 'dashed':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z"
+            fill={color}
+          />
+          <Circle cx="8" cy="8" r="4" stroke={color} strokeWidth="1.5" fill="none" strokeDasharray="2 2" />
+        </Svg>
+      );
+    case 'loading':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z"
+            fill={color}
+          />
+          <Path
+            d="M12 4a8 8 0 0 1 8 8" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+        </Svg>
+      );
+    case 'sparkle':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M6 4c0 0 2-1 6-1s6 2 6 2l-4 8 3 6-2.5 1.2-3-6L6 18V4z"
+            stroke={color}
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Circle cx="4" cy="6" r="1" fill={color} />
+          <Circle cx="3" cy="10" r="0.7" fill={color} />
+          <Circle cx="6" cy="3" r="0.7" fill={color} />
         </Svg>
       );
     case 'pointer':
       return (
         <Svg width={s} height={s} viewBox="0 0 24 24">
           <Path
-            d="M8 2v13.5l3-2.5 2.5 5 2-1-2.5-5H18L8 2z"
+            d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z"
+            stroke={color}
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      );
+    case 'hand':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-5.5a1.5 1.5 0 0 1 3 0V11m0-3.5a1.5 1.5 0 0 1 3 0V11m0-4.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V9.5a1.5 1.5 0 0 1 3 0V11"
+            stroke={color}
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      );
+    case 'click':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z"
+            fill={color}
+          />
+          <Circle cx="6" cy="8" r="3" stroke={color} strokeWidth="1.5" fill="none" />
+        </Svg>
+      );
+    case 'fast':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z"
+            fill={color}
+          />
+          <Path d="M4 10l3 2" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+          <Path d="M4 14l3 2" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+        </Svg>
+      );
+    case 'energy':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z"
+            stroke={color}
+            strokeWidth="1.5"
+            fill="none"
+          />
+          <Path d="M5 6l1-2M3 9l-1.5-1M3 12l-1.5 1" stroke={color} strokeWidth="1" strokeLinecap="round" />
+        </Svg>
+      );
+    case 'refresh':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z"
+            fill={color}
+          />
+          <Path
+            d="M12 4a8 8 0 0 1 8 8" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+          <Path d="M18 6l2 2-2 2" stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      );
+    case 'filled':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M4 2l16 12-6 1 4 7-2.5 1.2-4-7L4 22V2z"
+            fill={color}
+          />
+          <Path
+            d="M4 2l16 12-6 1 4 7-2.5 1.2-4-7L4 22V2z"
+            stroke={color}
+            strokeWidth="0.5"
+            fill="none"
+          />
+        </Svg>
+      );
+    case 'play':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M8 4l12 8-12 8V4z"
+            fill={color}
+          />
+          <Path d="M6 20v-1" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        </Svg>
+      );
+    case 'bold':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z"
             fill={color}
           />
         </Svg>
       );
-    case 'crosshair':
-      return (
-        <Svg width={s} height={s} viewBox="0 0 24 24">
-          <Circle cx="12" cy="12" r="8" stroke={color} strokeWidth="2" fill="none" />
-          <Line x1="12" y1="2" x2="12" y2="7" stroke={color} strokeWidth="2" />
-          <Line x1="12" y1="17" x2="12" y2="22" stroke={color} strokeWidth="2" />
-          <Line x1="2" y1="12" x2="7" y2="12" stroke={color} strokeWidth="2" />
-          <Line x1="17" y1="12" x2="22" y2="12" stroke={color} strokeWidth="2" />
-        </Svg>
-      );
-    case 'grab':
+    case 'underline':
       return (
         <Svg width={s} height={s} viewBox="0 0 24 24">
           <Path
-            d="M18 11V6a1 1 0 00-2 0V4a1 1 0 00-2 0v1a1 1 0 00-2 0v1a1 1 0 00-2 0v5l-2.3-2.3a1.41 1.41 0 00-2 0 1.41 1.41 0 000 2L9 17a5 5 0 005 0h1a4 4 0 004-4v-2z"
+            d="M8 4l12 8-12 8V4z"
             fill={color}
+          />
+          <Line x1="6" y1="20" x2="20" y2="20" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        </Svg>
+      );
+    case 'outline':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z"
+            stroke={color}
+            strokeWidth="2"
+            fill="none"
+          />
+        </Svg>
+      );
+    case 'thick':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z"
+            stroke={color}
+            strokeWidth="3"
+            fill="none"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      );
+    case 'thin':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z"
+            stroke={color}
+            strokeWidth="1"
+            fill="none"
+          />
+        </Svg>
+      );
+    case 'small':
+      return (
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path
+            d="M8 4l8 6-3 1 2 4-1.5 0.7-2-4-3 2V4z"
+            stroke={color}
+            strokeWidth="1.5"
+            fill="none"
           />
         </Svg>
       );
