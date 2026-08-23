@@ -71,14 +71,13 @@ export default function QykeyKeyboard() {
   const sliderHandler = () => setToggleMode(!toggleMode);
 
   // ── Overlay top-Y measurement ──────────────────────────────────────────────
-  // We measure the on-screen Y of the mainKeysContainer (the key rows below the
-  // toggle/slider row) via measureInWindow and report it to PointerOverlay.
-  // This ensures the red cursor overlay ends exactly at the top of the key rows,
-  // not at the top of the entire keyboard panel (which includes the toggle row).
-  const mainKeysRef = useRef<View>(null);
+  // We measure the on-screen Y of the keyboardContainer via measureInWindow and
+  // report it to PointerOverlay. This ensures the red cursor overlay ends exactly
+  // at the top edge of the keyboardContainer.
+  const keyboardContainerRef = useRef<View>(null);
 
-  const onMainKeysLayout = useCallback(() => {
-    const view = mainKeysRef.current;
+  const onKeyboardContainerLayout = useCallback(() => {
+    const view = keyboardContainerRef.current;
     if (!view) return;
     view.measureInWindow((_x, y, _w, _h) => {
       if (y > 0) {
@@ -90,7 +89,11 @@ export default function QykeyKeyboard() {
   const emojiModeHandler = () => handleEmojiToggle();
 
   return (
-    <View style={styles.keyboardContainer}>
+    <View
+      ref={keyboardContainerRef}
+      style={styles.keyboardContainer}
+      onLayout={onKeyboardContainerLayout}
+    >
       {/* Circuit board behind the translucent keyboard shell.
           Frozen while the emoji board is open: its per-frame SVG redraw
           would compete with the emoji FlatList scroll on the UI thread. */}
@@ -112,7 +115,7 @@ export default function QykeyKeyboard() {
           ) : null}
         </View>
 
-        <View ref={mainKeysRef} style={styles.mainKeysContainer} onLayout={onMainKeysLayout}>
+        <View style={styles.mainKeysContainer}>
           {!toggleMode ? (
             <>
               {isEmojiMode ? (
