@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import SetupProgress from '../../components/SetupProgress';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -39,7 +40,7 @@ export default function Step4Done() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent', padding: 24, paddingTop: 60, justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: 'transparent', padding: 24, justifyContent: 'center' },
   iconContainer: { alignItems: 'center', marginBottom: 16 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#2c2b2b', textAlign: 'center', marginBottom: 12 },
   description: { fontSize: 14, color: '#555', textAlign: 'center', lineHeight: 20, marginBottom: 32 },

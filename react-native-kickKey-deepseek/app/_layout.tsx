@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 import { useSettingsStore } from '../store/settingsStore';
 import { useSetupStatus } from '../hooks/useSetupStatus';
@@ -53,7 +54,7 @@ export default function RootLayout() {
   }, [hasCompletedOnboarding, isFullySetUp, segments]);
 
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top']}>
       {/* Global persistent circuit-board background for smooth screen transitions */}
       <Circuit animated />
       <View style={styles.overlay} />
@@ -68,7 +69,7 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
       </Stack>
-    </View>
+    </SafeAreaView>
   );
 }
 

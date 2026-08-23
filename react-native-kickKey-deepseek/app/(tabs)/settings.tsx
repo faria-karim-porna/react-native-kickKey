@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView, AppState, Pressable, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, AppState, Pressable, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Rect, Line, Circle } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '../../store/settingsStore';

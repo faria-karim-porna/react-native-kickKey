@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Pressable,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useKickKeyBridge } from "../../hooks/useKickKeyBridge";

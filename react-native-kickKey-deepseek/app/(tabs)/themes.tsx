@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
+import { Text, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettingsStore } from '../../store/settingsStore';
 import { THEME_PRESETS } from '../../constants/Themes';
 import ThemeCard from '../../components/ThemeCard';
