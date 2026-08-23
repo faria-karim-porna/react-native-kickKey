@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 import { useSettingsStore } from '../store/settingsStore';
 import { useSetupStatus } from '../hooks/useSetupStatus';
 import { useSettingsSync } from '../hooks/useSettingsSync';
+import { Circuit } from '../src/keyboard/qykey/circuit/Circuit';
 
 // Android permissions are granted app-wide, but the keyboard runs in a separate
 // `:ime_process` that has no Activity — so the RECORD_AUDIO prompt can only be
@@ -51,12 +53,32 @@ export default function RootLayout() {
   }, [hasCompletedOnboarding, isFullySetUp, segments]);
 
   return (
-    <>
+    <View style={styles.root}>
+      {/* Global persistent circuit-board background for smooth screen transitions */}
+      <Circuit animated />
+      <View style={styles.overlay} />
+
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: 'transparent' },
+        }}
+      >
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
       </Stack>
-    </>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#e0e5ecac',
+  },
+});

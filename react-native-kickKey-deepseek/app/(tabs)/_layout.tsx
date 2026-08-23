@@ -8,6 +8,7 @@ export default function TabsLayout() {
       tabBar={(props) => <KeyboardTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: 'transparent' },
       }}
     >
       <Tabs.Screen

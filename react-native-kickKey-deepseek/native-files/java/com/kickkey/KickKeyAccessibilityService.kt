@@ -67,7 +67,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var panelSurface: ReactSurface? = null
-    private var panelContainer: FrameLayout? = null
+    internal var panelContainer: FrameLayout? = null
     private var panelSurfaceTask: TaskInterface<Void>? = null
     private var isPanelShowing = false
 
@@ -235,6 +235,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
         panelSurface = null
         panelSurfaceTask = null
         gestureQueue.clear()
+        PointerOverlay.hide()
         Log.i(TAG, "Floating panel hidden")
     }
 

@@ -11,7 +11,6 @@ import {
   Platform,
   Pressable,
 } from "react-native";
-import { Circuit } from "../../src/keyboard/qykey/circuit/Circuit";
 import Svg, { Path } from "react-native-svg";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useKickKeyBridge } from "../../hooks/useKickKeyBridge";
@@ -37,10 +36,7 @@ export default function DictionaryScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <Circuit animated />
-      <View style={styles.overlay} />
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -99,13 +95,10 @@ export default function DictionaryScreen() {
           />
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFill, backgroundColor: "#e0e5ecac" },
   container: { flex: 1, backgroundColor: "transparent" },
   flex: { flex: 1 },
   header: { padding: 20, paddingBottom: 8 },

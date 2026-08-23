@@ -65,7 +65,7 @@ class KickKeyInputMethodService : InputMethodService() {
     }
 
     private var reactSurface: ReactSurface? = null
-    private var keyboardContainer: FrameLayout? = null
+    internal var keyboardContainer: FrameLayout? = null
     private var surfaceStartTask: TaskInterface<Void>? = null
     private var watchdog: Runnable? = null
     // Diagnostics: how many times we tried to resume the keyboard ReactHost and the last

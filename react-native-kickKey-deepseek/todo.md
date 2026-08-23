@@ -1,5 +1,5 @@
-Email: educationworldfkp2@gmail.com
-Download Link: https://expo.dev/artifacts/eas/iOCeZm-MrjHcGtzrkAe7-UTcoDxMzP_Rmgcw9DrvT-I.apk
+Email: entertainmentzonefkp2@gmail.com
+Download Link: https://expo.dev/artifacts/eas/ksuLpvzWJ4v_rnqOAPy272oO0NRCi7zamMvcqYHFY5w.apk
 Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs
 
 

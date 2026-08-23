@@ -7,7 +7,6 @@ import {
   ScrollView,
   SafeAreaView,
 } from "react-native";
-import { Circuit } from "../../src/keyboard/qykey/circuit/Circuit";
 import Svg, { Path } from "react-native-svg";
 import { useSetupStatus } from "../../hooks/useSetupStatus";
 import { useSettingsStore } from "../../store/settingsStore";
@@ -18,10 +17,7 @@ export default function HomeScreen() {
   const [testText, setTestText] = React.useState("");
 
   return (
-    <View style={styles.root}>
-      <Circuit animated />
-      <View style={styles.overlay} />
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <Text style={styles.title}>KickKey</Text>
           <Text style={styles.subtitle}>Your custom keyboard</Text>
@@ -51,7 +47,6 @@ export default function HomeScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
-    </View>
   );
 }
 
@@ -99,8 +94,6 @@ function StatusRow({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFill, backgroundColor: "#e0e5ecac" },
   container: { flex: 1, backgroundColor: "transparent" },
   scroll: { padding: 20, paddingTop: 12, paddingBottom: 100 },
   title: { fontSize: 32, fontWeight: "bold", color: "#444" },

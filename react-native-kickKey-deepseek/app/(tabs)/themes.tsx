@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
-import { Circuit } from '../../src/keyboard/qykey/circuit/Circuit';
+import { Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
 import { useSettingsStore } from '../../store/settingsStore';
 import { THEME_PRESETS } from '../../constants/Themes';
 import ThemeCard from '../../components/ThemeCard';
@@ -16,9 +15,6 @@ export default function ThemesScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <Circuit animated />
-      <View style={styles.overlay} />
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>Themes</Text>
@@ -34,13 +30,10 @@ export default function ThemesScreen() {
         ))}
       </ScrollView>
     </SafeAreaView>
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFill, backgroundColor: '#e0e5ecac' },
   container: { flex: 1, backgroundColor: 'transparent' },
   scroll: { padding: 20, paddingTop: 12, paddingBottom: 100 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#444', marginBottom: 20 },
