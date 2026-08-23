@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingTop: 6,
     paddingRight: 4,
-    paddingBottom: 20,
+    paddingBottom: 22,
     paddingLeft: 4,
     backgroundColor: '#e0e5ecac',
     borderRadius: 12,
@@ -57,19 +57,19 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   mainKeysContainer: {
-    // Sizes to content — the 5 key lines total ~210dp.
+    // Sizes to content — the 5 key lines total ~250dp.
   },
   line: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 5,
+    marginBottom: 5.5,
     gap: 3.5,
     width: '100%',
   },
   key: {
-    height: 38,
+    height: 45,
     backgroundColor: '#f2f2f2',
-    borderRadius: 8,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
 
@@ -108,10 +108,10 @@ const styles = StyleSheet.create({
     borderLeftColor: 'rgba(0,0,0,0.25)',
   },
   keyActive: {
-    fontSize: 9,
+    fontSize: 10,
   },
   keyText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#444',
     fontWeight: '700',
     includeFontPadding: false,
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   specialKey: { backgroundColor: '#c8ccd0' },
   functionKey: { backgroundColor: '#8a8a8a' },
   wider: {
-    width: 42,
+    width: 45,
   },
   spaceInner: {
     flex: 1,
@@ -129,14 +129,14 @@ const styles = StyleSheet.create({
   },
   spaceText: {
     color: '#f2f2f2',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
     textAlign: 'center',
     includeFontPadding: false,
   },
   toggleContainer: {
     backgroundColor: '#c8ccd0',
-    borderRadius: 8,
+    borderRadius: 9,
     marginRight: 2,
     // Simulate the track being carved into the keyboard (Inset effect)
     borderTopWidth: 2,
@@ -149,19 +149,19 @@ const styles = StyleSheet.create({
     borderRightColor: 'rgba(255,255,255,0.6)',
   },
   slider: {
-    width: 72,
-    height: 32,
+    width: 78,
+    height: 38,
     position: 'relative',
     justifyContent: 'center',
     overflow: 'hidden', // Keeps the "inner" look clean
   },
   knob: {
     position: 'absolute',
-    height: 28,
-    width: 32,
+    height: 34,
+    width: 36,
     top: 0,
     backgroundColor: '#f2f2f2',
-    borderRadius: 5,
+    borderRadius: 6,
     zIndex: 1,
 
     // --- CHOCOLATE BLOCK EFFECT (Raised) ---
@@ -190,16 +190,16 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     flex: 1,
-    height: 32,
+    height: 38,
     backgroundColor: '#f2f2f2',
-    borderRadius: 6,
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly', // equal spacing always
     overflow: 'hidden',
   },
   suggestionText: {
-    fontSize: 12.5,
+    fontSize: 14,
     color: '#444',
     fontWeight: '600',
     flexShrink: 1,
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   suggestionSeparator: {
     width: 1,
-    height: 16,
+    height: 20,
     backgroundColor: '#bbb',
   },
   touchpadArea: {
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     width: '100%',
-    height: 220,
+    height: 255,
   },
   activeIndicator: {
     borderWidth: 0.5,
@@ -270,9 +270,9 @@ const styles = StyleSheet.create({
   },
 
   touchpadContainer: {
-    width: width * 0.9,
+    width: width * 0.92,
     height: '100%',
-    maxWidth: 420,
+    maxWidth: 440,
     padding: 10,
     borderRadius: 16,
     backgroundColor: '#e0e5ec', // Keyboard base color
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '32%',
     backgroundColor: '#c8ccd0', // Special key color
-    borderRadius: 6,
+    borderRadius: 7,
   },
   scrollStack: {
     width: '8%',
@@ -331,25 +331,25 @@ const styles = StyleSheet.create({
   scrollBtn: {
     flex: 1,
     backgroundColor: '#8a8a8a', // Function key color
-    borderRadius: 6,
+    borderRadius: 7,
   },
   mouseBtn: {
     height: '62%',
     marginTop: 6,
-    borderRadius: 8,
+    borderRadius: 9,
     width: '100%',
   },
   btnText: {
     color: '#888',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 15,
   },
   tabContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    width: 38,
-    height: 34,
+    width: 42,
+    height: 38,
   },
   tooltip: {
     position: 'absolute',
@@ -402,11 +402,11 @@ const styles = StyleSheet.create({
     borderRightColor: 'rgba(255,255,255,0.6)',
   },
   tabButton: {
-    width: 38,
-    height: 34,
+    width: 42,
+    height: 38,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 7,
     backgroundColor: '#d1d1d1', // per your .special-key CSS request
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     bottom: 2,
   },
   emojiGridContainer: {
-    height: 220, // Matches the 5-line key area height
+    height: 255, // Matches the 5-line key area height
     paddingHorizontal: 2,
   },
   scrollContent: {
@@ -449,12 +449,12 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   emojiKey: {
-    width: 38,
-    height: 38,
+    width: 42,
+    height: 42,
     backgroundColor: '#f2f2f2',
   },
   emojiText: {
-    fontSize: 20, // Emojis need larger text to be visible
+    fontSize: 24, // Emojis need larger text to be visible
     includeFontPadding: false,
     // Bundled NotoColorEmoji (assets/fonts) — full-color emoji on all devices.
     fontFamily: 'NotoColorEmoji',

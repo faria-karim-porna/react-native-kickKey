@@ -46,7 +46,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
         private const val TAG = "KickKeyA11y"
 
         // Same keyboard height constant as the IME (KEYBOARD_HEIGHT_DP in KickKeyInputMethodService).
-        private const val KEYBOARD_HEIGHT_DP = 330
+        private const val KEYBOARD_HEIGHT_DP = 365
 
         // ── Gesture timing (M3) ──
         private const val TAP_DURATION_MS = 60L            // left-click tap

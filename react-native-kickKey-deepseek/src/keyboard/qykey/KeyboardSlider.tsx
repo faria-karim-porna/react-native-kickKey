@@ -31,7 +31,7 @@ const KeyboardSliderComponent = (props: KeyboardSliderProps) => {
 
   const knobTranslate = knobAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 36], // Perfectly aligned for 72px track and 32px knob
+    outputRange: [0, 40], // Perfectly aligned for 78px track and 36px knob
   });
 
   return (
@@ -39,8 +39,8 @@ const KeyboardSliderComponent = (props: KeyboardSliderProps) => {
       <View style={styles.slider}>
         <Animated.View style={[styles.knob, { left: knobTranslate }]} />
         <View style={styles.iconLayer}>
-          <FA5Icon name="keyboard" size={13} color={!toggleMode ? '#444' : '#888'} />
-          <FA5Icon name="mouse-pointer" size={13} color={toggleMode ? '#444' : '#888'} />
+          <FA5Icon name="keyboard" size={14} color={!toggleMode ? '#444' : '#888'} />
+          <FA5Icon name="mouse-pointer" size={14} color={toggleMode ? '#444' : '#888'} />
         </View>
       </View>
     </Pressable>

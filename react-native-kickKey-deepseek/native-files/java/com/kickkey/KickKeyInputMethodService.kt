@@ -23,7 +23,7 @@ class KickKeyInputMethodService : InputMethodService() {
 
     companion object {
         private const val TAG = "KickKeyIME"
-        private const val KEYBOARD_HEIGHT_DP = 330
+        private const val KEYBOARD_HEIGHT_DP = 365
         // First watchdog check after this delay, then re-check periodically. The
         // FIRST cold start after install is slow (RN init + 911KB Hermes bundle +
         // Fabric setup can exceed 8s on slow hardware), so we retry a few times
