@@ -89,19 +89,17 @@ export default function Touchpad({
 
   // Multi-touch state
   const touchesRef = useRef<Map<string, TouchPoint>>(new Map());
-  const isDraggingRef = useRef(false);
-  const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const lastSingleTouchPosRef = useRef<{ pageX: number; pageY: number } | null>(null);
   const lastCenterRef = useRef<{ x: number; y: number } | null>(null);
-  const lastDistanceRef = useRef(0);
   const scrollAccumulatorRef = useRef({ x: 0, y: 0 });
   const pendingDelta = useRef({ x: 0, y: 0 });
   const rafPending = useRef(false);
 
-  // Tap-to-click constants
+  // Tap-to-click & gesture constants
   const TAP_TO_CLICK_MAX_MS = 300;
-  const TAP_TO_CLICK_MAX_PX = 14;
-  const DRAG_THRESHOLD_PX = 10;
-  const SCROLL_THRESHOLD_PX = 8;
+  const TAP_TO_CLICK_MAX_PX = 16;
+  const SCROLL_THRESHOLD_PX = 14;
+  const SENSITIVITY = 1.25;
 
   // Flushes accumulated pointer deltas to native at most once per animation frame.
   const flushPointerMove = useCallback(() => {
@@ -126,45 +124,6 @@ export default function Touchpad({
     return () => onPointerHideRef.current?.();
   }, [showPointerAndCheck]);
 
-  // Calculate center point of two touches
-  const getTwoTouchCenter = (t1: TouchPoint, t2: TouchPoint) => ({
-    x: (t1.x + t2.x) / 2,
-    y: (t1.y + t2.y) / 2,
-  });
-
-  // Calculate distance between two touches
-  const getTwoTouchDistance = (t1: TouchPoint, t2: TouchPoint) => 
-    Math.hypot(t1.x - t2.x, t1.y - t2.y);
-
-  // Handle single touch end - tap-to-click or drag end
-  const handleSingleTouchEnd = useCallback((touch: TouchPoint) => {
-    const duration = Date.now() - touch.startTime;
-    const displacement = Math.hypot(touch.x - touch.startX, touch.y - touch.startY);
-    
-    if (isDraggingRef.current) {
-      // End drag
-      isDraggingRef.current = false;
-      onDragEndRef.current?.();
-      dragStartPosRef.current = null;
-    } else if (duration < TAP_TO_CLICK_MAX_MS && displacement < TAP_TO_CLICK_MAX_PX && tapToClickRef.current) {
-      // Tap-to-click
-      onMouseClickRef.current?.('left');
-    }
-  }, []);
-
-  // Handle two-finger tap for right click
-  const handleTwoFingerTap = useCallback((t1: TouchPoint, t2: TouchPoint) => {
-    const duration1 = Date.now() - t1.startTime;
-    const duration2 = Date.now() - t2.startTime;
-    const displacement1 = Math.hypot(t1.x - t1.startX, t1.y - t1.startY);
-    const displacement2 = Math.hypot(t2.x - t2.startX, t2.y - t2.startY);
-    
-    if (duration1 < TAP_TO_CLICK_MAX_MS && duration2 < TAP_TO_CLICK_MAX_MS &&
-        displacement1 < TAP_TO_CLICK_MAX_PX && displacement2 < TAP_TO_CLICK_MAX_PX) {
-      onMouseClickRef.current?.('right');
-    }
-  }, []);
-
   const surfacePanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -175,99 +134,74 @@ export default function Touchpad({
       onPanResponderGrant: (evt: NativeSyntheticEvent<NativeTouchEvent>) => {
         const { touches } = evt.nativeEvent;
         const now = Date.now();
-        
-        // Add all new touches
+
+        touchesRef.current.clear();
         touches.forEach((t) => {
-          touchesRef.current.set(t.identifier, {
-            id: t.identifier,
+          touchesRef.current.set(String(t.identifier), {
+            id: String(t.identifier),
             x: t.locationX,
             y: t.locationY,
-            startX: t.locationX,
-            startY: t.locationY,
+            startX: t.pageX,
+            startY: t.pageY,
             startTime: now,
           });
         });
 
-        const touchCount = touchesRef.current.size;
-        
+        const touchCount = touches.length;
+
         if (touchCount === 1) {
-          // Single finger - start tracking for pointer movement
-          const touch = Array.from(touchesRef.current.values())[0];
-          setTouchIndicator({ x: touch.x, y: touch.y });
-          dragStartPosRef.current = { x: touch.x, y: touch.y };
+          const touch = touches[0];
+          setTouchIndicator({ x: touch.locationX, y: touch.locationY });
+          lastSingleTouchPosRef.current = { pageX: touch.pageX, pageY: touch.pageY };
           pendingDelta.current = { x: 0, y: 0 };
           rafPending.current = false;
         } else if (touchCount === 2) {
-          // Two fingers - initialize scroll tracking
-          const touchArray = Array.from(touchesRef.current.values());
-          lastCenterRef.current = getTwoTouchCenter(touchArray[0], touchArray[1]);
-          lastDistanceRef.current = getTwoTouchDistance(touchArray[0], touchArray[1]);
+          lastCenterRef.current = {
+            x: (touches[0].pageX + touches[1].pageX) / 2,
+            y: (touches[0].pageY + touches[1].pageY) / 2,
+          };
           scrollAccumulatorRef.current = { x: 0, y: 0 };
-          setTouchIndicator(null); // Hide indicator during two-finger gestures
+          setTouchIndicator(null);
         } else {
-          // 3+ fingers - clear indicator
           setTouchIndicator(null);
         }
       },
 
-      onPanResponderMove: (evt: NativeSyntheticEvent<NativeTouchEvent>, gestureState) => {
+      onPanResponderMove: (evt: NativeSyntheticEvent<NativeTouchEvent>) => {
         const { touches } = evt.nativeEvent;
-        
-        // Update touch positions
-        touches.forEach((t) => {
-          const existing = touchesRef.current.get(t.identifier);
-          if (existing) {
-            touchesRef.current.set(t.identifier, {
-              ...existing,
-              x: t.locationX,
-              y: t.locationY,
-            });
-          }
-        });
-
-        const touchCount = touchesRef.current.size;
-        const touchArray = Array.from(touchesRef.current.values());
+        const touchCount = touches.length;
 
         if (touchCount === 1) {
-          // Single finger - pointer movement
-          const touch = touchArray[0];
-          setTouchIndicator({ x: touch.x, y: touch.y });
+          const touch = touches[0];
+          setTouchIndicator({ x: touch.locationX, y: touch.locationY });
 
-          const deltaX = gestureState.dx;
-          const deltaY = gestureState.dy;
+          const prev = lastSingleTouchPosRef.current;
+          if (prev) {
+            const dx = (touch.pageX - prev.pageX) * SENSITIVITY;
+            const dy = (touch.pageY - prev.pageY) * SENSITIVITY;
 
-          // Check if we should start dragging
-          if (!isDraggingRef.current && dragStartPosRef.current) {
-            const dragDist = Math.hypot(touch.x - dragStartPosRef.current.x, touch.y - dragStartPosRef.current.y);
-            if (dragDist > DRAG_THRESHOLD_PX) {
-              isDraggingRef.current = true;
-              onDragStartRef.current?.();
+            pendingDelta.current.x += dx;
+            pendingDelta.current.y += dy;
+
+            if (!rafPending.current) {
+              rafPending.current = true;
+              requestAnimationFrame(flushPointerMove);
             }
           }
-
-          // Move pointer (relative, trackpad-style), batched at 60Hz
-          pendingDelta.current.x += deltaX;
-          pendingDelta.current.y += deltaY;
-          if (!rafPending.current) {
-            rafPending.current = true;
-            requestAnimationFrame(flushPointerMove);
-          }
+          lastSingleTouchPosRef.current = { pageX: touch.pageX, pageY: touch.pageY };
         } else if (touchCount === 2) {
-          // Two fingers - scroll
           setTouchIndicator(null);
-          
-          const center = getTwoTouchCenter(touchArray[0], touchArray[1]);
-          const distance = getTwoTouchDistance(touchArray[0], touchArray[1]);
+          const t1 = touches[0];
+          const t2 = touches[1];
+          const center = {
+            x: (t1.pageX + t2.pageX) / 2,
+            y: (t1.pageY + t2.pageY) / 2,
+          };
 
           if (lastCenterRef.current) {
-            const deltaX = center.x - lastCenterRef.current.x;
             const deltaY = center.y - lastCenterRef.current.y;
-
-            // Accumulate scroll deltas
-            scrollAccumulatorRef.current.x += deltaX;
             scrollAccumulatorRef.current.y += deltaY;
 
-            // Vertical scroll
             while (scrollAccumulatorRef.current.y >= SCROLL_THRESHOLD_PX) {
               onScrollPageRef.current?.('down');
               scrollAccumulatorRef.current.y -= SCROLL_THRESHOLD_PX;
@@ -276,83 +210,63 @@ export default function Touchpad({
               onScrollPageRef.current?.('up');
               scrollAccumulatorRef.current.y += SCROLL_THRESHOLD_PX;
             }
-
-            // Horizontal scroll (could map to navigate history or horizontal scroll)
-            while (scrollAccumulatorRef.current.x >= SCROLL_THRESHOLD_PX) {
-              // Right swipe - could be forward navigation
-              scrollAccumulatorRef.current.x -= SCROLL_THRESHOLD_PX;
-            }
-            while (scrollAccumulatorRef.current.x <= -SCROLL_THRESHOLD_PX) {
-              // Left swipe - could be backward navigation
-              onNavigateHistoryRef.current?.('backward');
-              scrollAccumulatorRef.current.x += SCROLL_THRESHOLD_PX;
-            }
           }
-
           lastCenterRef.current = center;
-          lastDistanceRef.current = distance;
+        } else {
+          setTouchIndicator(null);
         }
       },
 
       onPanResponderRelease: (evt: NativeSyntheticEvent<NativeTouchEvent>) => {
-        const { touches } = evt.nativeEvent;
-        const releasedIds = new Set(touches.map(t => t.identifier));
-        
-        // Find released touches
-        const releasedTouches: TouchPoint[] = [];
-        touchesRef.current.forEach((touch, id) => {
-          if (!releasedIds.has(id)) {
-            releasedTouches.push(touch);
+        const { changedTouches, touches } = evt.nativeEvent;
+        const now = Date.now();
+
+        // 1. Single-finger tap to click
+        if (touches.length === 0 && changedTouches.length === 1 && touchesRef.current.size === 1) {
+          const changed = changedTouches[0];
+          const initial = touchesRef.current.get(String(changed.identifier));
+          if (initial) {
+            const duration = now - initial.startTime;
+            const displacement = Math.hypot(
+              changed.pageX - initial.startX,
+              changed.pageY - initial.startY
+            );
+            if (
+              duration < TAP_TO_CLICK_MAX_MS &&
+              displacement < TAP_TO_CLICK_MAX_PX &&
+              tapToClickRef.current
+            ) {
+              onMouseClickRef.current?.('left');
+            }
           }
-        });
-
-        // Remove released touches
-        releasedTouches.forEach(t => touchesRef.current.delete(t.id as string));
-
-        const remainingCount = touchesRef.current.size;
-
-        if (releasedTouches.length === 1 && remainingCount === 0) {
-          // Single tap released - check for tap-to-click
-          handleSingleTouchEnd(releasedTouches[0]);
-        } else if (releasedTouches.length === 1 && remainingCount === 1) {
-          // One finger lifted, one remains - transition to single finger mode
-          const remaining = Array.from(touchesRef.current.values())[0];
-          dragStartPosRef.current = { x: remaining.x, y: remaining.y };
-          setTouchIndicator({ x: remaining.x, y: remaining.y });
-        } else if (releasedTouches.length === 2 && remainingCount === 0) {
-          // Two fingers released simultaneously - check for two-finger tap
-          handleTwoFingerTap(releasedTouches[0], releasedTouches[1]);
+        } else if (touches.length === 0 && changedTouches.length === 2 && touchesRef.current.size === 2) {
+          // 2. Two-finger tap for right click
+          const t1 = touchesRef.current.get(String(changedTouches[0].identifier));
+          const t2 = touchesRef.current.get(String(changedTouches[1].identifier));
+          if (t1 && t2) {
+            const duration = Math.max(now - t1.startTime, now - t2.startTime);
+            const disp1 = Math.hypot(changedTouches[0].pageX - t1.startX, changedTouches[0].pageY - t1.startY);
+            const disp2 = Math.hypot(changedTouches[1].pageX - t2.startX, changedTouches[1].pageY - t2.startY);
+            if (duration < TAP_TO_CLICK_MAX_MS && disp1 < TAP_TO_CLICK_MAX_PX && disp2 < TAP_TO_CLICK_MAX_PX) {
+              onMouseClickRef.current?.('right');
+            }
+          }
         }
 
-        // Clean up if no touches remain
-        if (remainingCount === 0) {
-          setTouchIndicator(null);
-          pendingDelta.current = { x: 0, y: 0 };
-          rafPending.current = false;
-          lastCenterRef.current = null;
-          lastDistanceRef.current = 0;
-          scrollAccumulatorRef.current = { x: 0, y: 0 };
-          isDraggingRef.current = false;
-          dragStartPosRef.current = null;
-        } else if (remainingCount === 1) {
-          // Transitioned to single finger
-          lastCenterRef.current = null;
-          lastDistanceRef.current = 0;
-          scrollAccumulatorRef.current = { x: 0, y: 0 };
-        }
+        // Clean up
+        touchesRef.current.clear();
+        lastSingleTouchPosRef.current = null;
+        lastCenterRef.current = null;
+        scrollAccumulatorRef.current = { x: 0, y: 0 };
+        setTouchIndicator(null);
       },
 
       onPanResponderTerminate: () => {
-        // Clean up all state
         touchesRef.current.clear();
-        setTouchIndicator(null);
-        pendingDelta.current = { x: 0, y: 0 };
-        rafPending.current = false;
+        lastSingleTouchPosRef.current = null;
         lastCenterRef.current = null;
-        lastDistanceRef.current = 0;
         scrollAccumulatorRef.current = { x: 0, y: 0 };
-        isDraggingRef.current = false;
-        dragStartPosRef.current = null;
+        setTouchIndicator(null);
       },
     }),
   ).current;
