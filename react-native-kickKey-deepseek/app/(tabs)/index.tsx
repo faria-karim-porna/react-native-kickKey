@@ -97,7 +97,7 @@ function StatusRow({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "transparent" },
   scroll: { padding: 20, paddingTop: 12 },
-  title: { fontSize: 32, fontWeight: "bold", color: "#2c2b2b" },
+  title: { fontSize: 32, fontWeight: "bold", color: "#3a3a3a" },
   subtitle: { fontSize: 14, color: "#444", marginBottom: 24 },
   statusCard: {
     backgroundColor: "rgba(224,229,236,0.92)",
