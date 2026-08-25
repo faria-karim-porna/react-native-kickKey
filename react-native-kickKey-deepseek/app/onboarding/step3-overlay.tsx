@@ -60,7 +60,7 @@ export default function Step3Overlay() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent', padding: 24 },
   iconContainer: { alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#2c2b2b', textAlign: 'center', marginBottom: 12 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#3a3a3a', textAlign: 'center', marginBottom: 12 },
   description: { fontSize: 14, color: '#444', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   card: {
     backgroundColor: 'rgba(224,229,236,0.92)',
