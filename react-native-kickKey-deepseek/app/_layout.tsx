@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 import { useSettingsStore } from '../store/settingsStore';
 import { useSetupStatus } from '../hooks/useSetupStatus';
@@ -29,6 +29,7 @@ async function ensureMicrophonePermission() {
 export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
+  const insets = useSafeAreaInsets();
   const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
   const { isFullySetUp } = useSetupStatus();
 
@@ -55,9 +56,17 @@ export default function RootLayout() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {/* Global persistent circuit-board background for smooth screen transitions */}
-      <Circuit animated />
-      <View style={styles.overlay} />
+      {/* Global persistent circuit-board background for smooth screen transitions.
+          The Circuit positions itself absolutely (fills its parent), which ignores
+          SafeAreaView's padding — so we pin the wrapper below the real status-bar
+          inset ourselves, keeping it out of the battery/notification strip while
+          staying purely decorative (no layout impact on the Stack). */}
+      <View
+        style={[StyleSheet.absoluteFill, styles.backgroundOffset, { top: insets.top }]}
+        pointerEvents="none"
+      >
+        <Circuit animated />
+      </View>
 
       <StatusBar style="light" />
       <Stack
@@ -74,12 +83,16 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  // Root carries the translucent tint directly (instead of an absolute-fill
+  // overlay) so the status-bar strip matches the rest of the screen.
   root: {
     flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#e0e5ecdd',
+  },
+  // Absolutely positioned, but offset below the status bar via insets.top.
+  // The Circuit inside fills only this clipped region.
+  backgroundOffset: {
+    top: 0,
+    overflow: 'hidden',
   },
 });
