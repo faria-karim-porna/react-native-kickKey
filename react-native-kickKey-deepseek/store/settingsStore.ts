@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeName = 'dark' | 'light' | 'amoled' | 'custom';
+export type ThemeName = 'dark' | 'light' | 'custom';
 export type CursorType = 'classic' | 'bubble' | 'sharp' | 'motion' | 'solid' | 'dot' | 'crosshair' | 'target' | 'dashed' | 'loading' | 'sparkle' | 'pointer' | 'hand' | 'click' | 'fast' | 'energy' | 'refresh' | 'filled' | 'play' | 'bold' | 'underline' | 'outline' | 'thick' | 'thin' | 'small';
 
 export interface ThemeColors {
@@ -124,6 +124,15 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'kickkey-settings',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      // v0 → v1: the 'amoled' preset was removed; fall back to 'dark'.
+      migrate: (persisted) => {
+        const state = persisted as Partial<SettingsState> | undefined;
+        if (state && (state as { theme?: string }).theme === 'amoled') {
+          return { ...state, theme: 'dark' as ThemeName };
+        }
+        return persisted;
+      },
     }
   )
 );

@@ -22,25 +22,16 @@ export const THEME_PRESETS: ThemePreset[] = [
   {
     name: 'light',
     label: 'Light',
+    // Colors taken straight from the qykey keyboard look:
+    // base #e0e5ec, keys #f2f2f2 with #444 labels, special keys #c8ccd0,
+    // and #8594aa as the wire/slider accent.
     colors: {
-      keyboardBg:     '#e8e8ed',
-      keyBg:          '#ffffff',
-      keyText:        '#1a1a1a',
-      specialKeyBg:   '#d0d0d8',
-      specialKeyText: '#1a1a1a',
-      themePrimary:   '#0077B6',
-    },
-  },
-  {
-    name: 'amoled',
-    label: 'AMOLED Black',
-    colors: {
-      keyboardBg:     '#000000',
-      keyBg:          '#0a0a0a',
-      keyText:        '#ffffff',
-      specialKeyBg:   '#161616',
-      specialKeyText: '#ffffff',
-      themePrimary:   '#00E5FF',
+      keyboardBg:     '#e0e5ec',
+      keyBg:          '#f2f2f2',
+      keyText:        '#444444',
+      specialKeyBg:   '#c8ccd0',
+      specialKeyText: '#444444',
+      themePrimary:   '#8594aa',
     },
   },
 ];
