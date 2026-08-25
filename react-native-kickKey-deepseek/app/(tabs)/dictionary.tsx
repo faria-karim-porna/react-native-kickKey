@@ -10,13 +10,12 @@ import {
   Platform,
   Pressable,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useKickKeyBridge } from "../../hooks/useKickKeyBridge";
 
 export default function DictionaryScreen() {
-  const { bottom } = useSafeAreaInsets();
   const customWords = useSettingsStore((s) => s.customWords);
   const addCustomWord = useSettingsStore((s) => s.addCustomWord);
   const removeCustomWord = useSettingsStore((s) => s.removeCustomWord);
@@ -74,7 +73,7 @@ export default function DictionaryScreen() {
           <FlatList
             data={customWords}
             keyExtractor={(item) => item}
-            contentContainerStyle={[styles.list, { paddingBottom: 80 + bottom }]}
+            contentContainerStyle={styles.list}
             ListEmptyComponent={
               <Text style={styles.empty}>
                 No custom words yet. Add one above.

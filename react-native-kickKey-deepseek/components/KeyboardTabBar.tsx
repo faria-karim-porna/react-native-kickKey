@@ -62,7 +62,6 @@ export function KeyboardTabBar({ state, descriptors, navigation }: KeyboardTabBa
           paddingBottom: Math.max(insets.bottom, 10),
         },
       ]}
-      pointerEvents="box-none"
     >
       {/* Keyboard Switch Plate / Chassis Dock */}
       <View style={styles.dockTray}>
@@ -147,11 +146,9 @@ export function KeyboardTabBar({ state, descriptors, navigation }: KeyboardTabBa
 }
 
 const styles = StyleSheet.create({
+  // Normal flow child: react-navigation lays it out BELOW the screen area,
+  // so tab content scrolls only above the bar instead of underneath it.
   outerContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,

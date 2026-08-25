@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ScrollView,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useSetupStatus } from "../../hooks/useSetupStatus";
 import { useSettingsStore } from "../../store/settingsStore";
@@ -15,11 +15,10 @@ export default function HomeScreen() {
   const { isEnabled, isDefault, isFullySetUp } = useSetupStatus();
   const language = useSettingsStore((s) => s.language);
   const [testText, setTestText] = React.useState("");
-  const { bottom } = useSafeAreaInsets();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 80 + bottom }]}>
+        <ScrollView contentContainerStyle={styles.scroll}>
           <Text style={styles.title}>KickKey</Text>
           <Text style={styles.subtitle}>Your custom keyboard</Text>
 

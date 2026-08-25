@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, AppState, Pressable, TouchableOpacity } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Rect, Line, Circle } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -370,7 +370,6 @@ function SliderRow({
 // ─── Main screen ───────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
-  const { bottom } = useSafeAreaInsets();
   const [a11yEnabled, setA11yEnabled] = useState<boolean | null>(null);
 
   const checkA11yStatus = () => {
@@ -417,7 +416,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 80 + bottom }]}>
+      <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>Settings</Text>
 
         {/* ── Feedback ──────────────────────────────────────────── */}
