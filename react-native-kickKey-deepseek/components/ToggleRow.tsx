@@ -36,5 +36,5 @@ const styles = StyleSheet.create({
   },
   textContainer: { flex: 1, marginRight: 12 },
   label: { color: '#444', fontSize: 15, fontWeight: '500' },
-  description: { color: '#666', fontSize: 12, marginTop: 2 },
+  description: { color: '#444', fontSize: 12, marginTop: 2 },
 });

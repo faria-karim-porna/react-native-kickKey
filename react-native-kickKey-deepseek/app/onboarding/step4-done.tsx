@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent', padding: 24, justifyContent: 'center' },
   iconContainer: { alignItems: 'center', marginBottom: 16 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#2c2b2b', textAlign: 'center', marginBottom: 12 },
-  description: { fontSize: 14, color: '#555', textAlign: 'center', lineHeight: 20, marginBottom: 32 },
+  description: { fontSize: 14, color: '#444', textAlign: 'center', lineHeight: 20, marginBottom: 32 },
   button: {
     backgroundColor: '#8594aa',
     paddingVertical: 16,

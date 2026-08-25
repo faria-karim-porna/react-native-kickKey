@@ -68,6 +68,11 @@ export default function RootLayout() {
         <Circuit animated />
       </View>
 
+      {/* Translucent tint drawn OVER the circuit so the animated wires are
+          seen through it (muted qykey look). Full-bleed, incl. status strip,
+          so screen transitions never flash raw wire colors anywhere. */}
+      <View style={[StyleSheet.absoluteFill, styles.overlay]} pointerEvents="none" />
+
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -83,16 +88,22 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  // Root carries the translucent tint directly (instead of an absolute-fill
-  // overlay) so the status-bar strip matches the rest of the screen.
+  // Root carries a plain base color; the visible tint comes from the overlay
+  // layer that sits on top of the circuit.
   root: {
     flex: 1,
-    backgroundColor: '#e0e5ecdd',
+    backgroundColor: '#ffffff',
   },
   // Absolutely positioned, but offset below the status bar via insets.top.
   // The Circuit inside fills only this clipped region.
   backgroundOffset: {
     top: 0,
     overflow: 'hidden',
+  },
+  overlay: {
+    top: 0,
+    // ~94% opaque so screen text stays highly readable while the animated
+    // wires still glow through faintly.
+    backgroundColor: '#e0e5ecf0',
   },
 });

@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
   scroll: { padding: 20, paddingTop: 12 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#2c2b2b', marginBottom: 20 },
   sectionLabel: {
-    color: '#666', fontSize: 12, textTransform: 'uppercase',
+    color: '#444', fontSize: 12, textTransform: 'uppercase',
     marginBottom: 8, marginTop: 16, letterSpacing: 0.5,
   },
 
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     borderColor: '#8594aa',
     borderWidth: 2,
   },
-  cursorTypeLabel: { color: '#666', fontSize: 11, fontWeight: '600' },
+  cursorTypeLabel: { color: '#444', fontSize: 11, fontWeight: '600' },
   cursorTypeLabelActive: { color: '#8594aa' },
 
   // ── Color palette ──
@@ -739,6 +739,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   a11yButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  a11yHint: { color: '#666', fontSize: 12, lineHeight: 17, paddingBottom: 12 },
-  footnote: { color: '#777', fontSize: 12, textAlign: 'center', marginTop: 24 },
+  a11yHint: { color: '#444', fontSize: 12, lineHeight: 17, paddingBottom: 12 },
+  footnote: { color: '#444', fontSize: 12, textAlign: 'center', marginTop: 24 },
 });
