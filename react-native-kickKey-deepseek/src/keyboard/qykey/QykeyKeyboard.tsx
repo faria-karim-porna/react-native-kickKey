@@ -13,7 +13,7 @@
 //               converts them to Bangla (commitKey(code, 'bn'))
 // ============================================================
 
-import React, { useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { View } from 'react-native';
 import styles from './styles';
 import Touchpad from './Touchpad';
@@ -75,8 +75,9 @@ export default function QykeyKeyboard() {
   // report it to PointerOverlay. This ensures the red cursor overlay ends exactly
   // at the top edge of the keyboardContainer.
   const keyboardContainerRef = useRef<View>(null);
+  const overlayMeasureTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const onKeyboardContainerLayout = useCallback(() => {
+  const reportOverlayTopY = useCallback(() => {
     const view = keyboardContainerRef.current;
     if (!view) return;
     view.measureInWindow((_x, y, _w, _h) => {
@@ -86,6 +87,31 @@ export default function QykeyKeyboard() {
       }
     });
   }, []);
+
+  // The IME window can slide/expand into its final position AFTER the first
+  // layout pass, so a single measurement goes stale and the red overlay leaks
+  // onto the keyboard's top strip. Re-measure a few times until it settles.
+  const scheduleOverlayMeasures = useCallback(() => {
+    overlayMeasureTimersRef.current.forEach(clearTimeout);
+    overlayMeasureTimersRef.current = [60, 200, 450].map((delay) =>
+      setTimeout(reportOverlayTopY, delay)
+    );
+  }, [reportOverlayTopY]);
+
+  useEffect(() => {
+    return () => overlayMeasureTimersRef.current.forEach(clearTimeout);
+  }, []);
+
+  // Re-measure when entering/leaving touchpad mode — the pointer overlay is
+  // (re)shown around this transition, so its bounds must be freshly snapped.
+  useEffect(() => {
+    if (toggleMode) scheduleOverlayMeasures();
+  }, [toggleMode, scheduleOverlayMeasures]);
+
+  const onKeyboardContainerLayout = useCallback(() => {
+    reportOverlayTopY();
+    scheduleOverlayMeasures();
+  }, [reportOverlayTopY, scheduleOverlayMeasures]);
   const emojiModeHandler = () => handleEmojiToggle();
 
   return (

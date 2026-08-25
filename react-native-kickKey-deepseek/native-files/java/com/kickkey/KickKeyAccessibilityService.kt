@@ -446,8 +446,19 @@ class KickKeyAccessibilityService : AccessibilityService() {
     private fun isPointInPanel(x: Float, y: Float): Boolean {
         if (!isPanelShowing) return false
         val container = panelContainer ?: return false
+        // Measure the panel's REAL on-screen top edge. The old arithmetic guess
+        // (screenHeight - height) assumed the panel is flush with the screen
+        // bottom; when its actual position differs (window insets, taller
+        // layout), taps just above the keyboard were wrongly treated as
+        // "inside the panel" and silently dropped.
+        if (container.isAttachedToWindow && container.height > 0) {
+            val loc = IntArray(2)
+            container.getLocationOnScreen(loc)
+            return y >= loc[1]
+        }
+        // Fallback only when the container can't be measured.
         val screenHeight = resources.displayMetrics.heightPixels.toFloat()
-        val h = if (container.height > 0) container.height.toFloat() else keyboardHeightPx.toFloat()
+        val h = keyboardHeightPx.toFloat()
         return y >= (screenHeight - h)
     }
 }

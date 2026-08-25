@@ -14,7 +14,8 @@ export default function Step3Overlay() {
 
   useEffect(() => {
     if (isOverlayGranted) {
-      router.push('/onboarding/step4-done');
+      // replace (not push): linear flow, avoids duplicate stacked steps
+      router.replace('/onboarding/step4-done');
     }
   }, [isOverlayGranted]);
 
@@ -46,7 +47,7 @@ export default function Step3Overlay() {
         <Text style={styles.buttonText}>Open Overlay Settings</Text>
       </Pressable>
 
-      <Pressable style={styles.skipButton} onPress={() => router.push('/onboarding/step4-done')}>
+      <Pressable style={styles.skipButton} onPress={() => router.replace('/onboarding/step4-done')}>
         <Text style={styles.skipText}>Skip for now</Text>
       </Pressable>
 

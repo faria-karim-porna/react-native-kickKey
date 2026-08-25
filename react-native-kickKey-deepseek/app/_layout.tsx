@@ -47,10 +47,14 @@ export default function RootLayout() {
     const inOnboarding = segments[0] === 'onboarding';
     const shouldShowOnboarding = !hasCompletedOnboarding || !isFullySetUp;
 
+    // Only ever PUSH the user into onboarding when setup is incomplete.
+    // We deliberately do NOT eject them out of an in-progress flow here:
+    // during re-setup (keyboard was disabled after a prior completed
+    // onboarding), isFullySetUp flips true the moment step 2 finishes,
+    // and the old ejection sent users straight to the main app —
+    // skipping steps 3 & 4. Step 4 itself routes to /(tabs) on finish.
     if (shouldShowOnboarding && !inOnboarding) {
       router.replace('/onboarding/step1-enable');
-    } else if (!shouldShowOnboarding && inOnboarding) {
-      router.replace('/(tabs)');
     }
   }, [hasCompletedOnboarding, isFullySetUp, segments]);
 
@@ -102,8 +106,8 @@ const styles = StyleSheet.create({
   },
   overlay: {
     top: 0,
-    // ~94% opaque so screen text stays highly readable while the animated
-    // wires still glow through faintly.
-    backgroundColor: '#e0e5ecf0',
+    // ~80% opaque: animated wires glow through visibly, yet screen text
+    // keeps a solid tint behind it for comfortable readability.
+    backgroundColor: '#e0e5eccc',
   },
 });

@@ -9,7 +9,7 @@
 // ============================================================
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, PanResponder, Pressable, NativeSyntheticEvent, NativeTouchEvent } from 'react-native';
+import { View, Text, PanResponder, Pressable, NativeSyntheticEvent, NativeTouchEvent, PixelRatio } from 'react-native';
 import styles from './styles';
 import { Key } from './Key';
 import { FA5Icon } from './icons';
@@ -41,6 +41,11 @@ interface TouchPoint {
   startY: number;
   startTime: number;
 }
+
+// RN reports touch coordinates in dp, but the native PointerOverlay window
+// positions in RAW PIXELS. Convert so finger travel maps 1:1 (in dp terms)
+// to cursor travel — without this the cursor crawls at 1/density speed.
+const PX_PER_DP = PixelRatio.get();
 
 export default function Touchpad({
   onScrollPage,
@@ -177,8 +182,8 @@ export default function Touchpad({
 
           const prev = lastSingleTouchPosRef.current;
           if (prev) {
-            const dx = (touch.pageX - prev.pageX) * SENSITIVITY;
-            const dy = (touch.pageY - prev.pageY) * SENSITIVITY;
+            const dx = (touch.pageX - prev.pageX) * SENSITIVITY * PX_PER_DP;
+            const dy = (touch.pageY - prev.pageY) * SENSITIVITY * PX_PER_DP;
 
             pendingDelta.current.x += dx;
             pendingDelta.current.y += dy;
@@ -218,18 +223,25 @@ export default function Touchpad({
       },
 
       onPanResponderRelease: (evt: NativeSyntheticEvent<NativeTouchEvent>) => {
-        const { changedTouches, touches } = evt.nativeEvent;
+        const { changedTouches } = evt.nativeEvent;
         const now = Date.now();
 
-        // 1. Single-finger tap to click
-        if (touches.length === 0 && changedTouches.length === 1 && touchesRef.current.size === 1) {
-          const changed = changedTouches[0];
-          const initial = touchesRef.current.get(String(changed.identifier));
+        // Android quirk: nativeEvent.touches may or may not still contain the
+        // just-lifted finger depending on OS/RN version — so derive how many        // fingers REMAIN from our own tracked set instead of trusting it.
+        const trackedCount = touchesRef.current.size;
+        const endedCount = changedTouches.filter((ct) =>
+          touchesRef.current.has(String(ct.identifier))
+        ).length;
+        const remaining = Math.max(trackedCount - endedCount, 0);
+
+        // 1. Single-finger tap to click (left click at the cursor)
+        if (remaining === 0 && trackedCount === 1 && changedTouches.length >= 1) {
+          const initial = touchesRef.current.get(String(changedTouches[0].identifier));
           if (initial) {
             const duration = now - initial.startTime;
             const displacement = Math.hypot(
-              changed.pageX - initial.startX,
-              changed.pageY - initial.startY
+              changedTouches[0].pageX - initial.startX,
+              changedTouches[0].pageY - initial.startY
             );
             if (
               duration < TAP_TO_CLICK_MAX_MS &&
@@ -239,7 +251,7 @@ export default function Touchpad({
               onMouseClickRef.current?.('left');
             }
           }
-        } else if (touches.length === 0 && changedTouches.length === 2 && touchesRef.current.size === 2) {
+        } else if (remaining === 0 && trackedCount === 2 && changedTouches.length >= 2) {
           // 2. Two-finger tap for right click
           const t1 = touchesRef.current.get(String(changedTouches[0].identifier));
           const t2 = touchesRef.current.get(String(changedTouches[1].identifier));

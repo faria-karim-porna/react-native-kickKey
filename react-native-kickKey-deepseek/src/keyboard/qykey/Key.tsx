@@ -164,7 +164,9 @@ const KeyComponent = ({
   return (
     <Pressable
       unstable_pressDelay={0}
-      hitSlop={1}
+      // Vertical hitSlop compensates for the shorter (38dp) keys so the
+      // effective tap target stays finger-friendly.
+      hitSlop={{ top: 2, bottom: 2, left: 1, right: 1 }}
       onPressIn={() => {
         if (hasActiveState) setIsActive((prev) => !prev);
         onPressHandler?.();

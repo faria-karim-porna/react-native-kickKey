@@ -14,7 +14,8 @@ export default function Step2Default() {
 
   useEffect(() => {
     if (isDefault) {
-      router.push('/onboarding/step3-overlay');
+      // replace (not push): linear flow, avoids duplicate stacked steps
+      router.replace('/onboarding/step3-overlay');
     }
   }, [isDefault]);
 

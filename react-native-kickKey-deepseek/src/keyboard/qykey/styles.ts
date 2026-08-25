@@ -62,12 +62,14 @@ const styles = StyleSheet.create({
   line: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 5.5,
+    marginBottom: 4.5,
     gap: 3.5,
     width: '100%',
   },
   key: {
-    height: 45,
+    // Shorter than wide on most devices (letter keys ~33.75w / special 45w),
+    // while Key.tsx's vertical hitSlop keeps the tap target comfortable.
+    height: 38,
     backgroundColor: '#f2f2f2',
     borderRadius: 9,
     justifyContent: 'center',
@@ -150,14 +152,14 @@ const styles = StyleSheet.create({
   },
   slider: {
     width: 78,
-    height: 38,
+    height: 34,
     position: 'relative',
     justifyContent: 'center',
     overflow: 'hidden', // Keeps the "inner" look clean
   },
   knob: {
     position: 'absolute',
-    height: 34,
+    height: 30,
     width: 36,
     top: 0,
     backgroundColor: '#f2f2f2',
@@ -190,7 +192,7 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     flex: 1,
-    height: 38,
+    height: 34,
     backgroundColor: '#f2f2f2',
     borderRadius: 8,
     flexDirection: 'row',
@@ -215,7 +217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     width: '100%',
-    height: 255,
+    height: 215,
   },
   activeIndicator: {
     borderWidth: 0.5,
@@ -349,7 +351,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     width: 42,
-    height: 38,
+    height: 34,
   },
   tooltip: {
     position: 'absolute',
@@ -403,7 +405,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     width: 42,
-    height: 38,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 7,
@@ -437,7 +439,7 @@ const styles = StyleSheet.create({
     bottom: 2,
   },
   emojiGridContainer: {
-    height: 255, // Matches the 5-line key area height
+    height: 215, // Matches the shortened 5-line key area height
     paddingHorizontal: 2,
   },
   scrollContent: {
