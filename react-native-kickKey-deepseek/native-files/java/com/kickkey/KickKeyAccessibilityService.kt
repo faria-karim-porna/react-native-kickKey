@@ -46,10 +46,10 @@ class KickKeyAccessibilityService : AccessibilityService() {
         private const val TAG = "KickKeyA11y"
 
         // Same keyboard height constant as the IME (KEYBOARD_HEIGHT_DP in KickKeyInputMethodService).
-        private const val KEYBOARD_HEIGHT_DP = 365
+        private const val KEYBOARD_HEIGHT_DP = 250
 
         // ── Gesture timing (M3) ──
-        private const val TAP_DURATION_MS = 60L            // left-click tap
+        private const val TAP_DURATION_MS = 100L           // left-click tap
         private const val LONG_PRESS_DURATION_MS = 600L    // right-click proxy
         private const val SCROLL_SWIPE_DURATION_MS = 300L  // swipe fallback
         private const val SCROLL_SWIPE_DISTANCE_PX = 200   // swipe fallback length
@@ -298,6 +298,22 @@ class KickKeyAccessibilityService : AccessibilityService() {
         dispatchGestureSafe(buildTapGesture(x, y, TAP_DURATION_MS))
     }
 
+    /** Double click: two quick taps at (x, y). */
+    fun doubleTapAt(x: Float, y: Float) {
+        if (isPointInPanel(x, y)) return
+        val path = Path().apply {
+            moveTo(x, y)
+            lineTo(x, y + 1f)
+        }
+        val stroke1 = GestureDescription.StrokeDescription(path, 0, 45L)
+        val stroke2 = GestureDescription.StrokeDescription(path, 95L, 45L)
+        val gesture = GestureDescription.Builder()
+            .addStroke(stroke1)
+            .addStroke(stroke2)
+            .build()
+        dispatchGestureSafe(gesture)
+    }
+
     /** Right click: a long-press at (x, y) — Android's context-menu equivalent. */
     fun longPressAt(x: Float, y: Float) {
         if (isPointInPanel(x, y)) return
@@ -409,21 +425,31 @@ class KickKeyAccessibilityService : AccessibilityService() {
         gestureInFlight = true
         val callback = object : GestureResultCallback() {
             override fun onCompleted(gestureDescription: GestureDescription?) {
+                Log.d(TAG, "Gesture completed")
                 gestureInFlight = false
                 pumpGestureQueue()
             }
 
             override fun onCancelled(gestureDescription: GestureDescription?) {
+                Log.w(TAG, "Gesture cancelled")
                 gestureInFlight = false
                 pumpGestureQueue()
             }
         }
-        dispatchGesture(next, callback, mainHandler)
+        val dispatched = dispatchGesture(next, callback, mainHandler)
+        if (!dispatched) {
+            Log.w(TAG, "dispatchGesture returned false — resetting gestureInFlight")
+            gestureInFlight = false
+            pumpGestureQueue()
+        }
     }
 
     /** Tap / long-press: a single-point stroke of [durationMs]. */
     private fun buildTapGesture(x: Float, y: Float, durationMs: Long): GestureDescription {
-        val path = Path().apply { moveTo(x, y) }
+        val path = Path().apply {
+            moveTo(x, y)
+            lineTo(x + 1f, y + 1f)
+        }
         return GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, durationMs))
             .build()

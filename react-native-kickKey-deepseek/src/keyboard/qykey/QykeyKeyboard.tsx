@@ -14,7 +14,7 @@
 // ============================================================
 
 import React, { useEffect, useRef, useCallback } from 'react';
-import { View } from 'react-native';
+import { View, PixelRatio } from 'react-native';
 import styles from './styles';
 import Touchpad from './Touchpad';
 import SymbolKeys from './SymbolKeys';
@@ -71,29 +71,32 @@ export default function QykeyKeyboard() {
   const sliderHandler = () => setToggleMode(!toggleMode);
 
   // ── Overlay top-Y measurement ──────────────────────────────────────────────
-  // We measure the on-screen Y of the keyboardContainer via measureInWindow and
-  // report it to PointerOverlay. This ensures the red cursor overlay ends exactly
-  // at the top edge of the keyboardContainer.
+  // We measure the on-screen Y of the `base` shell (the visible keyboard
+  // chrome — slider, top keys, main keys) so the red cursor overlay ends
+  // exactly at the top of the base, NOT above it at the Circuit background.
   const keyboardContainerRef = useRef<View>(null);
+  const baseRef = useRef<View>(null);
   const overlayMeasureTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const reportOverlayTopY = useCallback(() => {
-    const view = keyboardContainerRef.current;
+    // Prefer the `base` ref (the visible keyboard shell) so the overlay
+    // stops at the top of the slider / key rows.
+    const view = baseRef.current ?? keyboardContainerRef.current;
     if (!view) return;
     view.measureInWindow((_x, y, _w, _h) => {
       if (y > 0) {
-        // y is already in physical pixels on Android (measureInWindow uses px).
-        KickKey.pointerSetOverlayTopY?.(y).catch(() => {});
+        // Convert DP to physical pixels for native WindowManager layout
+        const yPx = Math.round(y * PixelRatio.get());
+        KickKey.pointerSetOverlayTopY?.(yPx).catch(() => {});
       }
     });
   }, []);
 
-  // The IME window can slide/expand into its final position AFTER the first
-  // layout pass, so a single measurement goes stale and the red overlay leaks
-  // onto the keyboard's top strip. Re-measure a few times until it settles.
+  // The IME window slides up into its final position over ~300ms.
+  // Re-measure periodically until the animation settles completely.
   const scheduleOverlayMeasures = useCallback(() => {
     overlayMeasureTimersRef.current.forEach(clearTimeout);
-    overlayMeasureTimersRef.current = [60, 200, 450].map((delay) =>
+    overlayMeasureTimersRef.current = [50, 150, 300, 500, 800].map((delay) =>
       setTimeout(reportOverlayTopY, delay)
     );
   }, [reportOverlayTopY]);
@@ -125,7 +128,7 @@ export default function QykeyKeyboard() {
           would compete with the emoji FlatList scroll on the UI thread. */}
       <Circuit animated={!isEmojiMode} />
 
-      <View style={styles.base}>
+      <View ref={baseRef} style={styles.base}>
         {/* Top Row */}
         <View style={[styles.line, { justifyContent: 'flex-start' }]}>
           <KeyboardSlider toggleMode={toggleMode} sliderHandler={sliderHandler} />

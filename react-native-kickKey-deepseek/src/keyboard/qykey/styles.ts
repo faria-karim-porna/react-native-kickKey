@@ -6,6 +6,10 @@
 //   - `mainKeysContainer` sizes to its content (no fixed height)
 //   - emoji grid / touchpad get fixed heights that match the
 //     standard 5-line key area so nothing clips or collapses.
+//
+// Key sizing: height 26dp × width ~34dp (height < width).
+// Overall keyboard window: reduced by ~30dp vs original.
+// Touchpad area: 175dp (down from 195dp, proportional).
 // ============================================================
 
 import { Dimensions, StyleSheet } from 'react-native';
@@ -38,9 +42,9 @@ const styles = StyleSheet.create({
     flex: 1,
     zIndex: 1,
     width: '100%',
-    paddingTop: 6,
+    paddingTop: 4,
     paddingRight: 4,
-    paddingBottom: 22,
+    paddingBottom: 14,
     paddingLeft: 4,
     backgroundColor: '#e0e5ecac',
     borderRadius: 12,
@@ -57,21 +61,22 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   mainKeysContainer: {
-    // Sizes to content — the 5 key lines total ~250dp.
+    // Sizes to content — the 5 key lines total ~170dp with 30dp key height.
   },
   line: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 4.5,
-    gap: 3.5,
+    marginBottom: 3,
+    gap: 3,
     width: '100%',
   },
   key: {
-    // Shorter than wide on most devices (letter keys ~33.75w / special 45w),
-    // while Key.tsx's vertical hitSlop keeps the tap target comfortable.
-    height: 38,
+    // Height < width: keys are 26dp tall × ~34dp wide — compact tap
+    // target while staying visually clean. hitSlop in Key.tsx adds
+    // extra invisible tap area above/below each key.
+    height: 26,
     backgroundColor: '#f2f2f2',
-    borderRadius: 9,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
 
@@ -113,7 +118,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   keyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#444',
     fontWeight: '700',
     includeFontPadding: false,
@@ -121,7 +126,7 @@ const styles = StyleSheet.create({
   specialKey: { backgroundColor: '#c8ccd0' },
   functionKey: { backgroundColor: '#8a8a8a' },
   wider: {
-    width: 45,
+    width: 44,
   },
   spaceInner: {
     flex: 1,
@@ -131,7 +136,7 @@ const styles = StyleSheet.create({
   },
   spaceText: {
     color: '#f2f2f2',
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
     includeFontPadding: false,
@@ -152,14 +157,14 @@ const styles = StyleSheet.create({
   },
   slider: {
     width: 78,
-    height: 34,
+    height: 26,
     position: 'relative',
     justifyContent: 'center',
     overflow: 'hidden', // Keeps the "inner" look clean
   },
   knob: {
     position: 'absolute',
-    height: 30,
+    height: 22,
     width: 36,
     top: 0,
     backgroundColor: '#f2f2f2',
@@ -192,7 +197,7 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     flex: 1,
-    height: 34,
+    height: 26,
     backgroundColor: '#f2f2f2',
     borderRadius: 8,
     flexDirection: 'row',
@@ -201,7 +206,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   suggestionText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#444',
     fontWeight: '600',
     flexShrink: 1,
@@ -209,7 +214,7 @@ const styles = StyleSheet.create({
   },
   suggestionSeparator: {
     width: 1,
-    height: 20,
+    height: 18,
     backgroundColor: '#bbb',
   },
   touchpadArea: {
@@ -217,7 +222,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     width: '100%',
-    height: 215,
+    height: 175,
   },
   activeIndicator: {
     borderWidth: 0.5,
@@ -232,7 +237,7 @@ const styles = StyleSheet.create({
 
   symNextLine: {
     justifyContent: 'space-between',
-    paddingLeft: 45,
+    paddingLeft: 44,
     paddingRight: 3.75,
   },
   symNextLineInner: {
@@ -275,7 +280,7 @@ const styles = StyleSheet.create({
     width: width * 0.92,
     height: '100%',
     maxWidth: 440,
-    padding: 10,
+    padding: 8,
     borderRadius: 16,
     backgroundColor: '#e0e5ec', // Keyboard base color
     borderWidth: 1,
@@ -344,14 +349,14 @@ const styles = StyleSheet.create({
   btnText: {
     color: '#888',
     fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 13,
   },
   tabContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
     width: 42,
-    height: 34,
+    height: 26,
   },
   tooltip: {
     position: 'absolute',
@@ -390,10 +395,10 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 8,
+    marginBottom: 6,
     backgroundColor: '#c8ccd0', // .special-key color from your Keyboard.tsx
     borderRadius: 10,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderTopColor: 'rgba(0,0,0,0.15)',
@@ -405,7 +410,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     width: 42,
-    height: 34,
+    height: 26,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 7,
@@ -439,7 +444,7 @@ const styles = StyleSheet.create({
     bottom: 2,
   },
   emojiGridContainer: {
-    height: 215, // Matches the shortened 5-line key area height
+    height: 175, // Matches the touchpad area height
     paddingHorizontal: 2,
   },
   scrollContent: {
@@ -452,11 +457,11 @@ const styles = StyleSheet.create({
   },
   emojiKey: {
     width: 42,
-    height: 42,
+    height: 38,
     backgroundColor: '#f2f2f2',
   },
   emojiText: {
-    fontSize: 24, // Emojis need larger text to be visible
+    fontSize: 22, // Emojis need larger text to be visible
     includeFontPadding: false,
     // Bundled NotoColorEmoji (assets/fonts) — full-color emoji on all devices.
     fontFamily: 'NotoColorEmoji',

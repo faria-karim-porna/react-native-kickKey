@@ -65,6 +65,10 @@ export default function Touchpad({
   const [forwardHint, setForwardHint] = useState(false);
   const [touchIndicator, setTouchIndicator] = useState<{ x: number; y: number } | null>(null);
 
+  // Backup tap detection via native onTouchEnd (more reliable than PanResponder release in IME windows)
+  const touchStartRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const backupClickFiredRef = useRef(false);
+
   // Refs for callbacks
   const onScrollPageRef = useRef(onScrollPage);
   const onNavigateHistoryRef = useRef(onNavigateHistory);
@@ -129,6 +133,30 @@ export default function Touchpad({
     return () => onPointerHideRef.current?.();
   }, [showPointerAndCheck]);
 
+  // Backup tap detection via native onTouchEnd
+  const handleTouchStart = useCallback((e: any) => {
+    backupClickFiredRef.current = false;
+    const touch = e.nativeEvent?.touches?.[0];
+    if (touch) {
+      touchStartRef.current = { time: Date.now(), x: touch.pageX, y: touch.pageY };
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: any) => {
+    const start = touchStartRef.current;
+    if (!start) return;
+    const duration = Date.now() - start.time;
+    const touch = e.nativeEvent?.changedTouches?.[0] ?? e.nativeEvent?.touches?.[0];
+    if (touch && !backupClickFiredRef.current) {
+      const dist = Math.hypot(touch.pageX - start.x, touch.pageY - start.y);
+      if (duration < 400 && dist < 30) {
+        backupClickFiredRef.current = true;
+        onMouseClickRef.current?.('left');
+      }
+    }
+    touchStartRef.current = null;
+  }, []);
+
   const surfacePanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -137,13 +165,25 @@ export default function Touchpad({
       onMoveShouldSetPanResponderCapture: () => true,
 
       onPanResponderGrant: (evt: NativeSyntheticEvent<NativeTouchEvent>) => {
-        const { touches } = evt.nativeEvent;
+        const { touches, changedTouches } = evt.nativeEvent;
+        const activeTouches = (touches && touches.length > 0)
+          ? touches
+          : (changedTouches && changedTouches.length > 0)
+            ? changedTouches
+            : [{
+                identifier: 0,
+                locationX: evt.nativeEvent.locationX,
+                locationY: evt.nativeEvent.locationY,
+                pageX: evt.nativeEvent.pageX,
+                pageY: evt.nativeEvent.pageY,
+              }];
         const now = Date.now();
 
         touchesRef.current.clear();
-        touches.forEach((t) => {
-          touchesRef.current.set(String(t.identifier), {
-            id: String(t.identifier),
+        activeTouches.forEach((t) => {
+          const id = String(t.identifier ?? 0);
+          touchesRef.current.set(id, {
+            id,
             x: t.locationX,
             y: t.locationY,
             startX: t.pageX,
@@ -152,18 +192,18 @@ export default function Touchpad({
           });
         });
 
-        const touchCount = touches.length;
+        const touchCount = activeTouches.length;
 
         if (touchCount === 1) {
-          const touch = touches[0];
+          const touch = activeTouches[0];
           setTouchIndicator({ x: touch.locationX, y: touch.locationY });
           lastSingleTouchPosRef.current = { pageX: touch.pageX, pageY: touch.pageY };
           pendingDelta.current = { x: 0, y: 0 };
           rafPending.current = false;
         } else if (touchCount === 2) {
           lastCenterRef.current = {
-            x: (touches[0].pageX + touches[1].pageX) / 2,
-            y: (touches[0].pageY + touches[1].pageY) / 2,
+            x: (activeTouches[0].pageX + activeTouches[1].pageX) / 2,
+            y: (activeTouches[0].pageY + activeTouches[1].pageY) / 2,
           };
           scrollAccumulatorRef.current = { x: 0, y: 0 };
           setTouchIndicator(null);
@@ -173,11 +213,22 @@ export default function Touchpad({
       },
 
       onPanResponderMove: (evt: NativeSyntheticEvent<NativeTouchEvent>) => {
-        const { touches } = evt.nativeEvent;
-        const touchCount = touches.length;
+        const { touches, changedTouches } = evt.nativeEvent;
+        const activeTouches = (touches && touches.length > 0)
+          ? touches
+          : (changedTouches && changedTouches.length > 0)
+            ? changedTouches
+            : [{
+                identifier: 0,
+                locationX: evt.nativeEvent.locationX,
+                locationY: evt.nativeEvent.locationY,
+                pageX: evt.nativeEvent.pageX,
+                pageY: evt.nativeEvent.pageY,
+              }];
+        const touchCount = activeTouches.length;
 
         if (touchCount === 1) {
-          const touch = touches[0];
+          const touch = activeTouches[0];
           setTouchIndicator({ x: touch.locationX, y: touch.locationY });
 
           const prev = lastSingleTouchPosRef.current;
@@ -196,8 +247,8 @@ export default function Touchpad({
           lastSingleTouchPosRef.current = { pageX: touch.pageX, pageY: touch.pageY };
         } else if (touchCount === 2) {
           setTouchIndicator(null);
-          const t1 = touches[0];
-          const t2 = touches[1];
+          const t1 = activeTouches[0];
+          const t2 = activeTouches[1];
           const center = {
             x: (t1.pageX + t2.pageX) / 2,
             y: (t1.pageY + t2.pageY) / 2,
@@ -222,44 +273,50 @@ export default function Touchpad({
         }
       },
 
-      onPanResponderRelease: (evt: NativeSyntheticEvent<NativeTouchEvent>) => {
-        const { changedTouches } = evt.nativeEvent;
+      onPanResponderRelease: (evt: NativeSyntheticEvent<NativeTouchEvent>, gestureState) => {
+        const { changedTouches, touches } = evt.nativeEvent;
         const now = Date.now();
 
-        // Android quirk: nativeEvent.touches may or may not still contain the
-        // just-lifted finger depending on OS/RN version — so derive how many        // fingers REMAIN from our own tracked set instead of trusting it.
+        const endedTouches = (changedTouches && changedTouches.length > 0)
+          ? changedTouches
+          : (touches && touches.length > 0)
+            ? touches
+            : [{
+                identifier: 0,
+                locationX: evt.nativeEvent.locationX,
+                locationY: evt.nativeEvent.locationY,
+                pageX: evt.nativeEvent.pageX,
+                pageY: evt.nativeEvent.pageY,
+              }];
+
         const trackedCount = touchesRef.current.size;
-        const endedCount = changedTouches.filter((ct) =>
-          touchesRef.current.has(String(ct.identifier))
-        ).length;
-        const remaining = Math.max(trackedCount - endedCount, 0);
+        const totalGestureDist = Math.hypot(gestureState.dx, gestureState.dy);
+        const id = String(endedTouches[0]?.identifier ?? 0);
+        const initial = touchesRef.current.get(id);
+        const touchDuration = initial ? (now - initial.startTime) : 100;
+        const touchDisplacement = initial
+          ? Math.hypot(endedTouches[0].pageX - initial.startX, endedTouches[0].pageY - initial.startY)
+          : totalGestureDist;
 
         // 1. Single-finger tap to click (left click at the cursor)
-        if (remaining === 0 && trackedCount === 1 && changedTouches.length >= 1) {
-          const initial = touchesRef.current.get(String(changedTouches[0].identifier));
-          if (initial) {
-            const duration = now - initial.startTime;
-            const displacement = Math.hypot(
-              changedTouches[0].pageX - initial.startX,
-              changedTouches[0].pageY - initial.startY
-            );
-            if (
-              duration < TAP_TO_CLICK_MAX_MS &&
-              displacement < TAP_TO_CLICK_MAX_PX &&
-              tapToClickRef.current
-            ) {
-              onMouseClickRef.current?.('left');
-            }
-          }
-        } else if (remaining === 0 && trackedCount === 2 && changedTouches.length >= 2) {
+        // Allow up to 28dp displacement and 400ms duration for natural tap detection
+        const isTap = (
+          (touchDuration < 400 && totalGestureDist < 28) ||
+          (touchDuration < 400 && touchDisplacement < 28 * PX_PER_DP)
+        );
+
+        if (trackedCount <= 1 && isTap && tapToClickRef.current && !backupClickFiredRef.current) {
+          backupClickFiredRef.current = true;
+          onMouseClickRef.current?.('left');
+        } else if (trackedCount === 2 && endedTouches.length >= 2) {
           // 2. Two-finger tap for right click
-          const t1 = touchesRef.current.get(String(changedTouches[0].identifier));
-          const t2 = touchesRef.current.get(String(changedTouches[1].identifier));
+          const t1 = touchesRef.current.get(String(endedTouches[0].identifier ?? 0));
+          const t2 = touchesRef.current.get(String(endedTouches[1].identifier ?? 1));
           if (t1 && t2) {
             const duration = Math.max(now - t1.startTime, now - t2.startTime);
-            const disp1 = Math.hypot(changedTouches[0].pageX - t1.startX, changedTouches[0].pageY - t1.startY);
-            const disp2 = Math.hypot(changedTouches[1].pageX - t2.startX, changedTouches[1].pageY - t2.startY);
-            if (duration < TAP_TO_CLICK_MAX_MS && disp1 < TAP_TO_CLICK_MAX_PX && disp2 < TAP_TO_CLICK_MAX_PX) {
+            const disp1 = Math.hypot(endedTouches[0].pageX - t1.startX, endedTouches[0].pageY - t1.startY);
+            const disp2 = Math.hypot(endedTouches[1].pageX - t2.startX, endedTouches[1].pageY - t2.startY);
+            if (duration < 400 && disp1 < 28 * PX_PER_DP && disp2 < 28 * PX_PER_DP) {
               onMouseClickRef.current?.('right');
             }
           }
@@ -289,6 +346,8 @@ export default function Touchpad({
       <View
         style={[styles.touchpadSurface, { overflow: 'hidden', position: 'relative' }]}
         {...surfacePanResponder.panHandlers}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {touchIndicator && (
           <View

@@ -103,6 +103,32 @@ export function useKeyboardState(): QykeyKeyboardState {
       .catch(() => {});
   }, []);
 
+  // ── Touchpad: on-screen pointer overlay ──────────────────────────────────
+
+  /**
+   * Shows the desktop-style pointer over the app screen. Resolves true when
+   * visible, false when "Display over other apps" is not granted.
+   */
+  const handlePointerShow = useCallback((): Promise<boolean> => {
+    const res = getKickKey()?.pointerShow?.();
+    return res && typeof res.then === 'function' ? res : Promise.resolve(false);
+  }, []);
+
+  /** Hides the on-screen mouse pointer overlay. */
+  const handlePointerHide = useCallback(() => {
+    getKickKey()?.pointerHide?.();
+  }, []);
+
+  /** Moves the pointer by a relative (dx, dy) delta while the user drags. */
+  const handlePointerMove = useCallback((dx: number, dy: number) => {
+    getKickKey()?.pointerMove?.(dx, dy);
+  }, []);
+
+  /** Opens the system "Display over other apps" settings for this app. */
+  const handleRequestPointerPermission = useCallback(() => {
+    getKickKey()?.openOverlaySettings?.();
+  }, []);
+
   // ── Touchpad: IME strip mode & pointer overlay ───────────────────────────
   useEffect(() => {
     getKickKey()?.setTouchpadMode?.(toggleMode);
@@ -302,31 +328,7 @@ export function useKeyboardState(): QykeyKeyboardState {
     getKickKey()?.dragEnd();
   }, []);
 
-  // ── Touchpad: on-screen pointer overlay ──────────────────────────────────
 
-  /**
-   * Shows the desktop-style pointer over the app screen. Resolves true when
-   * visible, false when "Display over other apps" is not granted.
-   */
-  const handlePointerShow = useCallback((): Promise<boolean> => {
-    const res = getKickKey()?.pointerShow?.();
-    return res && typeof res.then === 'function' ? res : Promise.resolve(false);
-  }, []);
-
-  /** Hides the on-screen mouse pointer overlay. */
-  const handlePointerHide = useCallback(() => {
-    getKickKey()?.pointerHide?.();
-  }, []);
-
-  /** Moves the pointer by a relative (dx, dy) delta while the user drags. */
-  const handlePointerMove = useCallback((dx: number, dy: number) => {
-    getKickKey()?.pointerMove?.(dx, dy);
-  }, []);
-
-  /** Opens the system "Display over other apps" settings for this app. */
-  const handleRequestPointerPermission = useCallback(() => {
-    getKickKey()?.openOverlaySettings?.();
-  }, []);
 
   return {
     language, toggleMode, symbolModeStatus, isEmojiMode, suggestions,

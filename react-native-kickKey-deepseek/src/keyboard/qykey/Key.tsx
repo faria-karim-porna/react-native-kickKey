@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // Key.tsx -- "Chocolate bar" key, ported from qykey.
 //
 // Differences from the qykey original:
@@ -164,9 +164,9 @@ const KeyComponent = ({
   return (
     <Pressable
       unstable_pressDelay={0}
-      // Vertical hitSlop compensates for the shorter (38dp) keys so the
-      // effective tap target stays finger-friendly.
-      hitSlop={{ top: 2, bottom: 2, left: 1, right: 1 }}
+      // Vertical hitSlop compensates for the compact (26dp) keys so the
+      // effective tap target stays finger-friendly (~32dp touch area).
+      hitSlop={{ top: 3, bottom: 3, left: 1, right: 1 }}
       onPressIn={() => {
         if (hasActiveState) setIsActive((prev) => !prev);
         onPressHandler?.();

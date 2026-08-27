@@ -43,7 +43,7 @@ object PointerOverlay {
     /** Modern cursor arrow size in dp. */
     private const val CURSOR_SIZE_DP = 28
     /** Keyboard height in dp to calculate the overlay area excluding keyboard. */
-    private const val KEYBOARD_HEIGHT_DP = 365
+    private const val KEYBOARD_HEIGHT_DP = 250
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -101,23 +101,23 @@ object PointerOverlay {
      *   3. Arithmetic fallback (screen height − keyboard height dp)
      */
     fun getKeyboardTopY(): Int {
-        // 1. JS-supplied precise coordinate from mainKeysContainer.measureInWindow
+        // 1. JS-supplied precise coordinate from base.measureInWindow (converted to physical px)
         if (overlayTopYOverride > 0) return overlayTopYOverride
 
         val loc = IntArray(2)
-        KickKeyAccessibilityService.instance?.panelContainer?.let { container ->
-            if (container.isAttachedToWindow && container.height > 0) {
-                container.getLocationOnScreen(loc)
-                if (loc[1] > 0) return loc[1]
-            }
-        }
         KickKeyInputMethodService.instance?.keyboardContainer?.let { container ->
             if (container.isAttachedToWindow && container.height > 0) {
                 container.getLocationOnScreen(loc)
                 if (loc[1] > 0) return loc[1]
             }
         }
-        // Fallback calculation using screen height and keyboard height
+        KickKeyAccessibilityService.instance?.panelContainer?.let { container ->
+            if (container.isAttachedToWindow && container.height > 0) {
+                container.getLocationOnScreen(loc)
+                if (loc[1] > 0) return loc[1]
+            }
+        }
+        // Fallback calculation using usable screen height (excluding navigation bar)
         val ctx = appContext ?: return 0
         val displayH = ctx.resources.displayMetrics.heightPixels
         val kbH = keyboardHeightPx
@@ -276,7 +276,7 @@ object PointerOverlay {
             } catch (e: Exception) {}
             cursorView = null
 
-            // 1. Red 50% opacity touch-through screen overlay (covers entire screen above keyboard)
+            // 1. Red translucent touch-through screen overlay (covers entire screen above keyboard)
             val redOverlay = TouchpadOverlayView(targetContext)
             val overlayParams = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -314,10 +314,11 @@ object PointerOverlay {
             visible = true
             Log.i(TAG, "Cursor & screen overlay attached (type=$type, overlayH=${overlayH}px, cursor=${size}px at $cursorX,$cursorY)")
 
-            // Follow-up check to make sure height is snapped to keyboard if layout finished after attach
-            mainHandler.postDelayed({
-                updateOverlayBounds()
-            }, 60)
+            // Follow-up checks to make sure height is accurately snapped to keyboard as IME finishes animating
+            val delays = longArrayOf(50L, 150L, 300L, 500L, 800L)
+            for (d in delays) {
+                mainHandler.postDelayed({ updateOverlayBounds() }, d)
+            }
         } catch (e: Throwable) {
             Log.e(TAG, "attachWindow failed", e)
             visible = false
