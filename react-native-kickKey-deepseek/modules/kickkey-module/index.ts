@@ -16,6 +16,7 @@ export default {
   sendBackspace:   (): Promise<void>                               => KickKey.sendBackspace(),
   commitSpace:     (): Promise<void>                               => KickKey.commitSpace(),
   sendEnter:       (): Promise<void>                               => KickKey.sendEnter(),
+  sendSpecialKey:  (key: string): Promise<void>                    => KickKey.sendSpecialKey(key),
   getPreferences:  (): Promise<Record<string, any>>               => KickKey.getPreferences(),
   savePreferences: (p: Record<string, any>): Promise<void>        => KickKey.savePreferences(p),
 

@@ -45,6 +45,8 @@ export default function QykeyKeyboard() {
     handleBackspaceRepeatEnd,
     handleSpace,
     handleEnter,
+    handleSpecialKey,
+    handleMoveCursor,
     handleLanguageChange,
     handleSymbolToggle,
     handleSymbolNext,
@@ -70,65 +72,16 @@ export default function QykeyKeyboard() {
   const symHandler = () => handleSymbolToggle();
   const sliderHandler = () => setToggleMode(!toggleMode);
 
-  // ── Overlay top-Y measurement ──────────────────────────────────────────────
-  // We measure the on-screen Y of the `base` shell (the visible keyboard
-  // chrome — slider, top keys, main keys) so the red cursor overlay ends
-  // exactly at the top of the base, NOT above it at the Circuit background.
-  const keyboardContainerRef = useRef<View>(null);
-  const baseRef = useRef<View>(null);
-  const overlayMeasureTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  const reportOverlayTopY = useCallback(() => {
-    // Prefer the `base` ref (the visible keyboard shell) so the overlay
-    // stops at the top of the slider / key rows.
-    const view = baseRef.current ?? keyboardContainerRef.current;
-    if (!view) return;
-    view.measureInWindow((_x, y, _w, _h) => {
-      if (y > 0) {
-        // Convert DP to physical pixels for native WindowManager layout
-        const yPx = Math.round(y * PixelRatio.get());
-        KickKey.pointerSetOverlayTopY?.(yPx).catch(() => {});
-      }
-    });
-  }, []);
-
-  // The IME window slides up into its final position over ~300ms.
-  // Re-measure periodically until the animation settles completely.
-  const scheduleOverlayMeasures = useCallback(() => {
-    overlayMeasureTimersRef.current.forEach(clearTimeout);
-    overlayMeasureTimersRef.current = [50, 150, 300, 500, 800].map((delay) =>
-      setTimeout(reportOverlayTopY, delay)
-    );
-  }, [reportOverlayTopY]);
-
-  useEffect(() => {
-    return () => overlayMeasureTimersRef.current.forEach(clearTimeout);
-  }, []);
-
-  // Re-measure when entering/leaving touchpad mode — the pointer overlay is
-  // (re)shown around this transition, so its bounds must be freshly snapped.
-  useEffect(() => {
-    if (toggleMode) scheduleOverlayMeasures();
-  }, [toggleMode, scheduleOverlayMeasures]);
-
-  const onKeyboardContainerLayout = useCallback(() => {
-    reportOverlayTopY();
-    scheduleOverlayMeasures();
-  }, [reportOverlayTopY, scheduleOverlayMeasures]);
   const emojiModeHandler = () => handleEmojiToggle();
 
   return (
-    <View
-      ref={keyboardContainerRef}
-      style={styles.keyboardContainer}
-      onLayout={onKeyboardContainerLayout}
-    >
+    <View style={styles.keyboardContainer}>
       {/* Circuit board behind the translucent keyboard shell.
           Frozen while the emoji board is open: its per-frame SVG redraw
           would compete with the emoji FlatList scroll on the UI thread. */}
       <Circuit animated={!isEmojiMode} />
 
-      <View ref={baseRef} style={styles.base}>
+      <View style={styles.base}>
         {/* Top Row */}
         <View style={[styles.line, { justifyContent: 'flex-start' }]}>
           <KeyboardSlider toggleMode={toggleMode} sliderHandler={sliderHandler} />
@@ -156,16 +109,16 @@ export default function QykeyKeyboard() {
                       {k}
                     </Key>
                   ))}
-                  <Key functionKey isIcon>
+                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('left')}>
                     <FeatheredArrowKey direction="left" color="#f2f2f2" />
                   </Key>
-                  <Key functionKey isIcon>
+                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('up')}>
                     <FeatheredArrowKey direction="up" color="#f2f2f2" />
                   </Key>
-                  <Key functionKey isIcon>
+                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('down')}>
                     <FeatheredArrowKey direction="down" color="#f2f2f2" />
                   </Key>
-                  <Key functionKey isIcon>
+                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('right')}>
                     <FeatheredArrowKey direction="right" color="#f2f2f2" />
                   </Key>
                   {['.', ';', '?'].map((k) => (
@@ -185,6 +138,7 @@ export default function QykeyKeyboard() {
                     onBackspaceRepeatEnd={handleBackspaceRepeatEnd}
                     onSpace={handleSpace}
                     onEnter={handleEnter}
+                    onSpecialKey={handleSpecialKey}
                     language={language}
                     onLanguageChange={handleLanguageChange}
                   />

@@ -53,15 +53,6 @@ object PointerOverlay {
     private var visible = false
     private var currentWindowType: Int? = null
 
-    /**
-     * Explicit overlay top-Y set by JS via pointerSetOverlayTopY().
-     * JS measures the exact on-screen Y of mainKeysContainer (the main keyboard
-     * area) so the overlay height stops precisely at the top of the key rows,
-     * NOT at the top of the toggle/slider row above them.
-     * -1 means "not set yet; fall back to container measurement".
-     */
-    var overlayTopYOverride: Int = -1
-
     /** Screen coordinates of the cursor's hotspot (top-left of the window). */
     var cursorX = 0f
         private set
@@ -93,35 +84,56 @@ object PointerOverlay {
     }
 
     /**
-     * Calculates the exact Y-coordinate (pixels) of the top edge of the main
-     * keyboard area (below the toggle/slider row).
-     * Priority:
-     *   1. [overlayTopYOverride] — set by JS from measureInWindow on mainKeysContainer
-     *   2. Native container getLocationOnScreen (top of whole panel, fallback)
-     *   3. Arithmetic fallback (screen height − keyboard height dp)
+     * Retrieves the height (in pixels) of the system navigation bar / accessibility menu.
      */
-    fun getKeyboardTopY(): Int {
-        // 1. JS-supplied precise coordinate from base.measureInWindow (converted to physical px)
-        if (overlayTopYOverride > 0) return overlayTopYOverride
+    fun getNavBarHeight(): Int {
+        val ctx = appContext ?: return 0
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+            val insets = wm?.currentWindowMetrics?.windowInsets?.getInsetsIgnoringVisibility(
+                android.view.WindowInsets.Type.navigationBars()
+            )
+            if (insets != null && insets.bottom > 0) {
+                return insets.bottom
+            }
+        }
+        val resourceId = ctx.resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        if (resourceId > 0) {
+            return ctx.resources.getDimensionPixelSize(resourceId)
+        }
+        return 0
+    }
 
-        val loc = IntArray(2)
-        KickKeyInputMethodService.instance?.keyboardContainer?.let { container ->
-            if (container.isAttachedToWindow && container.height > 0) {
-                container.getLocationOnScreen(loc)
-                if (loc[1] > 0) return loc[1]
+    /**
+     * Retrieves the current height (in pixels) of the active keyboard or floating panel.
+     */
+    fun getKeyboardHeight(): Int {
+        KickKeyInputMethodService.instance?.let { ime ->
+            val container = ime.keyboardContainer
+            if (container != null && container.height > 0) {
+                return container.height
+            }
+            if (ime.currentKeyboardHeightPx > 0) {
+                return ime.currentKeyboardHeightPx
             }
         }
         KickKeyAccessibilityService.instance?.panelContainer?.let { container ->
-            if (container.isAttachedToWindow && container.height > 0) {
-                container.getLocationOnScreen(loc)
-                if (loc[1] > 0) return loc[1]
-            }
+            if (container.height > 0) return container.height
         }
-        // Fallback calculation using usable screen height (excluding navigation bar)
-        val ctx = appContext ?: return 0
-        val displayH = ctx.resources.displayMetrics.heightPixels
-        val kbH = keyboardHeightPx
-        return (displayH - kbH).coerceAtLeast(0)
+        return keyboardHeightPx
+    }
+
+    /**
+     * Calculates the exact overlay height (Y-coordinate where keyboard top starts).
+     * Formula: full screen height - accessibility / navigation menu height - keyboard height
+     */
+    fun getKeyboardTopY(): Int {
+        val screenH = screenHeightPx()
+        val navH = getNavBarHeight()
+        val kbH = getKeyboardHeight()
+
+        val calculated = screenH - navH - kbH
+        return calculated.coerceAtLeast(0)
     }
 
     private fun screenWidthPx(): Int {

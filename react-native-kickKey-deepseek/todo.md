@@ -1,5 +1,5 @@
 Email: personalfkp@gmail.com
-Download Link: https://expo.dev/artifacts/eas/W5V8sMyrQCSSptyz8jZSMKVtYfinLomV1T2p4UlThKQ.apk
+Download Link: https://expo.dev/artifacts/eas/guV_sFW3dH7E2sPLYTYQklYX3ONurFIaI1FxJfP2atU.apk
 Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay
 
 
@@ -11,14 +11,14 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
 3. [Done] Add Qykey
 4. [Done] Fix Icons
 5. [Done] Fix Voice Recognition
-6. Fix Trackpad
+6. [Done] Fix Trackpad
 7. [Done] Fix Symbols
 8. [Done] Fix Emojis
 9. [Done] Fix Keep Vibrartion
-10. Fix Special Keys (Tab, ESC etc)
+10. [Done] Fix Special Keys (Tab, ESC etc)
 11. [Done] Fix Background Behind Radius
-12. Fix Option Selections Menu
-13. Fix Theme Etc Selection Tab Menu
+12. [Done] Fix Option Selections Menu
+13. [Done] Fix Theme Etc Selection Tab Menu
 14. Fix Folder Structure
 15. Convert From KickKey to Qykey
 16. Refactor Code

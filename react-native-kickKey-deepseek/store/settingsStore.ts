@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeName = 'dark' | 'light' | 'custom';
+export type ThemeName = 'dark' | 'light' | 'nord' | 'cyberpunk' | 'midnight' | 'sunset' | 'custom' | string;
 export type CursorType = 'classic' | 'bubble' | 'sharp' | 'motion' | 'solid' | 'dot' | 'crosshair' | 'target' | 'dashed' | 'loading' | 'sparkle' | 'pointer' | 'hand' | 'click' | 'fast' | 'energy' | 'refresh' | 'filled' | 'play' | 'bold' | 'underline' | 'outline' | 'thick' | 'thin' | 'small';
 
 export interface ThemeColors {

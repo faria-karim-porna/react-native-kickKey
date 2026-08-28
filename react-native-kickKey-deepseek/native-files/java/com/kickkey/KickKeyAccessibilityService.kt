@@ -49,7 +49,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
         private const val KEYBOARD_HEIGHT_DP = 250
 
         // ── Gesture timing (M3) ──
-        private const val TAP_DURATION_MS = 100L           // left-click tap
+        private const val TAP_DURATION_MS = 40L            // left-click tap (crisp 40ms down/up)
         private const val LONG_PRESS_DURATION_MS = 600L    // right-click proxy
         private const val SCROLL_SWIPE_DURATION_MS = 300L  // swipe fallback
         private const val SCROLL_SWIPE_DISTANCE_PX = 200   // swipe fallback length

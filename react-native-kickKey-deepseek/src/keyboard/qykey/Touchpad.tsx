@@ -65,10 +65,6 @@ export default function Touchpad({
   const [forwardHint, setForwardHint] = useState(false);
   const [touchIndicator, setTouchIndicator] = useState<{ x: number; y: number } | null>(null);
 
-  // Backup tap detection via native onTouchEnd (more reliable than PanResponder release in IME windows)
-  const touchStartRef = useRef<{ time: number; x: number; y: number } | null>(null);
-  const backupClickFiredRef = useRef(false);
-
   // Refs for callbacks
   const onScrollPageRef = useRef(onScrollPage);
   const onNavigateHistoryRef = useRef(onNavigateHistory);
@@ -96,6 +92,27 @@ export default function Touchpad({
       onMouseClick, onDragStart, onDragEnd, tapToClick,
       onPointerMove, onPointerShow, onPointerHide, onRequestPointerPermission]);
 
+  // ── Tap detection (single source of truth) ─────────────────────────────
+  // We use the View's onTouchStart/onTouchEnd (not PanResponder) as the sole
+  // tap-click authority. Reasons:
+  //   1. In Android IME windows PanResponder.onPanResponderRelease can be
+  //      skipped when the system terminates the gesture (e.g., home-gesture
+  //      swipe steals the touch), but onTouchEnd always fires.
+  //   2. gestureState.dx/dy in PanResponder accumulates from the *grant* point,
+  //      not the finger-down point, so even a clean tap shows a non-zero dist
+  //      and the isTap check fails.
+  //   3. We use locationX/locationY (surface-local dp) not pageX/pageY (screen
+  //      dp) so the IME window Y offset can't inflate the distance.
+  //
+  // hasMoved is set by PanResponder only when the finger travels > TAP_MAX_DP.
+  // The tap handler skips the click if the finger genuinely moved.
+  const touchDownRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const hasMovedRef  = useRef(false);
+
+  // Tap constants (dp — surface-local, device-independent)
+  const TAP_MAX_MS = 350;       // max duration for a tap
+  const TAP_MAX_DP = 10;        // max finger travel for a tap (dp, surface-local)
+
   // Multi-touch state
   const touchesRef = useRef<Map<string, TouchPoint>>(new Map());
   const lastSingleTouchPosRef = useRef<{ pageX: number; pageY: number } | null>(null);
@@ -104,9 +121,7 @@ export default function Touchpad({
   const pendingDelta = useRef({ x: 0, y: 0 });
   const rafPending = useRef(false);
 
-  // Tap-to-click & gesture constants
-  const TAP_TO_CLICK_MAX_MS = 300;
-  const TAP_TO_CLICK_MAX_PX = 16;
+  // Scroll & sensitivity constants
   const SCROLL_THRESHOLD_PX = 14;
   const SENSITIVITY = 1.25;
 
@@ -133,29 +148,46 @@ export default function Touchpad({
     return () => onPointerHideRef.current?.();
   }, [showPointerAndCheck]);
 
-  // Backup tap detection via native onTouchEnd
+  // ── Tap start/end via View onTouch* ────────────────────────────────────
+  // These always fire in an IME window, unlike PanResponder release.
   const handleTouchStart = useCallback((e: any) => {
-    backupClickFiredRef.current = false;
     const touch = e.nativeEvent?.touches?.[0];
     if (touch) {
-      touchStartRef.current = { time: Date.now(), x: touch.pageX, y: touch.pageY };
+      // Use locationX/locationY (surface-local dp) — consistent inside the IME
+      touchDownRef.current = {
+        time: Date.now(),
+        x: touch.locationX ?? touch.pageX,
+        y: touch.locationY ?? touch.pageY,
+      };
     }
+    hasMovedRef.current = false;
   }, []);
 
   const handleTouchEnd = useCallback((e: any) => {
-    const start = touchStartRef.current;
-    if (!start) return;
-    const duration = Date.now() - start.time;
-    const touch = e.nativeEvent?.changedTouches?.[0] ?? e.nativeEvent?.touches?.[0];
-    if (touch && !backupClickFiredRef.current) {
-      const dist = Math.hypot(touch.pageX - start.x, touch.pageY - start.y);
-      if (duration < 400 && dist < 30) {
-        backupClickFiredRef.current = true;
-        onMouseClickRef.current?.('left');
-      }
+    const down = touchDownRef.current;
+    touchDownRef.current = null;
+
+    if (!down) return;
+    if (!tapToClickRef.current) return;
+    if (hasMovedRef.current) return; // finger genuinely dragged — not a tap
+
+    const duration = Date.now() - down.time;
+    if (duration > TAP_MAX_MS) return; // held too long — not a tap
+
+    // Count fingers that were lifted — ignore two-finger lifts (right-click is
+    // handled by two-finger tap logic separately, not here).
+    const changed = e.nativeEvent?.changedTouches ?? [];
+    if (changed.length !== 1) return;
+
+    const touch = changed[0];
+    const dx = (touch.locationX ?? touch.pageX) - down.x;
+    const dy = (touch.locationY ?? touch.pageY) - down.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist <= TAP_MAX_DP) {
+      onMouseClickRef.current?.('left');
     }
-    touchStartRef.current = null;
-  }, []);
+  }, [TAP_MAX_MS, TAP_MAX_DP]);
 
   const surfacePanResponder = useRef(
     PanResponder.create({
@@ -186,8 +218,8 @@ export default function Touchpad({
             id,
             x: t.locationX,
             y: t.locationY,
-            startX: t.pageX,
-            startY: t.pageY,
+            startX: t.locationX, // surface-local to match tap detector
+            startY: t.locationY,
             startTime: now,
           });
         });
@@ -243,10 +275,26 @@ export default function Touchpad({
               rafPending.current = true;
               requestAnimationFrame(flushPointerMove);
             }
+
+            // Tell the tap detector the finger has genuinely moved.
+            // Use the accumulated surface-local travel vs. the grant position.
+            if (!hasMovedRef.current) {
+              const id = String(touch.identifier ?? 0);
+              const initial = touchesRef.current.get(id);
+              if (initial) {
+                const travelled = Math.hypot(
+                  touch.locationX - initial.startX,
+                  touch.locationY - initial.startY,
+                );
+                if (travelled > TAP_MAX_DP) hasMovedRef.current = true;
+              }
+            }
           }
           lastSingleTouchPosRef.current = { pageX: touch.pageX, pageY: touch.pageY };
         } else if (touchCount === 2) {
           setTouchIndicator(null);
+          // Mark as moved so no accidental left-click fires on two-finger lift.
+          hasMovedRef.current = true;
           const t1 = activeTouches[0];
           const t2 = activeTouches[1];
           const center = {
@@ -273,51 +321,36 @@ export default function Touchpad({
         }
       },
 
-      onPanResponderRelease: (evt: NativeSyntheticEvent<NativeTouchEvent>, gestureState) => {
+      onPanResponderRelease: (evt: NativeSyntheticEvent<NativeTouchEvent>) => {
         const { changedTouches, touches } = evt.nativeEvent;
         const now = Date.now();
 
-        const endedTouches = (changedTouches && changedTouches.length > 0)
-          ? changedTouches
-          : (touches && touches.length > 0)
-            ? touches
-            : [{
-                identifier: 0,
-                locationX: evt.nativeEvent.locationX,
-                locationY: evt.nativeEvent.locationY,
-                pageX: evt.nativeEvent.pageX,
-                pageY: evt.nativeEvent.pageY,
-              }];
-
+        // ── Two-finger right-click ───────────────────────────────────────
+        // Left-click is handled exclusively by handleTouchEnd (View onTouchEnd).
         const trackedCount = touchesRef.current.size;
-        const totalGestureDist = Math.hypot(gestureState.dx, gestureState.dy);
-        const id = String(endedTouches[0]?.identifier ?? 0);
-        const initial = touchesRef.current.get(id);
-        const touchDuration = initial ? (now - initial.startTime) : 100;
-        const touchDisplacement = initial
-          ? Math.hypot(endedTouches[0].pageX - initial.startX, endedTouches[0].pageY - initial.startY)
-          : totalGestureDist;
-
-        // 1. Single-finger tap to click (left click at the cursor)
-        // Allow up to 28dp displacement and 400ms duration for natural tap detection
-        const isTap = (
-          (touchDuration < 400 && totalGestureDist < 28) ||
-          (touchDuration < 400 && touchDisplacement < 28 * PX_PER_DP)
-        );
-
-        if (trackedCount <= 1 && isTap && tapToClickRef.current && !backupClickFiredRef.current) {
-          backupClickFiredRef.current = true;
-          onMouseClickRef.current?.('left');
-        } else if (trackedCount === 2 && endedTouches.length >= 2) {
-          // 2. Two-finger tap for right click
-          const t1 = touchesRef.current.get(String(endedTouches[0].identifier ?? 0));
-          const t2 = touchesRef.current.get(String(endedTouches[1].identifier ?? 1));
-          if (t1 && t2) {
-            const duration = Math.max(now - t1.startTime, now - t2.startTime);
-            const disp1 = Math.hypot(endedTouches[0].pageX - t1.startX, endedTouches[0].pageY - t1.startY);
-            const disp2 = Math.hypot(endedTouches[1].pageX - t2.startX, endedTouches[1].pageY - t2.startY);
-            if (duration < 400 && disp1 < 28 * PX_PER_DP && disp2 < 28 * PX_PER_DP) {
-              onMouseClickRef.current?.('right');
+        if (trackedCount === 2) {
+          const endedTouches = (changedTouches && changedTouches.length > 0)
+            ? changedTouches
+            : (touches && touches.length > 0)
+              ? touches
+              : [];
+          if (endedTouches.length >= 2) {
+            const t1 = touchesRef.current.get(String(endedTouches[0].identifier ?? 0));
+            const t2 = touchesRef.current.get(String(endedTouches[1].identifier ?? 1));
+            if (t1 && t2) {
+              const duration = Math.max(now - t1.startTime, now - t2.startTime);
+              // surface-local displacement check
+              const disp1 = Math.hypot(
+                endedTouches[0].locationX - t1.startX,
+                endedTouches[0].locationY - t1.startY,
+              );
+              const disp2 = Math.hypot(
+                endedTouches[1].locationX - t2.startX,
+                endedTouches[1].locationY - t2.startY,
+              );
+              if (duration < 400 && disp1 < TAP_MAX_DP * 2 && disp2 < TAP_MAX_DP * 2) {
+                onMouseClickRef.current?.('right');
+              }
             }
           }
         }
@@ -339,6 +372,7 @@ export default function Touchpad({
       },
     }),
   ).current;
+
 
   return (
     <View style={styles.touchpadContainer}>

@@ -19,6 +19,7 @@ type MainKeysProps = {
   onBackspaceRepeatEnd?: () => void;
   onSpace?: () => void;
   onEnter?: () => void;
+  onSpecialKey?: (key: string) => void;
   language?: AppLanguage;
   onLanguageChange?: (lang: AppLanguage) => void;
 };
@@ -30,6 +31,7 @@ const MainKeysComponent = ({
   onBackspaceRepeatEnd,
   onSpace,
   onEnter,
+  onSpecialKey,
   language = 'en-US',
   onLanguageChange,
 }: MainKeysProps) => {
@@ -122,13 +124,28 @@ const MainKeysComponent = ({
 
       {/* Bottom Row */}
       <View style={styles.line}>
-        <Key special style={styles.wider} hasActiveState>
+        <Key
+          special
+          style={styles.wider}
+          hasActiveState
+          onPressHandler={() => onSpecialKey?.('ctrl')}
+        >
           Ctrl
         </Key>
-        <Key special style={styles.wider} hasActiveState>
+        <Key
+          special
+          style={styles.wider}
+          hasActiveState
+          onPressHandler={() => onSpecialKey?.('meta')}
+        >
           ⊞
         </Key>
-        <Key special style={styles.wider} hasActiveState>
+        <Key
+          special
+          style={styles.wider}
+          hasActiveState
+          onPressHandler={() => onSpecialKey?.('alt')}
+        >
           Alt
         </Key>
 
@@ -142,10 +159,20 @@ const MainKeysComponent = ({
           <Text style={styles.spaceText}>◀ {spaceLabel} ▶</Text>
         </Key>
 
-        <Key special style={styles.wider}>
+        <Key
+          special
+          style={styles.wider}
+          hasActiveState
+          onPressHandler={() => onSpecialKey?.('tab')}
+        >
           Tab
         </Key>
-        <Key special style={styles.wider}>
+        <Key
+          special
+          style={styles.wider}
+          hasActiveState
+          onPressHandler={() => onSpecialKey?.('esc')}
+        >
           Esc
         </Key>
         <Key

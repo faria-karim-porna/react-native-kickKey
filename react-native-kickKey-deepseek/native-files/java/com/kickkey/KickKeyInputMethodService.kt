@@ -44,11 +44,11 @@ class KickKeyInputMethodService : InputMethodService() {
     }
 
     /** Keyboard height in pixels, derived from dp × device density. */
-    private val keyboardHeightPx: Int
+    internal val keyboardHeightPx: Int
         get() = (KEYBOARD_HEIGHT_DP * resources.displayMetrics.density).toInt()
 
     // ── Touchpad mode ───────────────────────────────────────────────────────
-    private val currentKeyboardHeightPx: Int
+    internal val currentKeyboardHeightPx: Int
         get() = keyboardHeightPx
 
     /** Main-thread only. Called from KickKeyModule.setTouchpadMode. */

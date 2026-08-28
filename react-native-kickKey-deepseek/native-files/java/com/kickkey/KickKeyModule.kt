@@ -284,6 +284,60 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         promise.resolve(null)
     }
 
+    @ReactMethod
+    fun sendSpecialKey(key: String, promise: Promise) {
+        val ic = activeInputConnection
+        if (ic != null) {
+            when (key.lowercase()) {
+                "tab" -> {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_TAB))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_TAB))
+                }
+                "esc", "escape" -> {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ESCAPE))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_ESCAPE))
+                }
+                "ctrl" -> {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_CTRL_LEFT))
+                }
+                "alt" -> {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_ALT_LEFT))
+                }
+                "meta", "win", "⊞" -> {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_META_LEFT))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_META_LEFT))
+                }
+                "home" -> {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_HOME))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MOVE_HOME))
+                }
+                "end" -> {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_END))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MOVE_END))
+                }
+                "select_all", "ctrl_a" -> {
+                    ic.performContextMenuAction(android.R.id.selectAll)
+                }
+                "copy", "ctrl_c" -> {
+                    ic.performContextMenuAction(android.R.id.copy)
+                }
+                "paste", "ctrl_v" -> {
+                    ic.performContextMenuAction(android.R.id.paste)
+                }
+                "cut", "ctrl_x" -> {
+                    ic.performContextMenuAction(android.R.id.cut)
+                }
+                else -> {
+                    ic.commitText(key, 1)
+                }
+            }
+            hapticManager?.vibrate()
+        }
+        promise.resolve(null)
+    }
+
     // ── Touchpad: cursor movement ─────────────────────────────────────────────
     //
     // Called repeatedly while the user drags on the touchpad surface.
@@ -447,8 +501,6 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun pointerSetOverlayTopY(yPx: Double, promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            PointerOverlay.overlayTopYOverride = yPx.toInt().coerceAtLeast(0)
-            // Re-snap the overlay height if it's already visible
             PointerOverlay.updateOverlayBounds()
             promise.resolve(null)
         }

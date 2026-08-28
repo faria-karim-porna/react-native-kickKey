@@ -49,6 +49,8 @@ export interface QykeyKeyboardState {
   handleBackspaceRepeatEnd: () => void;
   handleSpace: () => void;
   handleEnter: () => void;
+  handleSpecialKey: (key: string) => void;
+  handleMoveCursor: (direction: 'left' | 'right' | 'up' | 'down') => void;
   handleLanguageChange: (lang: AppLanguage) => void;
   handleSymbolToggle: () => void;
   handleSymbolNext: () => void;
@@ -227,6 +229,17 @@ export function useKeyboardState(): QykeyKeyboardState {
     playKeySound();
   }, []);
 
+  const handleSpecialKey = useCallback((key: string) => {
+    if (!key) return;
+    getKickKey()?.sendSpecialKey(key);
+    playKeySound();
+  }, []);
+
+  const handleMoveCursor = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
+    getKickKey()?.moveCursor(direction);
+    playKeySound();
+  }, []);
+
   // ── Mode switches ────────────────────────────────────────────────────────
 
   const handleLanguageChange = useCallback((lang: AppLanguage) => {
@@ -335,7 +348,7 @@ export function useKeyboardState(): QykeyKeyboardState {
     setToggleMode,
     handleKeyPress, handleBackspace,
     handleBackspaceRepeatStart, handleBackspaceRepeatEnd,
-    handleSpace, handleEnter,
+    handleSpace, handleEnter, handleSpecialKey, handleMoveCursor,
     handleLanguageChange,
     handleSymbolToggle, handleSymbolNext, handleSymbolPrev,
     handleEmojiToggle, handleEmojiSelect,
