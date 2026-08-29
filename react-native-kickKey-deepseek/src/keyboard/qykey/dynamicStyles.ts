@@ -54,9 +54,9 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       flex: 1,
       zIndex: 1,
       width: '100%',
-      paddingTop: 4,
+      paddingTop: 6,
       paddingRight: 4,
-      paddingBottom: 14,
+      paddingBottom: 16,
       paddingLeft: 4,
       backgroundColor: colors.keyboardBg + 'cc',
       borderRadius: 12,
@@ -74,12 +74,12 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     line: {
       flexDirection: 'row',
       justifyContent: 'center',
-      marginBottom: 3,
-      gap: 3,
+      marginBottom: 7,
+      gap: 6,
       width: '100%',
     },
     key: {
-      height: 26,
+      height: 38,
       backgroundColor: colors.keyBg,
       borderRadius: 8,
       justifyContent: 'center',
@@ -150,7 +150,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     slider: {
       width: 78,
-      height: 26,
+      height: 38,
       position: 'relative',
       justifyContent: 'center',
       overflow: 'hidden',
@@ -186,7 +186,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     suggestionsContainer: {
       flex: 1,
-      height: 26,
+      height: 38,
       backgroundColor: colors.keyBg,
       borderRadius: 8,
       flexDirection: 'row',
@@ -211,7 +211,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       flexDirection: 'row',
       justifyContent: 'center',
       width: '100%',
-      height: 175,
+      height: 220,
     },
     activeIndicator: {
       borderWidth: 0.5,
@@ -232,13 +232,13 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     symNextLineInner: {
       display: 'flex',
       flexDirection: 'row',
-      gap: 3,
+      gap: 6,
     },
     lastLine: { justifyContent: 'space-between' },
     lastLineInner: {
       display: 'flex',
       flexDirection: 'row',
-      gap: 3,
+      gap: 6,
     },
 
     moreWider: {
@@ -255,7 +255,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     utilityLineInner: {
       display: 'flex',
       flexDirection: 'row',
-      gap: 3,
+      gap: 6,
     },
     extraWider: {
       width: 100,
@@ -344,7 +344,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       justifyContent: 'center',
       position: 'relative',
       width: 42,
-      height: 26,
+      height: 38,
     },
     tooltip: {
       position: 'absolute',
@@ -383,7 +383,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     tabBar: {
       flexDirection: 'row',
       justifyContent: 'space-around',
-      marginBottom: 6,
+      marginBottom: 10,
       backgroundColor: colors.specialKeyBg,
       borderRadius: 10,
       paddingVertical: 2,
@@ -398,7 +398,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     tabButton: {
       width: 42,
-      height: 26,
+      height: 38,
       justifyContent: 'center',
       alignItems: 'center',
       borderRadius: 7,
@@ -431,7 +431,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       bottom: 2,
     },
     emojiGridContainer: {
-      height: 175,
+      height: 220,
       paddingHorizontal: 2,
     },
     scrollContent: {
@@ -439,12 +439,12 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     row: {
       justifyContent: 'center',
-      gap: 3,
-      marginBottom: 3,
+      gap: 6,
+      marginBottom: 7,
     },
     emojiKey: {
       width: 42,
-      height: 38,
+      height: 48,
       backgroundColor: emojiKeyBg,
     },
     emojiText: {

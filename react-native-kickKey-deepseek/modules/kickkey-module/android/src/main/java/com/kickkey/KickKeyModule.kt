@@ -378,7 +378,7 @@ class KickKeyModule : Module() {
                             WindowManager.LayoutParams.TYPE_PHONE
                         }
                         val minY = statusBarHeightPx(context) + pointerMarginPx()
-                        // Keep the pointer above the keyboard window (275dp, matching
+                        // Keep the pointer above the keyboard window (300dp, matching
                         // KEYBOARD_HEIGHT_DP in KickKeyInputMethodService).
                         val keyboardH = (275 * context.resources.displayMetrics.density).toInt()
                         val maxY = (screenHeightPx() - keyboardH - size - pointerMarginPx())

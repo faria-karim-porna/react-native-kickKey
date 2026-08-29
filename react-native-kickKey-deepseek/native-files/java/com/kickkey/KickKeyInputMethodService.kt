@@ -23,7 +23,7 @@ class KickKeyInputMethodService : InputMethodService() {
 
     companion object {
         private const val TAG = "KickKeyIME"
-        private const val KEYBOARD_HEIGHT_DP = 250
+        private const val KEYBOARD_HEIGHT_DP = 300
         // First watchdog check after this delay, then re-check periodically. The
         // FIRST cold start after install is slow (RN init + 911KB Hermes bundle +
         // Fabric setup can exceed 8s on slow hardware), so we retry a few times
@@ -53,7 +53,7 @@ class KickKeyInputMethodService : InputMethodService() {
 
     /** Main-thread only. Called from KickKeyModule.setTouchpadMode. */
     fun setTouchpadStripMode(on: Boolean) {
-        // Keep keyboard at full height (275dp) so the touchpad area and its controls
+        // Keep keyboard at full height (300dp) so the touchpad area and its controls
         // remain fully visible without moving the keyboard down.
         Log.i(TAG, "Touchpad mode: $on (height=${keyboardHeightPx}px)")
     }
