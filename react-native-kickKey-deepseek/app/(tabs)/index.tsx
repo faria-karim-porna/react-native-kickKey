@@ -11,18 +11,20 @@ import Svg, { Path } from "react-native-svg";
 import { useSetupStatus } from "../../hooks/useSetupStatus";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useAppColors } from "../../hooks/useAppColors";
+import { useTranslation } from "../../hooks/useTranslation";
 
 export default function HomeScreen() {
   const { isEnabled, isDefault, isFullySetUp } = useSetupStatus();
   const language = useSettingsStore((s) => s.language);
   const [testText, setTestText] = React.useState("");
   const colors = useAppColors();
+  const t = useTranslation();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>KickKey</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Your custom keyboard</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t.homeTitle}</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>{t.homeSubtitle}</Text>
 
           <View style={[styles.statusCard, {
             backgroundColor: colors.card,
@@ -32,10 +34,10 @@ export default function HomeScreen() {
             borderRightColor: colors.cardBorderBR,
             shadowColor: colors.cardShadow,
           }]}>
-            <StatusRow label="Keyboard Enabled" value={isEnabled} colors={colors} />
-            <StatusRow label="Set as Default" value={isDefault} colors={colors} />
+            <StatusRow label={t.keyboardEnabled} value={isEnabled} colors={colors} />
+            <StatusRow label={t.setAsDefault} value={isDefault} colors={colors} />
             <StatusRow
-              label="Active Language"
+              label={t.activeLanguage}
               value={language === "en" ? "English" : "বাংলা"}
               isText
               colors={colors}
@@ -44,7 +46,7 @@ export default function HomeScreen() {
 
           {isFullySetUp && (
             <>
-              <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Try it out</Text>
+              <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.tryItOut}</Text>
               <TextInput
                 style={[styles.testInput, {
                   backgroundColor: colors.inputBg,
@@ -54,7 +56,7 @@ export default function HomeScreen() {
                   borderBottomColor: colors.cardBorderBR,
                   borderRightColor: colors.cardBorderBR,
                 }]}
-                placeholder="Tap here and start typing..."
+                placeholder={t.testInputPlaceholder}
                 placeholderTextColor={colors.textMuted}
                 value={testText}
                 onChangeText={setTestText}
@@ -78,6 +80,7 @@ function StatusRow({
   isText?: boolean;
   colors: ReturnType<typeof useAppColors>;
 }) {
+  const t = useTranslation();
   return (
     <View style={[styles.statusRow, { borderBottomColor: colors.separator }]}>
       <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>{label}</Text>
@@ -104,7 +107,7 @@ function StatusRow({
               { color: value ? colors.accent : colors.textMuted },
             ]}
           >
-            {value ? "Yes" : "No"}
+            {value ? t.yes : t.no}
           </Text>
         </View>
       )}
@@ -121,7 +124,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 18,
     marginBottom: 28,
-    // Neumorphic raised effect
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
     borderBottomWidth: 2,
@@ -153,7 +155,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 100,
     textAlignVertical: "top",
-    // Neumorphic inset effect
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderBottomWidth: 1,
