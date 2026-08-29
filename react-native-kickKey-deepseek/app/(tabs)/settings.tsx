@@ -371,6 +371,7 @@ function SliderRow({
 
 export default function SettingsScreen() {
   const [a11yEnabled, setA11yEnabled] = useState<boolean | null>(null);
+  const [overlayGranted, setOverlayGranted] = useState<boolean | null>(null);
 
   const checkA11yStatus = () => {
     KickKey.isAccessibilityEnabled()
@@ -378,10 +379,20 @@ export default function SettingsScreen() {
       .catch(() => {});
   };
 
+  const checkOverlayStatus = () => {
+    KickKey.isOverlayGranted()
+      .then((ok) => setOverlayGranted(ok))
+      .catch(() => {});
+  };
+
   useEffect(() => {
     checkA11yStatus();
+    checkOverlayStatus();
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') checkA11yStatus();
+      if (state === 'active') {
+        checkA11yStatus();
+        checkOverlayStatus();
+      }
     });
     return () => sub.remove();
   }, []);
@@ -529,6 +540,29 @@ export default function SettingsScreen() {
             onChange={setCursorSize}
             unit="px"
           />
+        </View>
+
+        {/* ── Display over other apps ─────────────────────────── */}
+        <Text style={styles.sectionLabel}>Display Over Other Apps</Text>
+        <View style={styles.card}>
+          <View style={styles.a11yRow}>
+            <Text style={styles.a11yLabel}>Overlay Permission</Text>
+            <Text style={[styles.a11yValue, { color: overlayGranted ? '#8594aa' : '#8a8a8a' }]}>
+              {overlayGranted === null ? 'Checking…' : overlayGranted ? 'Granted' : 'Not Granted'}
+            </Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [styles.a11yButton, pressed && styles.a11yButtonPressed]}
+            onPress={() => KickKey.openOverlaySettings()}
+          >
+            <Text style={styles.a11yButtonText}>Open Overlay Settings</Text>
+          </Pressable>
+          {overlayGranted === false && (
+            <Text style={styles.a11yHint}>
+              Grant "Display over other apps" permission to enable the
+              on-screen mouse pointer when using the touchpad.
+            </Text>
+          )}
         </View>
 
         {/* ── Accessibility ────────────────────────────────────── */}
