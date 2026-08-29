@@ -21,8 +21,8 @@ type EmojiBoardProps = {
   themeColors: KeyboardThemeColors;
 };
 
-const COLUMNS = 8;
-const ROW_HEIGHT = 35;
+const COLUMNS = 7;
+const ROW_HEIGHT = 38;
 
 const EmojiBoardComponent = ({ onEmojiSelect, themeColors }: EmojiBoardProps) => {
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);

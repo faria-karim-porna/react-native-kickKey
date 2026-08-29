@@ -432,7 +432,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     emojiGridContainer: {
       height: 220,
-      paddingHorizontal: 2,
+      paddingHorizontal: 10,
     },
     scrollContent: {
       paddingBottom: 5,
@@ -443,12 +443,12 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       marginBottom: 7,
     },
     emojiKey: {
-      width: 42,
-      height: 48,
+      width: 34,
+      height: 36,
       backgroundColor: emojiKeyBg,
     },
     emojiText: {
-      fontSize: 22,
+      fontSize: 20,
       includeFontPadding: false,
       fontFamily: 'NotoColorEmoji',
     },
