@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import type { Tabs } from 'expo-router';
+import { useAppColors } from '../hooks/useAppColors';
 
 export type KeyboardTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -46,11 +47,19 @@ const TAB_META: Record<string, TabMeta> = {
 
 export function KeyboardTabBar({ state, descriptors, navigation }: KeyboardTabBarProps) {
   const insets = useSafeAreaInsets();
+  const colors = useAppColors();
 
   return (
     <View style={[styles.outerContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       {/* Slim recessed tray — same inset neumorphic look as the slider track */}
-      <View style={styles.tray}>
+      <View style={[styles.tray, {
+        backgroundColor: colors.card,
+        borderTopColor: colors.cardBorderTL,
+        borderLeftColor: colors.cardBorderTL,
+        borderBottomColor: colors.cardBorderBR,
+        borderRightColor: colors.cardBorderBR,
+        shadowColor: colors.cardShadow,
+      }]}>
         {state.routes.map((route, index: number) => {
           const isFocused = state.index === index;
           const meta = TAB_META[route.name] || {
@@ -76,7 +85,7 @@ export function KeyboardTabBar({ state, descriptors, navigation }: KeyboardTabBa
               onPress={onPress}
               style={({ pressed }) => [
                 styles.tab,
-                pressed && !isFocused && styles.tabPressed,
+                pressed && !isFocused && { backgroundColor: colors.separator },
               ]}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
@@ -85,16 +94,16 @@ export function KeyboardTabBar({ state, descriptors, navigation }: KeyboardTabBa
               <Svg width={20} height={20} viewBox="0 0 24 24">
                 <Path
                   d={meta.iconPath}
-                  fill={isFocused ? '#5e7a9c' : '#9aa5b5'}
+                  fill={isFocused ? colors.accent : colors.textMuted}
                 />
               </Svg>
 
-              <Text style={[styles.label, isFocused && styles.labelActive]}>
+              <Text style={[styles.label, { color: colors.textMuted }, isFocused && { color: colors.accent, fontWeight: '700' }]}>
                 {meta.label}
               </Text>
 
               {/* Thin active indicator */}
-              <View style={[styles.indicator, isFocused && styles.indicatorActive]} />
+              <View style={[styles.indicator, isFocused && { backgroundColor: colors.accent }]} />
             </Pressable>
           );
         })}
@@ -102,9 +111,6 @@ export function KeyboardTabBar({ state, descriptors, navigation }: KeyboardTabBa
     </View>
   );
 }
-
-const ACCENT = '#8594aa';
-const INACTIVE = '#9aa5b5';
 
 const styles = StyleSheet.create({
   // Normal flow child: react-navigation lays it out BELOW the screen area,
@@ -119,21 +125,15 @@ const styles = StyleSheet.create({
     maxWidth: 460,
     width: '100%',
     alignSelf: 'center',
-    backgroundColor: 'rgba(224, 229, 236, 0.96)',
     borderRadius: 16,
     paddingVertical: 4,
     paddingHorizontal: 6,
 
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(0, 0, 0, 0.1)',
-    borderLeftColor: 'rgba(0, 0, 0, 0.1)',
     borderBottomWidth: 1,
     borderRightWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.85)',
-    borderRightColor: 'rgba(255, 255, 255, 0.85)',
 
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -148,18 +148,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
   },
-  tabPressed: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-  },
 
   label: {
     fontSize: 10,
     fontWeight: '600',
-    color: INACTIVE,
-  },
-  labelActive: {
-    color: ACCENT,
-    fontWeight: '700',
   },
 
   // Thin underline-style indicator for the focused tab
@@ -168,8 +160,5 @@ const styles = StyleSheet.create({
     height: 2,
     borderRadius: 1,
     backgroundColor: 'transparent',
-  },
-  indicatorActive: {
-    backgroundColor: ACCENT,
   },
 });

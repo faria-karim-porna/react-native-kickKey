@@ -2,24 +2,17 @@
 // Key.tsx -- "Chocolate bar" key, ported from qykey.
 //
 // Differences from the qykey original:
-//   - Vector-icon rendering (iconType/iconName/iconColor) removed --
-//     icon fonts are unavailable in the IME process, so icons are
-//     passed as children (Text glyphs).
-//   - Optional onRepeatStart/onRepeatEnd added for backspace
-//     long-press repeat (invisible UI, preserves the existing
-//     backspace-repeat feature).
+//   - Vector-icon rendering removed -- icon fonts are unavailable
+//     in the IME process, so icons are passed as children.
+//   - Optional onRepeatStart/onRepeatEnd for backspace long-press.
+//   - Now accepts themeColors for dynamic styling.
 // ============================================================
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, Pressable, PanResponder } from 'react-native';
-import styles from './styles';
+import { createKeyboardStyles } from './dynamicStyles';
+import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
 import type { AppLanguage } from './QykeyKeyboard';
-
-const variantStyles: any = {
-  nav: styles.navBtn,
-  scroll: styles.scrollBtn,
-  mouse: styles.mouseBtn,
-};
 
 interface KeyProps {
   children?: React.ReactNode;
@@ -36,9 +29,8 @@ interface KeyProps {
   variant?: any;
   isStatusActive?: boolean;
   language?: AppLanguage;
-  /** Start repeating (e.g. backspace long-press). Called on press-in. */
+  themeColors: KeyboardThemeColors;
   onRepeatStart?: () => void;
-  /** Stop repeating. Called on press-out. */
   onRepeatEnd?: () => void;
 }
 
@@ -57,10 +49,18 @@ const KeyComponent = ({
   variant,
   isStatusActive,
   language = 'en-US',
+  themeColors,
   onRepeatStart,
   onRepeatEnd,
 }: KeyProps) => {
+  const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const [isActive, setIsActive] = useState(isStatusActive || false);
+
+  const variantStyles: any = {
+    nav: styles.navBtn,
+    scroll: styles.scrollBtn,
+    mouse: styles.mouseBtn,
+  };
 
   useEffect(() => {
     if (!isStatusActive) setIsActive(false);
@@ -68,7 +68,6 @@ const KeyComponent = ({
 
   const isSwipeable = !!(onSwipeLeft || onSwipeRight);
 
-  // Keep latest callbacks in refs so the PanResponder never goes stale
   const onSwipeLeftRef = useRef(onSwipeLeft);
   const onSwipeRightRef = useRef(onSwipeRight);
   const onPressHandlerRef = useRef(onPressHandler);
@@ -79,24 +78,16 @@ const KeyComponent = ({
     onPressHandlerRef.current = onPressHandler;
   }, [onSwipeLeft, onSwipeRight, onPressHandler]);
 
-  // Ref to the swipeable View -- zero-re-render press visual via setNativeProps
   const swipeViewRef = useRef<View>(null);
 
-  // Pan responder only for swipeable keys
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-
       onPanResponderGrant: () => {
-        // Imperatively dim -- NO setState, NO JS re-render
         swipeViewRef.current?.setNativeProps({ opacity: 0.5 });
       },
-
-      onPanResponderMove: () => {
-        // just track -- no action mid-swipe
-      },
-
+      onPanResponderMove: () => {},
       onPanResponderRelease: (_, g) => {
         swipeViewRef.current?.setNativeProps({ opacity: 1 });
         if (g.dx < -30) {
@@ -108,7 +99,6 @@ const KeyComponent = ({
           onPressHandlerRef.current?.();
         }
       },
-
       onPanResponderTerminate: () => {
         swipeViewRef.current?.setNativeProps({ opacity: 1 });
       },
@@ -129,7 +119,7 @@ const KeyComponent = ({
       {isIcon ? (
         children
       ) : type === 'mouse' ? (
-        <Text style={[styles.btnText, variant === 'scroll' && { color: '#ffffff', opacity: 0.8 }, isPressed && { opacity: 0.6 }]}>
+        <Text style={[styles.btnText, variant === 'scroll' && { color: themeColors.keyText, opacity: 0.8 }, isPressed && { opacity: 0.6 }]}>
           {children}
         </Text>
       ) : (
@@ -138,20 +128,17 @@ const KeyComponent = ({
           style={[
             styles.keyText,
             hasActiveState && isActive && styles.keyActive,
-            functionKey && { color: '#f2f2f2' },
+            functionKey && { color: themeColors.keyText },
             isPressed && { color: '#999' },
           ]}
         >
           {children}
         </Text>
       )}
-
-      {hasActiveState && isActive && <View style={[styles.activeIndicator, { borderColor: '#444' }]} />}
+      {hasActiveState && isActive && <View style={[styles.activeIndicator, { borderColor: themeColors.keyText }]} />}
     </>
   );
 
-  // Swipeable: View + PanResponder (Pressable blocks swipe gestures)
-  // Press visual handled by setNativeProps -- zero re-renders during fast typing
   if (isSwipeable) {
     return (
       <View ref={swipeViewRef} style={baseStyle} {...panResponder.panHandlers}>
@@ -160,12 +147,9 @@ const KeyComponent = ({
     );
   }
 
-  // Normal keys: use Pressable with native press state and zero delay
   return (
     <Pressable
       unstable_pressDelay={0}
-      // Vertical hitSlop compensates for the compact (26dp) keys so the
-      // effective tap target stays finger-friendly (~32dp touch area).
       hitSlop={{ top: 3, bottom: 3, left: 1, right: 1 }}
       onPressIn={() => {
         if (hasActiveState) setIsActive((prev) => !prev);

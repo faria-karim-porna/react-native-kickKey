@@ -1,18 +1,6 @@
 // ============================================================
 // EmojiBoard.tsx — ported from qykey.
-//   - Emoji selection commits through the native KickKey module
-//     and records usage for the recent tray.
-//   - Category tab icons are the exact FontAwesome5 /
-//     MaterialCommunityIcons glyphs qykey renders (via icons.tsx).
-//
-// Fixes over the qykey original:
-//   - index-based keyExtractor: the raw data contains duplicate
-//     entries; keying by the emoji string alone made FlatList
-//     drop the duplicates ("missing" emojis).
-//   - memoized per-item press handlers so Key's React.memo
-//     actually skips re-renders while scrolling / switching tabs.
-//   - getItemLayout + windowSize/batch tuning for smooth
-//     scrolling in the IME process.
+// Now accepts themeColors for dynamic styling.
 // ============================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -25,24 +13,23 @@ import {
 import { Key } from './Key';
 import { emojis, emojiCategories } from './emojiData';
 import { FA5Icon, MDIIcon } from './icons';
-import styles from './styles';
+import { createKeyboardStyles } from './dynamicStyles';
+import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
 
 type EmojiBoardProps = {
   onEmojiSelect?: (emoji: string) => void;
+  themeColors: KeyboardThemeColors;
 };
 
 const COLUMNS = 8;
-// emojiKey height (32) + row marginBottom (3)
 const ROW_HEIGHT = 35;
 
-const EmojiBoardComponent = ({ onEmojiSelect }: EmojiBoardProps) => {
+const EmojiBoardComponent = ({ onEmojiSelect, themeColors }: EmojiBoardProps) => {
+  const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const [activeTab, setActiveTab] = useState('people');
 
   const currentEmojis = useMemo(() => emojis()[activeTab] || [], [activeTab]);
 
-  // Stable per-item handler: returns a fresh function per emoji, but the
-  // same function for that emoji across re-renders, so Key's React.memo
-  // can skip re-rendering mounted keys.
   const handleEmojiPress = useCallback(
     (emoji: string) => () => onEmojiSelect?.(emoji),
     [onEmojiSelect],
@@ -50,29 +37,22 @@ const EmojiBoardComponent = ({ onEmojiSelect }: EmojiBoardProps) => {
 
   const renderEmojiItem = useCallback(
     ({ item }: { item: string }) => (
-      <Key style={styles.emojiKey} onPressHandler={handleEmojiPress(item)}>
+      <Key style={styles.emojiKey} onPressHandler={handleEmojiPress(item)} themeColors={themeColors}>
         <Text style={styles.emojiText}>{item}</Text>
       </Key>
     ),
-    [handleEmojiPress],
+    [handleEmojiPress, styles, themeColors],
   );
 
   const [showTooltipId, setShowTooltipId] = useState<string | null>(null);
   const tooltipTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTabPress = (tabId: string) => {
-    // Update the actual category
     setActiveTab(tabId);
-
-    // Show the tooltip
     setShowTooltipId(tabId);
-
-    // Clear any existing timer to prevent early vanishing
     if (tooltipTimer.current) {
       clearTimeout(tooltipTimer.current);
     }
-
-    // Set timer to hide tooltip after 1.5 seconds
     tooltipTimer.current = setTimeout(() => {
       setShowTooltipId(null);
     }, 500);
@@ -80,10 +60,9 @@ const EmojiBoardComponent = ({ onEmojiSelect }: EmojiBoardProps) => {
 
   const renderTabItem = (tab: ReturnType<typeof emojiCategories>[0]) => {
     const isActive = activeTab === tab.id;
-    const isTooltipVisible = showTooltipId === tab.id; // Only show if timer is active
+    const isTooltipVisible = showTooltipId === tab.id;
     return (
       <View key={tab.id} style={styles.tabContainer}>
-        {/* Immediate Tooltip Above Button */}
         {isTooltipVisible && (
           <View style={styles.tooltip}>
             <Text style={styles.tooltipText}>{tab.title}</Text>
@@ -99,13 +78,13 @@ const EmojiBoardComponent = ({ onEmojiSelect }: EmojiBoardProps) => {
             <FA5Icon
               name={tab.icon}
               size={isActive ? 14 : 16}
-              color={isActive ? '#fff' : '#2c2b2b'}
+              color={isActive ? '#fff' : themeColors.keyText}
             />
           ) : (
             <MDIIcon
               name={tab.icon}
               size={isActive ? 16 : 18}
-              color={isActive ? '#fff' : '#2c2b2b'}
+              color={isActive ? '#fff' : themeColors.keyText}
             />
           )}
           {isActive && (
@@ -120,16 +99,14 @@ const EmojiBoardComponent = ({ onEmojiSelect }: EmojiBoardProps) => {
 
   return (
     <>
-      {/* Chocolate-Style Tab Bar */}
       <View style={styles.tabBar}>{emojiCategories().map(renderTabItem)}</View>
 
-      {/* Emoji Grid Section */}
       <View style={styles.emojiGridContainer}>
         <FlatList
           data={currentEmojis}
           renderItem={renderEmojiItem}
           keyExtractor={(item, index) => `${index}-${item}`}
-          numColumns={COLUMNS} // Mimics the Ridmik/Gboard grid layout
+          numColumns={COLUMNS}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}

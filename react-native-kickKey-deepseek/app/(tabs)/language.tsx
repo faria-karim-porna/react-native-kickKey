@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettingsStore } from '../../store/settingsStore';
 import LanguageTag from '../../components/LanguageTag';
+import { useAppColors } from '../../hooks/useAppColors';
 
 const LANGUAGES: Array<{ code: 'en' | 'bn'; label: string; native: string }> = [
   { code: 'en', label: 'English', native: 'English' },
@@ -12,12 +13,13 @@ const LANGUAGES: Array<{ code: 'en' | 'bn'; label: string; native: string }> = [
 export default function LanguageScreen() {
   const language    = useSettingsStore((s) => s.language);
   const setLanguage  = useSettingsStore((s) => s.setLanguage);
+  const colors = useAppColors();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.content}>
-        <Text style={styles.title}>Language</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Language</Text>
+        <Text style={[styles.subtitle, { color: colors.textMuted }]}>
           Choose your default typing language. You can always switch
           languages from the keyboard's globe button while typing.
         </Text>
@@ -25,13 +27,24 @@ export default function LanguageScreen() {
         {LANGUAGES.map((lang) => (
           <TouchableOpacity
             key={lang.code}
-            style={[styles.row, language === lang.code && styles.rowSelected]}
+            style={[
+              styles.row,
+              {
+                backgroundColor: colors.card,
+                borderTopColor: colors.cardBorderTL,
+                borderLeftColor: colors.cardBorderTL,
+                borderBottomColor: colors.cardBorderBR,
+                borderRightColor: colors.cardBorderBR,
+                shadowColor: colors.cardShadow,
+              },
+              language === lang.code && { borderColor: colors.accent },
+            ]}
             onPress={() => setLanguage(lang.code)}
             activeOpacity={0.8}
           >
             <View>
-              <Text style={styles.rowLabel}>{lang.label}</Text>
-              <Text style={styles.rowNative}>{lang.native}</Text>
+              <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{lang.label}</Text>
+              <Text style={[styles.rowNative, { color: colors.textMuted }]}>{lang.native}</Text>
             </View>
             <LanguageTag code={lang.code} active={language === lang.code} />
           </TouchableOpacity>
@@ -44,29 +57,22 @@ export default function LanguageScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 20, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#3a3a3a', marginBottom: 8 },
-  subtitle: { color: '#444', fontSize: 13, lineHeight: 18, marginBottom: 24 },
+  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 8 },
+  subtitle: { fontSize: 13, lineHeight: 18, marginBottom: 24 },
   row: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: 'rgba(224,229,236,0.92)',
     borderRadius: 12, padding: 18, marginBottom: 12,
     borderWidth: 2, borderColor: 'transparent',
     // Neumorphic raised effect
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(0,0,0,0.15)',
-    borderLeftColor: 'rgba(0,0,0,0.15)',
     borderBottomWidth: 2,
     borderRightWidth: 2,
-    borderBottomColor: 'rgba(255,255,255,0.8)',
-    borderRightColor: 'rgba(255,255,255,0.8)',
-    shadowColor: '#000',
     shadowOffset: { width: -3, height: -3 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 6,
   },
-  rowSelected: { borderColor: '#8594aa' },
-  rowLabel: { color: '#444', fontSize: 16, fontWeight: '600' },
-  rowNative: { color: '#444', fontSize: 13, marginTop: 2 },
+  rowLabel: { fontSize: 16, fontWeight: '600' },
+  rowNative: { fontSize: 13, marginTop: 2 },
 });

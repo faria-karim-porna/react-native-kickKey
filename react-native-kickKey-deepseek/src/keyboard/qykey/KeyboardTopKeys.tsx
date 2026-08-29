@@ -1,19 +1,18 @@
 // ============================================================
 // KeyboardTopKeys.tsx — ported from qykey.
-//   - Suggestion strip fed by the NATIVE suggestion engine
-//     (onSuggestionsUpdated) instead of qykey's local engine.
-//   - Mic key uses the real expo-speech-recognition module
-//     (same library as qykey), with the exact FontAwesome5
-//     "microphone" icon rendered via react-native-svg.
+//   - Suggestion strip fed by the NATIVE suggestion engine.
+//   - Mic key uses the real expo-speech-recognition module.
+//   - Now accepts themeColors for dynamic styling.
 // ============================================================
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import styles from './styles';
+import { createKeyboardStyles } from './dynamicStyles';
 import { Key } from './Key';
 import MicrophoneIcon from './MicrophoneIcon';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from './speechRecognition';
 import type { AppLanguage } from './QykeyKeyboard';
+import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
 
 type KeyboardTopKeysProps = {
   emojiModeHandler?: () => void;
@@ -21,8 +20,8 @@ type KeyboardTopKeysProps = {
   language: AppLanguage;
   suggestions?: string[];
   onSuggestionPress?: (word: string) => void;
-  /** Called with the final transcript when voice input ends. */
   onTranscriptComplete?: (text: string) => void;
+  themeColors: KeyboardThemeColors;
 };
 
 const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
@@ -33,8 +32,10 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
     suggestions = [],
     onSuggestionPress,
     onTranscriptComplete,
+    themeColors,
   } = props;
 
+  const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const [recognizing, setRecognizing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [dots, setDots] = useState('');
@@ -44,7 +45,6 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
 
   const isBanglish = language === 'banglish';
 
-  // ─── Dot animation ────────────────────────────────────────────────────────
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
     if (recognizing && !transcript) {
@@ -59,7 +59,6 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
     };
   }, [recognizing, transcript]);
 
-  // Transient hint (e.g. "grant microphone permission") shown in the suggestion strip
   const showNotice = useCallback((text: string) => {
     setNotice(text);
     if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
@@ -72,7 +71,6 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
     };
   }, []);
 
-  // ─── Speech Recognition Events ────────────────────────────────────────────
   useSpeechRecognitionEvent('start', () => {
     setRecognizing(true);
     setIsMicrophoneActive(true);
@@ -91,14 +89,12 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
   useSpeechRecognitionEvent('end', () => {
     setRecognizing(false);
     setIsMicrophoneActive(false);
-    // transcript is read via the listener ref (always the latest render)
     if (transcript) {
       onTranscriptComplete?.(transcript);
       setTranscript('');
     }
   });
 
-  // ─── Mic Handler ──────────────────────────────────────────────────────────
   const handleVoicePress = useCallback(async () => {
     if (!ExpoSpeechRecognitionModule) {
       showNotice('Speech recognition is not available');
@@ -113,8 +109,6 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
       const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
       granted = !!result?.granted;
     } catch (e) {
-      // The IME process has no Activity, so the system permission dialog can't
-      // be shown from here — the user grants it from the KickKey app instead.
       console.warn('[KickKey] Microphone permission request failed:', e);
       granted = false;
     }
@@ -194,11 +188,11 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
 
   return (
     <>
-      <Key special style={{ width: 40 }} hasActiveState onPressHandler={() => emojiModeHandler?.()}>
+      <Key special style={{ width: 40 }} hasActiveState onPressHandler={() => emojiModeHandler?.()} themeColors={themeColors}>
         🙂
       </Key>
       <View style={styles.suggestionsContainer}>{renderSuggestionsBar()}</View>
-      <Key special style={{ width: 48 }} hasActiveState onPressHandler={() => symHandler?.()}>
+      <Key special style={{ width: 48 }} hasActiveState onPressHandler={() => symHandler?.()} themeColors={themeColors}>
         SYM
       </Key>
       <Key
@@ -208,6 +202,7 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
         hasActiveState
         isStatusActive={isMicrophoneActive}
         onPressHandler={handleVoicePress}
+        themeColors={themeColors}
       >
         <MicrophoneIcon active={isMicrophoneActive} />
       </Key>

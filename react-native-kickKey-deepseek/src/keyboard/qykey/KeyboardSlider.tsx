@@ -1,21 +1,23 @@
 // ============================================================
 // KeyboardSlider.tsx — ported from qykey (keyboard ⇄ touchpad).
-// Renders the exact FontAwesome5 "keyboard" / "mouse-pointer"
-// glyphs qykey draws (via icons.tsx).
+// Now accepts themeColors for dynamic styling.
 // ============================================================
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { View, Pressable, Animated, Easing } from 'react-native';
-import styles from './styles';
+import { createKeyboardStyles } from './dynamicStyles';
 import { FA5Icon } from './icons';
+import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
 
 type KeyboardSliderProps = {
   toggleMode?: boolean;
   sliderHandler?: () => void;
+  themeColors: KeyboardThemeColors;
 };
 
 const KeyboardSliderComponent = (props: KeyboardSliderProps) => {
-  const { toggleMode, sliderHandler } = props;
+  const { toggleMode, sliderHandler, themeColors } = props;
+  const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const knobAnim = useRef(new Animated.Value(0)).current;
 
   const handleToggle = () => {
@@ -31,7 +33,7 @@ const KeyboardSliderComponent = (props: KeyboardSliderProps) => {
 
   const knobTranslate = knobAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 40], // Perfectly aligned for 78px track and 36px knob
+    outputRange: [0, 40],
   });
 
   return (
@@ -39,8 +41,8 @@ const KeyboardSliderComponent = (props: KeyboardSliderProps) => {
       <View style={styles.slider}>
         <Animated.View style={[styles.knob, { left: knobTranslate }]} />
         <View style={styles.iconLayer}>
-          <FA5Icon name="keyboard" size={14} color={!toggleMode ? '#444' : '#888'} />
-          <FA5Icon name="mouse-pointer" size={14} color={toggleMode ? '#444' : '#888'} />
+          <FA5Icon name="keyboard" size={14} color={!toggleMode ? themeColors.keyText : themeColors.specialKeyText} />
+          <FA5Icon name="mouse-pointer" size={14} color={toggleMode ? themeColors.keyText : themeColors.specialKeyText} />
         </View>
       </View>
     </Pressable>

@@ -1,102 +1,94 @@
 // ============================================================
 // SymbolKeys.tsx — ported from qykey (symbol page 1).
-// qykey left most symbol keys display-only; here every symbol
-// commits through the native module. F-keys / Ctrl stay visual.
+// Now accepts themeColors for dynamic styling.
 // ============================================================
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View } from 'react-native';
-import styles from './styles';
+import { createKeyboardStyles } from './dynamicStyles';
 import { Key } from './Key';
 import { MDIIcon } from './icons';
+import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
 
 type SymbolKeysProps = {
   onNext?: () => void;
   onKeyPress?: (key: string) => void;
   onBackspace?: () => void;
   onEnter?: () => void;
+  themeColors: KeyboardThemeColors;
 };
 
-export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter }: SymbolKeysProps) {
+export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter, themeColors }: SymbolKeysProps) {
+  const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const press = (s: string) => () => onKeyPress?.(s);
+
+  const syms1 = ['@', '#'];
+  const syms2 = ['%', '!', '$', '^'];
+  const syms3 = ['=', '`', '_', '~', '|'];
+  const fkeys1 = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7'];
+  const fkeys2 = ['F8', 'F9', 'F10', 'F11', 'F12'];
 
   return (
     <View style={styles.container}>
-      {/* 1. Number / Symbol Row */}
       <View style={styles.line}>
-        {['@', '#'].map((s, i) => (
-          <React.Fragment key={s}>
-            <Key onPressHandler={press(s)}>{s}</Key>
-            {i === 0 && (
-              <>
-                <Key special onPressHandler={press('(')}>(</Key>
-                <Key special onPressHandler={press(')')}>)</Key>
-                <Key functionKey onPressHandler={press('+')}>+</Key>
-                <Key functionKey onPressHandler={press('-')}>-</Key>
-                <Key functionKey onPressHandler={press('*')}>*</Key>
-                <Key functionKey onPressHandler={press('/')}>/</Key>
-                <Key special onPressHandler={press('{')}>{'{'}</Key>
-                <Key special onPressHandler={press('}')}>{'}'}</Key>
-              </>
-            )}
-          </React.Fragment>
+        {syms1.map((s) => (
+          <Key key={s} onPressHandler={press(s)} themeColors={themeColors}>{s}</Key>
         ))}
+        <Key special onPressHandler={press('(')} themeColors={themeColors}>(</Key>
+        <Key special onPressHandler={press(')')} themeColors={themeColors}>)</Key>
+        <Key functionKey onPressHandler={press('+')} themeColors={themeColors}>+</Key>
+        <Key functionKey onPressHandler={press('-')} themeColors={themeColors}>-</Key>
+        <Key functionKey onPressHandler={press('*')} themeColors={themeColors}>*</Key>
+        <Key functionKey onPressHandler={press('/')} themeColors={themeColors}>/</Key>
+        <Key special onPressHandler={press('{')} themeColors={themeColors}>{'{'}</Key>
+        <Key special onPressHandler={press('}')} themeColors={themeColors}>{'}'}</Key>
       </View>
 
-      {/* 2. Q Row Symbols */}
       <View style={styles.line}>
-        <Key onPressHandler={press('%')}>%</Key>
-        <Key special onPressHandler={press('[')}>[</Key>
-        <Key special onPressHandler={press(']')}>]</Key>
-        {['!', '$', '^'].map((s) => (
-          <Key key={s} onPressHandler={press(s)}>{s}</Key>
+        <Key onPressHandler={press('%')} themeColors={themeColors}>%</Key>
+        <Key special onPressHandler={press('[')} themeColors={themeColors}>[</Key>
+        <Key special onPressHandler={press(']')} themeColors={themeColors}>]</Key>
+        {syms2.slice(1).map((s) => (
+          <Key key={s} onPressHandler={press(s)} themeColors={themeColors}>{s}</Key>
         ))}
-        <Key special onPressHandler={press('<')}>{'<'}</Key>
-        <Key special onPressHandler={press('>')}>{'>'}</Key>
-        <Key onPressHandler={press('&')}>&</Key>
+        <Key special onPressHandler={press('<')} themeColors={themeColors}>{'<'}</Key>
+        <Key special onPressHandler={press('>')} themeColors={themeColors}>{'>'}</Key>
+        <Key onPressHandler={press('&')} themeColors={themeColors}>&</Key>
       </View>
 
-      {/* 3. A Row Symbols */}
       <View style={[styles.line, styles.symNextLine]}>
         <View style={styles.symNextLineInner}>
-          {['=', '`', "'", '_', '~', '\\', '|'].map((s) => (
-            <Key key={s} onPressHandler={press(s)}>{s}</Key>
+          {syms3.map((s) => (
+            <Key key={s} onPressHandler={press(s)} themeColors={themeColors}>{s}</Key>
           ))}
+          <Key onPressHandler={press("'")} themeColors={themeColors}>{'-'}</Key>
         </View>
-        <Key
-          functionKey
-          style={styles.moreWider}
-          onPressHandler={() => onNext?.()}
-        >
+        <Key functionKey style={styles.moreWider} onPressHandler={() => onNext?.()} themeColors={themeColors}>
           Next
         </Key>
       </View>
 
-      {/* 4. Z Row (Shift + F1-F7 + Backspace) */}
       <View style={styles.line}>
-        <Key special style={styles.wider} isIcon>
-          <MDIIcon name="arrow-up-bold-outline" size={16} color="#2c2b2b" />
+        <Key special style={styles.wider} isIcon themeColors={themeColors}>
+          <MDIIcon name="arrow-up-bold-outline" size={16} color={themeColors.keyText} />
         </Key>
-        {['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7'].map((f) => (
-          <Key key={f} functionKey>{f}</Key>
+        {fkeys1.map((f) => (
+          <Key key={f} functionKey themeColors={themeColors}>{f}</Key>
         ))}
-        <Key special style={styles.wider} isIcon onPressHandler={onBackspace}>
-          <MDIIcon name="backspace-outline" size={16} color="#2c2b2b" />
+        <Key special style={styles.wider} isIcon onPressHandler={onBackspace} themeColors={themeColors}>
+          <MDIIcon name="backspace-outline" size={16} color={themeColors.keyText} />
         </Key>
       </View>
 
-      {/* 5. Bottom Row (Ctrl + F8-F12 + Enter) */}
       <View style={[styles.line, styles.lastLine]}>
-        <Key special style={styles.wider}>
-          Ctrl
-        </Key>
+        <Key special style={styles.wider} themeColors={themeColors}>Ctrl</Key>
         <View style={styles.lastLineInner}>
-          {['F8', 'F9', 'F10', 'F11', 'F12'].map((f) => (
-            <Key key={f} functionKey>{f}</Key>
+          {fkeys2.map((f) => (
+            <Key key={f} functionKey themeColors={themeColors}>{f}</Key>
           ))}
         </View>
-        <Key special style={styles.wider} isIcon onPressHandler={onEnter}>
-          <MDIIcon name="keyboard-return" size={16} color="#2c2b2b" />
+        <Key special style={styles.wider} isIcon onPressHandler={onEnter} themeColors={themeColors}>
+          <MDIIcon name="keyboard-return" size={16} color={themeColors.keyText} />
         </Key>
       </View>
     </View>

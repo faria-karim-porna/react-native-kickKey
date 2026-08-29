@@ -4,11 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettingsStore } from '../../store/settingsStore';
 import { THEME_PRESETS } from '../../constants/Themes';
 import ThemeCard from '../../components/ThemeCard';
+import { useAppColors } from '../../hooks/useAppColors';
 
 export default function ThemesScreen() {
   const theme              = useSettingsStore((s) => s.theme);
   const setTheme            = useSettingsStore((s) => s.setTheme);
   const setThemeColors       = useSettingsStore((s) => s.setThemeColors);
+  const colors = useAppColors();
 
   const handleSelectPreset = (preset: typeof THEME_PRESETS[number]) => {
     setTheme(preset.name);
@@ -16,11 +18,11 @@ export default function ThemesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>Themes</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Themes</Text>
 
-        <Text style={styles.sectionLabel}>Color Theme</Text>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Color Theme</Text>
         {THEME_PRESETS.map((preset) => (
           <ThemeCard
             key={preset.name}
@@ -37,9 +39,9 @@ export default function ThemesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   scroll: { padding: 20, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#3a3a3a', marginBottom: 20 },
+  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 20 },
   sectionLabel: {
-    color: '#444', fontSize: 12, textTransform: 'uppercase',
+    fontSize: 12, textTransform: 'uppercase',
     marginBottom: 10, marginTop: 8, letterSpacing: 0.5,
   },
 });

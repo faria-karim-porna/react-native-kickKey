@@ -6,11 +6,13 @@ import SetupProgress from '../../components/SetupProgress';
 import { useSetupStatus } from '../../hooks/useSetupStatus';
 import { useKickKeyBridge } from '../../hooks/useKickKeyBridge';
 import { CheckCircleIcon, StepCircle } from '../../components/OnboardingIcons';
+import { useAppColors } from '../../hooks/useAppColors';
 
 export default function Step2Default() {
   const router = useRouter();
   const { isDefault } = useSetupStatus();
   const { showInputMethodPicker } = useKickKeyBridge();
+  const colors = useAppColors();
 
   useEffect(() => {
     if (isDefault) {
@@ -26,26 +28,40 @@ export default function Step2Default() {
       <View style={styles.iconContainer}>
         <CheckCircleIcon size={56} />
       </View>
-      <Text style={styles.title}>Set as Default</Text>
-      <Text style={styles.description}>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>Set as Default</Text>
+      <Text style={[styles.description, { color: colors.textMuted }]}>
         Almost there! Now set KickKey as your default keyboard so it opens
         automatically whenever you tap a text field.
       </Text>
 
-      <View style={styles.card}>
-        <StepCircle number={1} text="Tap the button below" />
-        <StepCircle number={2} text='Select "KickKey Keyboard" as default' />
-        <StepCircle number={3} text="Come back to this app" />
+      <View style={[styles.card, {
+        backgroundColor: colors.card,
+        borderTopColor: colors.cardBorderTL,
+        borderLeftColor: colors.cardBorderTL,
+        borderBottomColor: colors.cardBorderBR,
+        borderRightColor: colors.cardBorderBR,
+        shadowColor: colors.cardShadow,
+      }]}>
+        <StepCircle number={1} text="Tap the button below" colors={colors} />
+        <StepCircle number={2} text='Select "KickKey Keyboard" as default' colors={colors} />
+        <StepCircle number={3} text="Come back to this app" colors={colors} />
       </View>
 
       <Pressable
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+        style={({ pressed }) => [styles.button, {
+          backgroundColor: colors.accent,
+          borderTopColor: colors.cardBorderTL,
+          borderLeftColor: colors.cardBorderTL,
+          borderBottomColor: colors.cardBorderBR,
+          borderRightColor: colors.cardBorderBR,
+          shadowColor: colors.cardShadow,
+        }, pressed && styles.buttonPressed]}
         onPress={() => showInputMethodPicker()}
       >
-        <Text style={styles.buttonText}>Set Default Keyboard</Text>
+        <Text style={[styles.buttonText, { color: colors.buttonText }]}>Set Default Keyboard</Text>
       </Pressable>
 
-      <Text style={styles.hint}>
+      <Text style={[styles.hint, { color: colors.textMuted }]}>
         This screen will automatically advance once KickKey is your default keyboard.
       </Text>
     </SafeAreaView>
@@ -55,23 +71,17 @@ export default function Step2Default() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent', padding: 24 },
   iconContainer: { alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#3a3a3a', textAlign: 'center', marginBottom: 12 },
-  description: { fontSize: 14, color: '#444', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  title: { fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
+  description: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   card: {
-    backgroundColor: 'rgba(224,229,236,0.92)',
     borderRadius: 12,
     padding: 18,
     marginBottom: 24,
     // Neumorphic raised effect (chocolate bar style)
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(0,0,0,0.15)',
-    borderLeftColor: 'rgba(0,0,0,0.15)',
     borderBottomWidth: 2,
     borderRightWidth: 2,
-    borderBottomColor: 'rgba(255,255,255,0.8)',
-    borderRightColor: 'rgba(255,255,255,0.8)',
-    shadowColor: '#000',
     shadowOffset: { width: -3, height: -3 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -79,40 +89,30 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: '#8594aa',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
     // Neumorphic raised effect
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-    borderLeftColor: 'rgba(0,0,0,0.1)',
     borderBottomWidth: 2,
     borderRightWidth: 2,
-    borderBottomColor: 'rgba(255,255,255,0.6)',
-    borderRightColor: 'rgba(255,255,255,0.6)',
-    shadowColor: '#000',
     shadowOffset: { width: -2, height: -2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 5,
   },
   buttonPressed: {
-    backgroundColor: '#707f9a',
     transform: [{ translateY: 1 }],
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderBottomWidth: 0,
     borderRightWidth: 0,
-    borderTopColor: 'rgba(0,0,0,0.25)',
-    borderLeftColor: 'rgba(0,0,0,0.25)',
-    shadowColor: '#000',
     shadowOffset: { width: 1, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1,
     elevation: 2,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  hint: { color: '#444', fontSize: 12, textAlign: 'center', marginTop: 16 },
+  buttonText: { fontSize: 16, fontWeight: '700' },
+  hint: { fontSize: 12, textAlign: 'center', marginTop: 16 },
 });

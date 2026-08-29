@@ -3,20 +3,21 @@
 //
 // Generates a circuit-board pattern of wires (grid walk with
 // crossing avoidance) rendered as an SVG layer. The keyboard's
-// translucent base (#e0e5ecac) sits on top of it, so the wires
-// glow through behind the keys — the qykey look.
+// translucent base sits on top of it, so the wires glow through
+// behind the keys — the qykey look.
 //
-// PathWithAnimation is the core-Animated port (no reanimated).
+// Now accepts themeColors for dark mode support.
 // ============================================================
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
-import styles from '../styles';
+import { createKeyboardStyles } from '../dynamicStyles';
 import { config } from './config';
 import { Cell } from './Cell';
 import { Wire } from './Wire';
 import { PathWithAnimation } from './PathWithAnimation';
+import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
 
 const { floor, random } = Math;
 
@@ -34,41 +35,35 @@ type WireShape = {
 type CircuitProps = {
   /** Set false to freeze the wires (e.g. while the emoji board is open). */
   animated?: boolean;
+  /** Theme colors for dark mode support. */
+  themeColors: KeyboardThemeColors;
 };
 
-const CircuitComponent = ({ animated = true }: CircuitProps) => {
+const CircuitComponent = ({ animated = true, themeColors }: CircuitProps) => {
   const [wires, setWires] = useState<WireShape[]>([]);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  const [dimensions, setDimensions] = useState({
-    width: 0,
-    height: 0,
-  });
+  const cfg = useMemo(() => config(themeColors), [themeColors]);
+  const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
 
   useEffect(() => {
     generateWires();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dimensions]);
+  }, [dimensions, cfg]);
 
   const generateWires = () => {
     const { width, height } = dimensions;
-
-    // Minimum size to generate anything
     if (width < 100 || height < 100) return;
 
-    // Reset
     const allCells: Cell[] = [];
     const cellLookup: { [key: string]: Cell } = {};
     const allWires: Wire[] = [];
 
-    const totalRows = floor(height / config().cellSize);
-    const totalCols = floor(width / config().cellSize);
-
-    // Ensure at least some rows and columns
+    const totalRows = floor(height / cfg.cellSize);
+    const totalCols = floor(width / cfg.cellSize);
     if (totalRows === 0 || totalCols === 0) return;
 
     let freeCellCount = totalRows * totalCols;
 
-    // Create grid
     for (let y = 0; y < totalRows; y += 1) {
       for (let x = 0; x < totalCols; x += 1) {
         const cell = new Cell(x, y);
@@ -77,10 +72,9 @@ const CircuitComponent = ({ animated = true }: CircuitProps) => {
       }
     }
 
-    // Generate wires
     const newWires: WireShape[] = [];
     let attempts = 0;
-    const maxAttempts = 1000; // Prevent infinite loop
+    const maxAttempts = 1000;
 
     while (allWires.length < freeCellCount && attempts < maxAttempts) {
       attempts++;
@@ -93,26 +87,23 @@ const CircuitComponent = ({ animated = true }: CircuitProps) => {
 
       wire.grow(totalRows, totalCols, allCells, cellLookup);
 
-      // Only add wires with at least 2 cells
       if (wire.pathCells.length >= 2) {
-        const pathData = wire.getPathData(config().cellSize);
-        const startDot = wire.getStartDot(config().cellSize);
-        const endDot = wire.getEndDot(config().cellSize);
+        const pathData = wire.getPathData(cfg.cellSize);
+        const startDot = wire.getStartDot(cfg.cellSize);
+        const endDot = wire.getEndDot(cfg.cellSize);
 
-        // Calculate approximate path length
         let pathLength = 0;
         for (let i = 1; i < wire.pathCells.length; i++) {
           const prev = wire.pathCells[i - 1];
           const curr = wire.pathCells[i];
-          const dx = Math.abs(curr.x - prev.x) * config().cellSize;
-          const dy = Math.abs(curr.y - prev.y) * config().cellSize;
+          const dx = Math.abs(curr.x - prev.x) * cfg.cellSize;
+          const dy = Math.abs(curr.y - prev.y) * cfg.cellSize;
           pathLength += Math.sqrt(dx * dx + dy * dy);
         }
 
-        const animationTime = pathLength / config().glowSpeed;
+        const animationTime = pathLength / cfg.glowSpeed;
         const isAnimated = random() > 0.5;
-        const radius =
-          random() * (config().cellSize / 6) + config().cellSize / 12;
+        const radius = random() * (cfg.cellSize / 6) + cfg.cellSize / 12;
         const isFill = random() > 0.5;
 
         newWires.push({
@@ -128,7 +119,6 @@ const CircuitComponent = ({ animated = true }: CircuitProps) => {
 
         allWires.push(wire);
       } else {
-        // If wire is too short, free the cell again
         cell.isFree = true;
         freeCellCount++;
       }
@@ -139,7 +129,7 @@ const CircuitComponent = ({ animated = true }: CircuitProps) => {
 
   return (
     <View
-      style={[styles.circuitContainer, { backgroundColor: config().bgColor }]}
+      style={[styles.circuitContainer, { backgroundColor: cfg.bgColor }]}
       onLayout={(event) => {
         const { width, height } = event.nativeEvent.layout;
         setDimensions({ width, height });
@@ -153,22 +143,18 @@ const CircuitComponent = ({ animated = true }: CircuitProps) => {
         >
           {wires.map((wire, index) => (
             <React.Fragment key={index}>
-              {/* Background glow path for animated wires */}
               {wire.isAnimated && (
                 <Path
                   d={wire.pathData}
-                  stroke={config().wireColor}
+                  stroke={cfg.wireColor}
                   strokeWidth={wire.radius * 2}
                   fill="none"
                 />
               )}
 
-              {/* Main path with animation */}
               <PathWithAnimation
                 d={wire.pathData}
-                color={
-                  wire.isAnimated ? config().glowBgColor : config().wireColor
-                }
+                color={wire.isAnimated ? cfg.glowBgColor : cfg.wireColor}
                 width={wire.radius * 2}
                 isAnimated={wire.isAnimated}
                 pathLength={wire.pathLength}
@@ -176,24 +162,22 @@ const CircuitComponent = ({ animated = true }: CircuitProps) => {
                 paused={!animated}
               />
 
-              {/* Start dot */}
               <Circle
                 cx={wire.startDot.cx}
                 cy={wire.startDot.cy}
                 r={wire.radius}
-                stroke={config().wireColor}
+                stroke={cfg.wireColor}
                 strokeWidth={wire.radius / 4}
-                fill={wire.isFill ? config().wireColor : config().bgColor}
+                fill={wire.isFill ? cfg.wireColor : cfg.bgColor}
               />
 
-              {/* End dot */}
               <Circle
                 cx={wire.endDot.cx}
                 cy={wire.endDot.cy}
                 r={wire.radius}
-                stroke={config().wireColor}
+                stroke={cfg.wireColor}
                 strokeWidth={wire.radius / 2}
-                fill={wire.isFill ? config().wireColor : config().bgColor}
+                fill={wire.isFill ? cfg.wireColor : cfg.bgColor}
               />
             </React.Fragment>
           ))}

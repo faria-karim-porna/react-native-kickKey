@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Switch, StyleSheet } from 'react-native';
+import { useAppColors } from '../hooks/useAppColors';
 
 interface ToggleRowProps {
   label: string;
@@ -9,16 +10,18 @@ interface ToggleRowProps {
 }
 
 export default function ToggleRow({ label, description, value, onValueChange }: ToggleRowProps) {
+  const colors = useAppColors();
+
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { borderBottomColor: colors.separator }]}>
       <View style={styles.textContainer}>
-        <Text style={styles.label}>{label}</Text>
-        {description && <Text style={styles.description}>{description}</Text>}
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
+        {description && <Text style={[styles.description, { color: colors.textMuted }]}>{description}</Text>}
       </View>
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: '#c8ccd0', true: '#8594aa' }}
+        trackColor={{ false: colors.inputBg, true: colors.accent }}
         thumbColor="#fff"
       />
     </View>
@@ -32,9 +35,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   textContainer: { flex: 1, marginRight: 12 },
-  label: { color: '#444', fontSize: 15, fontWeight: '500' },
-  description: { color: '#444', fontSize: 12, marginTop: 2 },
+  label: { fontSize: 15, fontWeight: '500' },
+  description: { fontSize: 12, marginTop: 2 },
 });

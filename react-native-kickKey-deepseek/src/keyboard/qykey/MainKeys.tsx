@@ -3,14 +3,16 @@
 //   - Key presses commit through the native KickKey module.
 //   - Space-bar swipe cycles the language (en-US ⇄ banglish ⇄ bn-BD).
 //   - Backspace gained long-press repeat (invisible UI change).
+//   - Now accepts themeColors for dynamic styling.
 // ============================================================
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text } from 'react-native';
-import styles from './styles';
+import { createKeyboardStyles } from './dynamicStyles';
 import { Key } from './Key';
 import { MDIIcon } from './icons';
 import type { AppLanguage } from './QykeyKeyboard';
+import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
 
 type MainKeysProps = {
   onKeyPress?: (key: string) => void;
@@ -22,6 +24,7 @@ type MainKeysProps = {
   onSpecialKey?: (key: string) => void;
   language?: AppLanguage;
   onLanguageChange?: (lang: AppLanguage) => void;
+  themeColors: KeyboardThemeColors;
 };
 
 const MainKeysComponent = ({
@@ -34,7 +37,9 @@ const MainKeysComponent = ({
   onSpecialKey,
   language = 'en-US',
   onLanguageChange,
+  themeColors,
 }: MainKeysProps) => {
+  const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const [isCapsOn, setIsCapsOn] = useState(false);
   const cycleLeft: Record<AppLanguage, AppLanguage> = {
     'en-US': 'banglish',
@@ -74,7 +79,8 @@ const MainKeysComponent = ({
             <Key
               key={k}
               onPressHandler={() => onKeyPress?.(k)}
-              language={i === 0 ? undefined : language} // ← only pass language to the number row for now
+              language={i === 0 ? undefined : language}
+              themeColors={themeColors}
             >
               {k}
             </Key>
@@ -90,9 +96,9 @@ const MainKeysComponent = ({
           isIcon
           hasActiveState
           onPressHandler={() => setIsCapsOn(!isCapsOn)}
+          themeColors={themeColors}
         >
-          {/* Same as qykey: arrow-up-bold-outline shrinks 16 → 14 when active */}
-          <MDIIcon name="arrow-up-bold-outline" size={isCapsOn ? 14 : 16} color="#444" />
+          <MDIIcon name="arrow-up-bold-outline" size={isCapsOn ? 14 : 16} color={themeColors.keyText} />
         </Key>
         {(language === 'bn-BD'
           ? isCapsOn
@@ -104,8 +110,9 @@ const MainKeysComponent = ({
         ).map((k) => (
           <Key
             key={k}
-            onPressHandler={() => onKeyPress?.(k)} // ← wire up
-            language={language} // ← pass language to Z row keys
+            onPressHandler={() => onKeyPress?.(k)}
+            language={language}
+            themeColors={themeColors}
           >
             {k}
           </Key>
@@ -117,8 +124,9 @@ const MainKeysComponent = ({
           onPressHandler={onBackspace}
           onRepeatStart={onBackspaceRepeatStart}
           onRepeatEnd={onBackspaceRepeatEnd}
+          themeColors={themeColors}
         >
-          <MDIIcon name="backspace-outline" size={16} color="#444" />
+          <MDIIcon name="backspace-outline" size={16} color={themeColors.keyText} />
         </Key>
       </View>
 
@@ -129,6 +137,7 @@ const MainKeysComponent = ({
           style={styles.wider}
           hasActiveState
           onPressHandler={() => onSpecialKey?.('ctrl')}
+          themeColors={themeColors}
         >
           Ctrl
         </Key>
@@ -137,6 +146,7 @@ const MainKeysComponent = ({
           style={styles.wider}
           hasActiveState
           onPressHandler={() => onSpecialKey?.('meta')}
+          themeColors={themeColors}
         >
           ⊞
         </Key>
@@ -145,6 +155,7 @@ const MainKeysComponent = ({
           style={styles.wider}
           hasActiveState
           onPressHandler={() => onSpecialKey?.('alt')}
+          themeColors={themeColors}
         >
           Alt
         </Key>
@@ -155,6 +166,7 @@ const MainKeysComponent = ({
           onPressHandler={onSpace}
           onSwipeLeft={() => onLanguageChange?.(cycleLeft[language ?? 'en-US'])}
           onSwipeRight={() => onLanguageChange?.(cycleRight[language ?? 'en-US'])}
+          themeColors={themeColors}
         >
           <Text style={styles.spaceText}>◀ {spaceLabel} ▶</Text>
         </Key>
@@ -164,6 +176,7 @@ const MainKeysComponent = ({
           style={styles.wider}
           hasActiveState
           onPressHandler={() => onSpecialKey?.('tab')}
+          themeColors={themeColors}
         >
           Tab
         </Key>
@@ -172,6 +185,7 @@ const MainKeysComponent = ({
           style={styles.wider}
           hasActiveState
           onPressHandler={() => onSpecialKey?.('esc')}
+          themeColors={themeColors}
         >
           Esc
         </Key>
@@ -180,8 +194,9 @@ const MainKeysComponent = ({
           style={styles.wider}
           isIcon
           onPressHandler={onEnter}
+          themeColors={themeColors}
         >
-          <MDIIcon name="keyboard-return" size={16} color="#444" />
+          <MDIIcon name="keyboard-return" size={16} color={themeColors.keyText} />
         </Key>
       </View>
     </>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useAppColors } from '../hooks/useAppColors';
 
 interface LanguageTagProps {
   code: 'en' | 'bn';
@@ -7,9 +8,20 @@ interface LanguageTagProps {
 }
 
 export default function LanguageTag({ code, active }: LanguageTagProps) {
+  const colors = useAppColors();
+
   return (
-    <View style={[styles.tag, active && styles.tagActive]}>
-      <Text style={[styles.text, active && styles.textActive]}>
+    <View style={[
+      styles.tag,
+      {
+        backgroundColor: active ? colors.accent : colors.inputBg,
+        borderTopColor: colors.cardBorderTL,
+        borderLeftColor: colors.cardBorderTL,
+        borderBottomColor: colors.cardBorderBR,
+        borderRightColor: colors.cardBorderBR,
+      },
+    ]}>
+      <Text style={[styles.text, { color: active ? colors.buttonText : colors.textSecondary }]}>
         {code.toUpperCase()}
       </Text>
     </View>
@@ -21,18 +33,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
-    backgroundColor: '#c8ccd0',
     // Neumorphic inset effect
     borderTopWidth: 1,
     borderLeftWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.12)',
-    borderLeftColor: 'rgba(0,0,0,0.12)',
     borderBottomWidth: 1,
     borderRightWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.6)',
-    borderRightColor: 'rgba(255,255,255,0.6)',
   },
-  tagActive: { backgroundColor: '#8594aa' },
-  text: { color: '#444', fontSize: 11, fontWeight: '700' },
-  textActive: { color: '#fff' },
+  text: { fontSize: 11, fontWeight: '700' },
 });

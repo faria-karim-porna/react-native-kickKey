@@ -1,19 +1,23 @@
 // ============================================================
 // config.ts — circuit configuration (ported from qykey/helper/data.ts).
-// Only the config/directions pieces are needed here; the emoji
-// data lives in ../emojiData.
+// Now accepts themeColors for dark mode support.
 // ============================================================
 
-export const config = () => ({
-  cellSize: 10,
-  maxWireLength: 40,
-  wireColor: '#8594aa',
-  bgColor: '#ffffff',
-  glowBgColor: '#d9e0ef',
-  glowLength: 10,
-  glowSpeed: 50,
-  straightBias: 2,
-});
+import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
+
+export const config = (themeColors?: KeyboardThemeColors) => {
+  const isDark = themeColors?.keyText === '#eceff4';
+  return {
+    cellSize: 10,
+    maxWireLength: 40,
+    wireColor: themeColors?.themePrimary || '#8594aa',
+    bgColor: isDark ? '#242933' : '#ffffff',
+    glowBgColor: isDark ? '#3b4252' : '#d9e0ef',
+    glowLength: 10,
+    glowSpeed: 50,
+    straightBias: 2,
+  };
+};
 
 export const directions = () => [
   [0, 1], // down

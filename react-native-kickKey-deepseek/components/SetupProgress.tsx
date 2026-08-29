@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useAppColors } from '../hooks/useAppColors';
 
 interface SetupProgressProps {
   currentStep: 1 | 2 | 3 | 4;
 }
 
 export default function SetupProgress({ currentStep }: SetupProgressProps) {
+  const colors = useAppColors();
+
   return (
     <View style={styles.row}>
       {[1, 2, 3, 4].map((step) => (
@@ -13,6 +16,15 @@ export default function SetupProgress({ currentStep }: SetupProgressProps) {
           key={step}
           style={[
             styles.dot,
+            {
+              backgroundColor: step === currentStep || step < currentStep
+                ? colors.accent
+                : colors.inputBg,
+              borderTopColor: colors.cardBorderTL,
+              borderLeftColor: colors.cardBorderTL,
+              borderBottomColor: colors.cardBorderBR,
+              borderRightColor: colors.cardBorderBR,
+            },
             step === currentStep && styles.dotActive,
             step < currentStep && styles.dotComplete,
           ]}
@@ -33,23 +45,16 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#c8ccd0',
     // Inset neumorphic effect
     borderTopWidth: 1,
     borderLeftWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.12)',
-    borderLeftColor: 'rgba(0,0,0,0.12)',
     borderBottomWidth: 1,
     borderRightWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.6)',
-    borderRightColor: 'rgba(255,255,255,0.6)',
   },
   dotActive: {
-    backgroundColor: '#8594aa',
     width: 24,
   },
   dotComplete: {
-    backgroundColor: '#8594aa',
     opacity: 0.6,
   },
 });

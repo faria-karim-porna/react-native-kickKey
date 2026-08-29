@@ -7,6 +7,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import type { CursorType } from '../../store/settingsStore';
 import ToggleRow from '../../components/ToggleRow';
 import KickKey from '../../modules/kickkey-module';
+import { useAppColors } from '../../hooks/useAppColors';
 
 // ─── Cursor type definitions ────────────────────────────────────────────────
 
@@ -156,7 +157,12 @@ function CursorPreview({ type, color, size }: { type: CursorType; color: string;
             fill={color}
           />
           <Path
-            d="M12 4a8 8 0 0 1 8 8" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+            d="M12 4a8 8 0 0 1 8 8"
+            stroke={color}
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+          />
         </Svg>
       );
     case 'sparkle':
@@ -242,7 +248,12 @@ function CursorPreview({ type, color, size }: { type: CursorType; color: string;
             fill={color}
           />
           <Path
-            d="M12 4a8 8 0 0 1 8 8" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
+            d="M12 4a8 8 0 0 1 8 8"
+            stroke={color}
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+          />
           <Path d="M18 6l2 2-2 2" stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       );
@@ -338,19 +349,21 @@ function CursorPreview({ type, color, size }: { type: CursorType; color: string;
   }
 }
 
+
 // ─── SliderRow (reusable) ──────────────────────────────────────────────────
 
 function SliderRow({
-  label, value, min, max, onChange, unit,
+  label, value, min, max, onChange, unit, colors,
 }: {
   label: string; value: number; min: number; max: number;
   onChange: (v: number) => void; unit: string;
+  colors: ReturnType<typeof useAppColors>;
 }) {
   return (
     <View style={styles.sliderRow}>
       <View style={styles.sliderHeader}>
-        <Text style={styles.sliderLabel}>{label}</Text>
-        <Text style={styles.sliderValue}>{Math.round(value)}{unit}</Text>
+        <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>{label}</Text>
+        <Text style={[styles.sliderValue, { color: colors.accent }]}>{Math.round(value)}{unit}</Text>
       </View>
       <Slider
         style={{ width: '100%', height: 32 }}
@@ -359,9 +372,9 @@ function SliderRow({
         step={1}
         value={value}
         onValueChange={onChange}
-        minimumTrackTintColor="#8594aa"
-        maximumTrackTintColor="#c8ccd0"
-        thumbTintColor="#8594aa"
+        minimumTrackTintColor={colors.accent}
+        maximumTrackTintColor={colors.inputBg}
+        thumbTintColor={colors.accent}
       />
     </View>
   );
@@ -370,6 +383,7 @@ function SliderRow({
 // ─── Main screen ───────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
+  const colors = useAppColors();
   const [a11yEnabled, setA11yEnabled] = useState<boolean | null>(null);
   const [overlayGranted, setOverlayGranted] = useState<boolean | null>(null);
 
@@ -425,14 +439,23 @@ export default function SettingsScreen() {
   const setCursorColor          = useSettingsStore((s) => s.setCursorColor);
   const setCursorSize            = useSettingsStore((s) => s.setCursorSize);
 
+  const cardStyle = {
+    backgroundColor: colors.card,
+    borderTopColor: colors.cardBorderTL,
+    borderLeftColor: colors.cardBorderTL,
+    borderBottomColor: colors.cardBorderBR,
+    borderRightColor: colors.cardBorderBR,
+    shadowColor: colors.cardShadow,
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Settings</Text>
 
         {/* ── Feedback ──────────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Feedback</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Feedback</Text>
+        <View style={[styles.card, cardStyle]}>
           <ToggleRow
             label="Haptic Feedback"
             description="Vibrate on every key press"
@@ -448,8 +471,8 @@ export default function SettingsScreen() {
         </View>
 
         {/* ── Typing ───────────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Typing</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Typing</Text>
+        <View style={[styles.card, cardStyle]}>
           <ToggleRow
             label="Auto-correct"
             description="Automatically fix typos when you press space"
@@ -465,8 +488,8 @@ export default function SettingsScreen() {
         </View>
 
         {/* ── Key Size ─────────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Key Size</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Key Size</Text>
+        <View style={[styles.card, cardStyle]}>
           <SliderRow
             label="Key Height"
             value={keyHeight}
@@ -474,6 +497,7 @@ export default function SettingsScreen() {
             max={60}
             onChange={setKeyHeight}
             unit="dp"
+            colors={colors}
           />
           <SliderRow
             label="Corner Radius"
@@ -482,6 +506,7 @@ export default function SettingsScreen() {
             max={16}
             onChange={setKeyBorderRadius}
             unit="dp"
+            colors={colors}
           />
           <SliderRow
             label="Font Size"
@@ -490,28 +515,40 @@ export default function SettingsScreen() {
             max={22}
             onChange={setFontSize}
             unit="sp"
+            colors={colors}
           />
         </View>
 
         {/* ── Cursor ───────────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Cursor Type</Text>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Cursor Type</Text>
         <View style={styles.cursorTypeGrid}>
           {CURSOR_TYPES.map(({ type, label }) => (
             <TouchableOpacity
               key={type}
-              style={[styles.cursorTypeCard, cursorType === type && styles.cursorTypeCardActive]}
+              style={[
+                styles.cursorTypeCard,
+                {
+                  backgroundColor: colors.card,
+                  borderTopColor: colors.cardBorderTL,
+                  borderLeftColor: colors.cardBorderTL,
+                  borderBottomColor: colors.cardBorderBR,
+                  borderRightColor: colors.cardBorderBR,
+                  shadowColor: colors.cardShadow,
+                },
+                cursorType === type && { borderColor: colors.accent, borderWidth: 2 },
+              ]}
               onPress={() => setCursorType(type)}
               activeOpacity={0.8}
             >
-              <CursorPreview type={type} color={cursorType === type ? '#8594aa' : '#888'} size={cursorSize} />
-              <Text style={[styles.cursorTypeLabel, cursorType === type && styles.cursorTypeLabelActive]}>
+              <CursorPreview type={type} color={cursorType === type ? colors.accent : colors.textMuted} size={cursorSize} />
+              <Text style={[styles.cursorTypeLabel, { color: colors.textSecondary }, cursorType === type && { color: colors.accent }]}>
                 {label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>Cursor Color</Text>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Cursor Color</Text>
         <View style={styles.colorPalette}>
           {CURSOR_COLORS.map((c) => (
             <TouchableOpacity
@@ -519,7 +556,7 @@ export default function SettingsScreen() {
               style={[
                 styles.colorSwatch,
                 { backgroundColor: c },
-                cursorColor === c && styles.colorSwatchActive,
+                cursorColor === c && { borderWidth: 2, borderColor: colors.accent },
               ]}
               onPress={() => setCursorColor(c)}
               activeOpacity={0.8}
@@ -527,9 +564,15 @@ export default function SettingsScreen() {
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>Cursor Size</Text>
-        <View style={styles.card}>
-          <View style={styles.cursorSizePreview}>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Cursor Size</Text>
+        <View style={[styles.card, cardStyle]}>
+          <View style={[styles.cursorSizePreview, {
+            backgroundColor: colors.inputBg,
+            borderTopColor: colors.cardBorderTL,
+            borderLeftColor: colors.cardBorderTL,
+            borderBottomColor: colors.cardBorderBR,
+            borderRightColor: colors.cardBorderBR,
+          }]}>
             <CursorPreview type={cursorType} color={cursorColor} size={cursorSize} />
           </View>
           <SliderRow
@@ -539,26 +582,34 @@ export default function SettingsScreen() {
             max={48}
             onChange={setCursorSize}
             unit="px"
+            colors={colors}
           />
         </View>
 
         {/* ── Display over other apps ─────────────────────────── */}
-        <Text style={styles.sectionLabel}>Display Over Other Apps</Text>
-        <View style={styles.card}>
-          <View style={styles.a11yRow}>
-            <Text style={styles.a11yLabel}>Overlay Permission</Text>
-            <Text style={[styles.a11yValue, { color: overlayGranted ? '#8594aa' : '#8a8a8a' }]}>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Display Over Other Apps</Text>
+        <View style={[styles.card, cardStyle]}>
+          <View style={[styles.a11yRow, { borderBottomColor: colors.separator }]}>
+            <Text style={[styles.a11yLabel, { color: colors.textSecondary }]}>Overlay Permission</Text>
+            <Text style={[styles.a11yValue, { color: overlayGranted ? colors.accent : colors.textMuted }]}>
               {overlayGranted === null ? 'Checking…' : overlayGranted ? 'Granted' : 'Not Granted'}
             </Text>
           </View>
           <Pressable
-            style={({ pressed }) => [styles.a11yButton, pressed && styles.a11yButtonPressed]}
+            style={({ pressed }) => [styles.a11yButton, {
+              backgroundColor: colors.accent,
+              borderTopColor: colors.cardBorderTL,
+              borderLeftColor: colors.cardBorderTL,
+              borderBottomColor: colors.cardBorderBR,
+              borderRightColor: colors.cardBorderBR,
+              shadowColor: colors.cardShadow,
+            }, pressed && styles.a11yButtonPressed]}
             onPress={() => KickKey.openOverlaySettings()}
           >
-            <Text style={styles.a11yButtonText}>Open Overlay Settings</Text>
+            <Text style={[styles.a11yButtonText, { color: colors.buttonText }]}>Open Overlay Settings</Text>
           </Pressable>
           {overlayGranted === false && (
-            <Text style={styles.a11yHint}>
+            <Text style={[styles.a11yHint, { color: colors.textMuted }]}>
               Grant "Display over other apps" permission to enable the
               on-screen mouse pointer when using the touchpad.
             </Text>
@@ -566,22 +617,29 @@ export default function SettingsScreen() {
         </View>
 
         {/* ── Accessibility ────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Accessibility</Text>
-        <View style={styles.card}>
-          <View style={styles.a11yRow}>
-            <Text style={styles.a11yLabel}>Accessibility Service</Text>
-            <Text style={[styles.a11yValue, { color: a11yEnabled ? '#8594aa' : '#8a8a8a' }]}>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>Accessibility</Text>
+        <View style={[styles.card, cardStyle]}>
+          <View style={[styles.a11yRow, { borderBottomColor: colors.separator }]}>
+            <Text style={[styles.a11yLabel, { color: colors.textSecondary }]}>Accessibility Service</Text>
+            <Text style={[styles.a11yValue, { color: a11yEnabled ? colors.accent : colors.textMuted }]}>
               {a11yEnabled === null ? 'Checking…' : a11yEnabled ? 'Enabled' : 'Disabled'}
             </Text>
           </View>
           <Pressable
-            style={({ pressed }) => [styles.a11yButton, pressed && styles.a11yButtonPressed]}
+            style={({ pressed }) => [styles.a11yButton, {
+              backgroundColor: colors.accent,
+              borderTopColor: colors.cardBorderTL,
+              borderLeftColor: colors.cardBorderTL,
+              borderBottomColor: colors.cardBorderBR,
+              borderRightColor: colors.cardBorderBR,
+              shadowColor: colors.cardShadow,
+            }, pressed && styles.a11yButtonPressed]}
             onPress={() => KickKey.openAccessibilitySettings()}
           >
-            <Text style={styles.a11yButtonText}>Open Accessibility Settings</Text>
+            <Text style={[styles.a11yButtonText, { color: colors.buttonText }]}>Open Accessibility Settings</Text>
           </Pressable>
           {a11yEnabled === false && (
-            <Text style={styles.a11yHint}>
+            <Text style={[styles.a11yHint, { color: colors.textMuted }]}>
               Enable "KickKey Accessibility", then assign it to the Accessibility
               button or shortcut to open the floating panel anywhere — no input
               field needed.
@@ -589,7 +647,7 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        <Text style={styles.footnote}>
+        <Text style={[styles.footnote, { color: colors.textMuted }]}>
           Changes apply automatically the next time you open the keyboard.
         </Text>
       </ScrollView>
@@ -599,46 +657,36 @@ export default function SettingsScreen() {
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
-const card = {
-  backgroundColor: 'rgba(224,229,236,0.92)' as const,
-  borderRadius: 12,
-  // Neumorphic raised effect
-  borderTopWidth: 1.5,
-  borderLeftWidth: 1.5,
-  borderTopColor: 'rgba(0,0,0,0.15)',
-  borderLeftColor: 'rgba(0,0,0,0.15)',
-  borderBottomWidth: 2,
-  borderRightWidth: 2,
-  borderBottomColor: 'rgba(255,255,255,0.8)',
-  borderRightColor: 'rgba(255,255,255,0.8)',
-  shadowColor: '#000',
-  shadowOffset: { width: -3, height: -3 },
-  shadowOpacity: 0.3,
-  shadowRadius: 4,
-  elevation: 6,
-};
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   scroll: { padding: 20, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#3a3a3a', marginBottom: 20 },
+  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 20 },
   sectionLabel: {
-    color: '#444', fontSize: 12, textTransform: 'uppercase',
+    fontSize: 12, textTransform: 'uppercase',
     marginBottom: 8, marginTop: 16, letterSpacing: 0.5,
   },
 
   // ── Cards ──
   card: {
-    ...card,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 16,
+    // Neumorphic raised effect
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    shadowOffset: { width: -3, height: -3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
 
   // ── Slider ──
   sliderRow: { marginBottom: 16 },
   sliderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  sliderLabel: { color: '#444', fontSize: 13 },
-  sliderValue: { color: '#8594aa', fontSize: 13, fontWeight: '600' },
+  sliderLabel: { fontSize: 13 },
+  sliderValue: { fontSize: 13, fontWeight: '600' },
 
   // ── Cursor type grid ──
   cursorTypeGrid: {
@@ -649,7 +697,6 @@ const styles = StyleSheet.create({
   },
   cursorTypeCard: {
     width: '30%',
-    backgroundColor: 'rgba(224,229,236,0.92)',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -657,24 +704,14 @@ const styles = StyleSheet.create({
     // Neumorphic raised
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(0,0,0,0.12)',
-    borderLeftColor: 'rgba(0,0,0,0.12)',
     borderBottomWidth: 2,
     borderRightWidth: 2,
-    borderBottomColor: 'rgba(255,255,255,0.7)',
-    borderRightColor: 'rgba(255,255,255,0.7)',
-    shadowColor: '#000',
     shadowOffset: { width: -2, height: -2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 4,
   },
-  cursorTypeCardActive: {
-    borderColor: '#8594aa',
-    borderWidth: 2,
-  },
-  cursorTypeLabel: { color: '#444', fontSize: 11, fontWeight: '600' },
-  cursorTypeLabelActive: { color: '#8594aa' },
+  cursorTypeLabel: { fontSize: 11, fontWeight: '600' },
 
   // ── Color palette ──
   colorPalette: {
@@ -702,10 +739,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 3,
   },
-  colorSwatchActive: {
-    borderWidth: 2,
-    borderColor: '#8594aa',
-  },
 
   // ── Cursor size preview ──
   cursorSizePreview: {
@@ -713,17 +746,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 56,
     marginBottom: 4,
-    backgroundColor: '#d1d9e6',
     borderRadius: 8,
     // Inset neumorphic
     borderTopWidth: 2,
     borderLeftWidth: 2,
-    borderTopColor: 'rgba(0,0,0,0.12)',
-    borderLeftColor: 'rgba(0,0,0,0.12)',
     borderBottomWidth: 1,
     borderRightWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.6)',
-    borderRightColor: 'rgba(255,255,255,0.6)',
   },
 
   // ── Accessibility ──
@@ -732,11 +760,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 14,
+    borderBottomWidth: 1,
   },
-  a11yLabel: { color: '#444', fontSize: 15 },
+  a11yLabel: { fontSize: 15 },
   a11yValue: { fontSize: 13, fontWeight: '600' },
   a11yButton: {
-    backgroundColor: '#8594aa',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -744,34 +772,25 @@ const styles = StyleSheet.create({
     // Neumorphic raised effect
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-    borderLeftColor: 'rgba(0,0,0,0.1)',
     borderBottomWidth: 2,
     borderRightWidth: 2,
-    borderBottomColor: 'rgba(255,255,255,0.6)',
-    borderRightColor: 'rgba(255,255,255,0.6)',
-    shadowColor: '#000',
     shadowOffset: { width: -2, height: -2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 5,
   },
   a11yButtonPressed: {
-    backgroundColor: '#dcdde1',
     transform: [{ translateY: 1 }],
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderBottomWidth: 0,
     borderRightWidth: 0,
-    borderTopColor: 'rgba(0,0,0,0.25)',
-    borderLeftColor: 'rgba(0,0,0,0.25)',
-    shadowColor: '#000',
     shadowOffset: { width: 1, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1,
     elevation: 2,
   },
-  a11yButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  a11yHint: { color: '#444', fontSize: 12, lineHeight: 17, paddingBottom: 12 },
-  footnote: { color: '#444', fontSize: 12, textAlign: 'center', marginTop: 24 },
+  a11yButtonText: { fontSize: 14, fontWeight: '700' },
+  a11yHint: { fontSize: 12, lineHeight: 17, paddingBottom: 12 },
+  footnote: { fontSize: 12, textAlign: 'center', marginTop: 24 },
 });

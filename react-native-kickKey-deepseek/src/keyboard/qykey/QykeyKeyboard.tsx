@@ -13,9 +13,10 @@
 //               converts them to Bangla (commitKey(code, 'bn'))
 // ============================================================
 
-import React, { useEffect, useRef, useCallback } from 'react';
-import { View, PixelRatio } from 'react-native';
-import styles from './styles';
+import React, { useMemo } from 'react';
+import { View } from 'react-native';
+import { useKeyboardTheme } from '../hooks/useKeyboardTheme';
+import { createKeyboardStyles } from './dynamicStyles';
 import Touchpad from './Touchpad';
 import SymbolKeys from './SymbolKeys';
 import SystemKeysMore from './SymbolKeysMore';
@@ -27,11 +28,14 @@ import { KeyboardTopKeys } from './KeyboardTopKeys';
 import { EmojiBoard } from './EmojiBoard';
 import { Circuit } from './circuit/Circuit';
 import { useKeyboardState } from '../hooks/useKeyboardState';
-import KickKey from '../../../modules/kickkey-module';
+import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
 
 export type AppLanguage = 'en-US' | 'bn-BD' | 'banglish';
 
 export default function QykeyKeyboard() {
+  const themeColors = useKeyboardTheme();
+  const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
+
   const {
     language,
     toggleMode,
@@ -76,15 +80,13 @@ export default function QykeyKeyboard() {
 
   return (
     <View style={styles.keyboardContainer}>
-      {/* Circuit board behind the translucent keyboard shell.
-          Frozen while the emoji board is open: its per-frame SVG redraw
-          would compete with the emoji FlatList scroll on the UI thread. */}
-      <Circuit animated={!isEmojiMode} />
+      {/* Circuit board behind the translucent keyboard shell. */}
+      <Circuit animated={!isEmojiMode} themeColors={themeColors} />
 
       <View style={styles.base}>
         {/* Top Row */}
         <View style={[styles.line, { justifyContent: 'flex-start' }]}>
-          <KeyboardSlider toggleMode={toggleMode} sliderHandler={sliderHandler} />
+          <KeyboardSlider toggleMode={toggleMode} sliderHandler={sliderHandler} themeColors={themeColors} />
           {!toggleMode ? (
             <KeyboardTopKeys
               symHandler={symHandler}
@@ -93,6 +95,7 @@ export default function QykeyKeyboard() {
               suggestions={suggestions}
               onSuggestionPress={handleSuggestionSelect}
               onTranscriptComplete={handleTranscriptComplete}
+              themeColors={themeColors}
             />
           ) : null}
         </View>
@@ -101,28 +104,28 @@ export default function QykeyKeyboard() {
           {!toggleMode ? (
             <>
               {isEmojiMode ? (
-                <EmojiBoard onEmojiSelect={handleEmojiSelect} />
+                <EmojiBoard onEmojiSelect={handleEmojiSelect} themeColors={themeColors} />
               ) : (
                 <View style={styles.line}>
-                  {['"', ':', ','].map((k) => (
-                    <Key key={k} onPressHandler={() => handleKeyPress(k)}>
+                  {['\"', ':', ','].map((k) => (
+                    <Key key={k} onPressHandler={() => handleKeyPress(k)} themeColors={themeColors}>
                       {k}
                     </Key>
                   ))}
-                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('left')}>
-                    <FeatheredArrowKey direction="left" color="#f2f2f2" />
+                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('left')} themeColors={themeColors}>
+                    <FeatheredArrowKey direction="left" color={themeColors.keyText} />
                   </Key>
-                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('up')}>
-                    <FeatheredArrowKey direction="up" color="#f2f2f2" />
+                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('up')} themeColors={themeColors}>
+                    <FeatheredArrowKey direction="up" color={themeColors.keyText} />
                   </Key>
-                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('down')}>
-                    <FeatheredArrowKey direction="down" color="#f2f2f2" />
+                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('down')} themeColors={themeColors}>
+                    <FeatheredArrowKey direction="down" color={themeColors.keyText} />
                   </Key>
-                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('right')}>
-                    <FeatheredArrowKey direction="right" color="#f2f2f2" />
+                  <Key functionKey isIcon onPressHandler={() => handleMoveCursor('right')} themeColors={themeColors}>
+                    <FeatheredArrowKey direction="right" color={themeColors.keyText} />
                   </Key>
                   {['.', ';', '?'].map((k) => (
-                    <Key key={k} onPressHandler={() => handleKeyPress(k)}>
+                    <Key key={k} onPressHandler={() => handleKeyPress(k)} themeColors={themeColors}>
                       {k}
                     </Key>
                   ))}
@@ -141,6 +144,7 @@ export default function QykeyKeyboard() {
                     onSpecialKey={handleSpecialKey}
                     language={language}
                     onLanguageChange={handleLanguageChange}
+                    themeColors={themeColors}
                   />
                 ) : symbolModeStatus === 1 ? (
                   <SymbolKeys
@@ -148,12 +152,14 @@ export default function QykeyKeyboard() {
                     onKeyPress={handleKeyPress}
                     onBackspace={handleBackspace}
                     onEnter={handleEnter}
+                    themeColors={themeColors}
                   />
                 ) : (
                   <SystemKeysMore
                     onPrev={handleSymbolPrev}
                     onBackspace={handleBackspace}
                     onEnter={handleEnter}
+                    themeColors={themeColors}
                   />
                 )
               ) : null}
@@ -173,6 +179,7 @@ export default function QykeyKeyboard() {
                 onPointerHide={handlePointerHide}
                 onPointerMove={handlePointerMove}
                 onRequestPointerPermission={handleRequestPointerPermission}
+                themeColors={themeColors}
               />
             </View>
           )}
