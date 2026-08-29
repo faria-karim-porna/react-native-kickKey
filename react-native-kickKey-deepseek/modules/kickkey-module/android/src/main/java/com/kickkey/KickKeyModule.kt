@@ -531,6 +531,26 @@ class KickKeyModule : Module() {
             prefs.edit().putString("custom_words", updated.joinToString("\n")).apply()
         }
 
+        // Per-language custom dictionaries
+
+        Function("setCustomDictionary") { enWords: List<String>, bnWords: List<String> ->
+            val context = appContext.reactContext ?: return@Function
+            val prefs = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+            prefs.edit()
+                .putString("custom_words_en", enWords.joinToString("\n"))
+                .putString("custom_words_bn", bnWords.joinToString("\n"))
+                .apply()
+            suggestionEngine?.reloadCustomWords()
+        }
+
+        Function("getCustomDictionary") { lang: String ->
+            val context = appContext.reactContext ?: return@Function emptyList<String>()
+            val key = if (lang == "bn") "custom_words_bn" else "custom_words_en"
+            val raw = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+                .getString(key, "") ?: ""
+            if (raw.isEmpty()) emptyList() else raw.split("\n")
+        }
+
         // ── Preferences ──────────────────────────────────────────────────────
 
         Function("getPreferences") {

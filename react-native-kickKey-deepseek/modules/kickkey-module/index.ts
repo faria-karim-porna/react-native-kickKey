@@ -48,6 +48,14 @@ export default {
   removeDictionaryWord: (word: string): Promise<void> =>
     KickKey.removeDictionaryWord(word),
 
+  /** Stores per-language custom dictionaries. */
+  setCustomDictionary: (enWords: string[], bnWords: string[]): Promise<void> =>
+    KickKey.setCustomDictionary(enWords, bnWords),
+
+  /** Returns custom dictionary words for a specific language ('en' or 'bn'). */
+  getCustomDictionary: (lang: string): Promise<string[]> =>
+    KickKey.getCustomDictionary(lang),
+
   // ── Phase 6: Clipboard & Emoji history ───────────────────────────────────────
 
   /** Returns clipboard history, most recent first. */

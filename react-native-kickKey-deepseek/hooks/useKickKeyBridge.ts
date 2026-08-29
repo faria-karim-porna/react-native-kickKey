@@ -28,6 +28,11 @@ export function useKickKeyBridge() {
     removeDictionaryWord: (word: string): Promise<void> =>
       isAvailable ? KickKey.removeDictionaryWord(word) : Promise.resolve(),
 
+    setCustomDictionary: (enWords: string[], bnWords: string[]): Promise<void> =>
+      isAvailable ? KickKey.setCustomDictionary(enWords, bnWords) : Promise.resolve(),
+    getCustomDictionary: (lang: string): Promise<string[]> =>
+      isAvailable ? KickKey.getCustomDictionary(lang) : Promise.resolve([]),
+
     isOverlayGranted: (): Promise<boolean> =>
       isAvailable ? KickKey.isOverlayGranted() : Promise.resolve(false),
     openOverlaySettings: (): void => {

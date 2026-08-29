@@ -58,10 +58,11 @@ interface SettingsState {
   toggleAutoCorrect: () => void;
   toggleShowSuggestions: () => void;
 
-  // Custom dictionary
-  customWords: string[];
-  addCustomWord: (word: string) => void;
-  removeCustomWord: (word: string) => void;
+  // Custom dictionary (per-language)
+  customWordsEn: string[];
+  customWordsBn: string[];
+  addCustomWord: (word: string, lang: 'en' | 'bn') => void;
+  removeCustomWord: (word: string, lang: 'en' | 'bn') => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -111,27 +112,46 @@ export const useSettingsStore = create<SettingsState>()(
       toggleAutoCorrect: () => set((s) => ({ autoCorrect: !s.autoCorrect })),
       toggleShowSuggestions: () => set((s) => ({ showSuggestions: !s.showSuggestions })),
 
-      customWords: [],
-      addCustomWord: (word) =>
-        set((s) => ({
-          customWords: [...new Set([...s.customWords, word.trim().toLowerCase()])],
-        })),
-      removeCustomWord: (word) =>
-        set((s) => ({
-          customWords: s.customWords.filter((w) => w !== word),
-        })),
+      customWordsEn: [],
+      customWordsBn: [],
+      addCustomWord: (word, lang) =>
+        set((s) => {
+          const key = lang === 'bn' ? 'customWordsBn' : 'customWordsEn';
+          return { [key]: [...new Set([...s[key], word.trim().toLowerCase()])] };
+        }),
+      removeCustomWord: (word, lang) =>
+        set((s) => {
+          const key = lang === 'bn' ? 'customWordsBn' : 'customWordsEn';
+          return { [key]: s[key].filter((w) => w !== word) };
+        }),
     }),
     {
       name: 'kickkey-settings',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
-      // v0 → v1: the 'amoled' preset was removed; fall back to 'dark'.
+      version: 2,
       migrate: (persisted) => {
-        const state = persisted as Partial<SettingsState> | undefined;
-        if (state && (state as { theme?: string }).theme === 'amoled') {
-          return { ...state, theme: 'dark' as ThemeName };
+        const state = persisted as Record<string, any> | undefined;
+        if (!state) return persisted;
+        // v0 → v1: 'amoled' preset removed
+        if (state.theme === 'amoled') {
+          state.theme = 'dark' as ThemeName;
         }
-        return persisted;
+        // v1 → v2: split flat customWords into per-language arrays
+        if (Array.isArray(state.customWords)) {
+          const en: string[] = [];
+          const bn: string[] = [];
+          for (const w of state.customWords) {
+            if (typeof w === 'string' && /\p{Script=Bengali}/u.test(w)) {
+              bn.push(w);
+            } else {
+              en.push(w);
+            }
+          }
+          state.customWordsEn = en;
+          state.customWordsBn = bn;
+          delete state.customWords;
+        }
+        return state;
       },
     }
   )

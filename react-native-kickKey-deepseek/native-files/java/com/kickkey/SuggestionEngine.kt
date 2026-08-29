@@ -43,6 +43,20 @@ class SuggestionEngine(private val context: Context) {
     }
     private val userModel: UserWordModel by lazy { UserWordModel(context) }
 
+    // Per-language custom dictionaries (loaded from SharedPreferences)
+    private var customWordsEn: List<String> = emptyList()
+    private var customWordsBn: List<String> = emptyList()
+    private var customWordsLoaded = false
+
+    private fun loadCustomWords() {
+        val prefs = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+        val rawEn = prefs.getString("custom_words_en", "") ?: ""
+        val rawBn = prefs.getString("custom_words_bn", "") ?: ""
+        customWordsEn = if (rawEn.isEmpty()) emptyList() else rawEn.split("\n").filter { it.isNotBlank() }
+        customWordsBn = if (rawBn.isEmpty()) emptyList() else rawBn.split("\n").filter { it.isNotBlank() }
+        customWordsLoaded = true
+    }
+
     private var currentWord: String = ""
     private var currentSuggestions: List<String> = emptyList()
     private var isEnabled: Boolean = true
@@ -93,6 +107,12 @@ class SuggestionEngine(private val context: Context) {
     fun setEnabled(enabled: Boolean) {
         isEnabled = enabled
         if (!enabled) reset()
+    }
+
+    /** Reload custom dictionary words from SharedPreferences. Call after setCustomDictionary. */
+    fun reloadCustomWords() {
+        customWordsLoaded = false
+        loadCustomWords()
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -147,7 +167,15 @@ class SuggestionEngine(private val context: Context) {
 
                 val userWords = userModel.getFrequentWords(searchPrefix)
 
-                val rawCandidates = (userWords + prefixMatches + fuzzyMatches)
+                // Custom dictionary matches (per-language)
+                if (!customWordsLoaded) loadCustomWords()
+                val customList = if (isBangla) customWordsBn else customWordsEn
+                val customMatches = customList
+                    .filter { it.lowercase().startsWith(searchPrefix) }
+                    .take(MAX_PREFIX_RESULTS)
+                    .map { Trie.ScoredWord(it, 8_000) }  // high score, below user model
+
+                val rawCandidates = (customMatches + userWords + prefixMatches + fuzzyMatches)
                     .distinctBy { it.word.lowercase() }
                     .sortedByDescending { it.score }
                     .map { matchCasing(currentWord, it.word) }

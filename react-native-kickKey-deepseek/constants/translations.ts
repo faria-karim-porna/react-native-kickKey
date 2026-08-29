@@ -66,6 +66,8 @@ const translations = {
     // Dictionary screen
     dictionaryTitle: 'Custom Dictionary',
     dictionaryDescription: 'Add names, slang, or technical terms so KickKey suggests them.',
+    dictionaryEn: 'English',
+    dictionaryBn: 'Bangla',
     addWordPlaceholder: 'Add a word...',
     add: 'Add',
     emptyDictionary: 'No custom words yet. Add one above.',
@@ -171,6 +173,8 @@ const translations = {
     // Dictionary screen
     dictionaryTitle: 'কাস্টম অভিধান',
     dictionaryDescription: 'নাম, স্ল্যাং বা প্রযুক্তি পরিভাষা যোগ করুন যাতে KickKey সেগুলি প্রস্তাব করে।',
+    dictionaryEn: 'ইংরেজি',
+    dictionaryBn: 'বাংলা',
     addWordPlaceholder: 'একটি শব্দ যোগ করুন...',
     add: 'যোগ করুন',
     emptyDictionary: 'এখনো কোনো কাস্টম শব্দ নেই। উপরে একটি যোগ করুন।',
