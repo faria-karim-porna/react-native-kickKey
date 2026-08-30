@@ -117,12 +117,14 @@ export const useSettingsStore = create<SettingsState>()(
       addCustomWord: (word, lang) =>
         set((s) => {
           const key = lang === 'bn' ? 'customWordsBn' : 'customWordsEn';
-          return { [key]: [...new Set([...s[key], word.trim().toLowerCase()])] };
+          const list = Array.isArray(s[key]) ? s[key] : [];
+          return { [key]: [...new Set([...list, word.trim().toLowerCase()])] };
         }),
       removeCustomWord: (word, lang) =>
         set((s) => {
           const key = lang === 'bn' ? 'customWordsBn' : 'customWordsEn';
-          return { [key]: s[key].filter((w) => w !== word) };
+          const list = Array.isArray(s[key]) ? s[key] : [];
+          return { [key]: list.filter((w) => w !== word) };
         }),
     }),
     {

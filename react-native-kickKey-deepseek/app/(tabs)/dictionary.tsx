@@ -20,8 +20,8 @@ import { useTranslation } from "../../hooks/useTranslation";
 type DictLang = "en" | "bn";
 
 export default function DictionaryScreen() {
-  const customWordsEn = useSettingsStore((s) => s.customWordsEn);
-  const customWordsBn = useSettingsStore((s) => s.customWordsBn);
+  const customWordsEn = useSettingsStore((s) => s.customWordsEn) || [];
+  const customWordsBn = useSettingsStore((s) => s.customWordsBn) || [];
   const addCustomWord = useSettingsStore((s) => s.addCustomWord);
   const removeCustomWord = useSettingsStore((s) => s.removeCustomWord);
   const { setCustomDictionary } = useKickKeyBridge();
@@ -33,10 +33,12 @@ export default function DictionaryScreen() {
 
   // Sync both dictionaries to native whenever either changes
   useEffect(() => {
-    setCustomDictionary(customWordsEn, customWordsBn).catch(() => {});
+    const en = Array.isArray(customWordsEn) ? customWordsEn : [];
+    const bn = Array.isArray(customWordsBn) ? customWordsBn : [];
+    setCustomDictionary(en, bn).catch(() => {});
   }, [customWordsEn, customWordsBn]);
 
-  const activeWords = dictLang === "bn" ? customWordsBn : customWordsEn;
+  const activeWords = dictLang === "bn" ? (customWordsBn || []) : (customWordsEn || []);
 
   const handleAdd = () => {
     const trimmed = input.trim();

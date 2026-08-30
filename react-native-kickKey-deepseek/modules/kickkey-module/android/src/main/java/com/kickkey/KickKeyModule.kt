@@ -535,12 +535,14 @@ class KickKeyModule : Module() {
 
         // Per-language custom dictionaries
 
-        Function("setCustomDictionary") { enWords: List<String>, bnWords: List<String> ->
+        Function("setCustomDictionary") { enWords: List<String>?, bnWords: List<String>? ->
             val context = appContext.reactContext ?: return@Function
+            val en = enWords ?: emptyList()
+            val bn = bnWords ?: emptyList()
             val prefs = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
             prefs.edit()
-                .putString("custom_words_en", enWords.joinToString("\n"))
-                .putString("custom_words_bn", bnWords.joinToString("\n"))
+                .putString("custom_words_en", en.joinToString("\n"))
+                .putString("custom_words_bn", bn.joinToString("\n"))
                 .apply()
             suggestionEngine?.reloadCustomWords()
         }

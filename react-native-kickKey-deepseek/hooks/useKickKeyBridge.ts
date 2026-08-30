@@ -28,8 +28,13 @@ export function useKickKeyBridge() {
     removeDictionaryWord: (word: string): Promise<void> =>
       isAvailable ? KickKey.removeDictionaryWord(word) : Promise.resolve(),
 
-    setCustomDictionary: (enWords: string[], bnWords: string[]): Promise<void> =>
-      isAvailable ? KickKey.setCustomDictionary(enWords, bnWords) : Promise.resolve(),
+    setCustomDictionary: (enWords: string[] = [], bnWords: string[] = []): Promise<void> =>
+      isAvailable
+        ? KickKey.setCustomDictionary(
+            Array.isArray(enWords) ? enWords : [],
+            Array.isArray(bnWords) ? bnWords : []
+          )
+        : Promise.resolve(),
     getCustomDictionary: (lang: string): Promise<string[]> =>
       isAvailable ? KickKey.getCustomDictionary(lang) : Promise.resolve([]),
 
