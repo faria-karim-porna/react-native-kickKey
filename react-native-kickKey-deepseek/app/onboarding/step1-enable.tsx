@@ -18,7 +18,7 @@ export default function Step1Enable() {
 
   useEffect(() => {
     if (isEnabled) {
-      router.push('/onboarding/step2-default');
+      router.replace('/onboarding/step2-default');
     }
   }, [isEnabled]);
 
