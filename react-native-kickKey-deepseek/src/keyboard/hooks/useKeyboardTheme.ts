@@ -10,7 +10,7 @@
 // ============================================================
 
 import { useState, useEffect } from 'react';
-import { NativeModules } from 'react-native';
+import { NativeModules, NativeEventEmitter } from 'react-native';
 import { useSettingsStore } from '../../../store/settingsStore';
 
 export interface KeyboardThemeColors {
@@ -56,12 +56,6 @@ function getKickKey() {
   return _KickKey;
 }
 
-/**
- * Returns the current keyboard theme colors + layout values.
- * Reads from SharedPreferences on mount and when the app returns
- * to foreground (via AppState listener in the parent, which
- * re-mounts the keyboard).
- */
 export function useKeyboardTheme(): KeyboardThemeColors {
   const storeThemeColors = useSettingsStore((s) => s.themeColors);
   const storeKeyHeight = useSettingsStore((s) => s.keyHeight);
@@ -69,60 +63,90 @@ export function useKeyboardTheme(): KeyboardThemeColors {
   const storeFontSize = useSettingsStore((s) => s.fontSize);
 
   const [colors, setColors] = useState<KeyboardThemeColors>(() => ({
-    keyboardBg: storeThemeColors.keyboardBg || LIGHT_COLORS.keyboardBg,
-    keyBg: storeThemeColors.keyBg || LIGHT_COLORS.keyBg,
-    keyText: storeThemeColors.keyText || LIGHT_COLORS.keyText,
-    specialKeyBg: storeThemeColors.specialKeyBg || LIGHT_COLORS.specialKeyBg,
-    specialKeyText: storeThemeColors.specialKeyText || LIGHT_COLORS.specialKeyText,
-    themePrimary: storeThemeColors.themePrimary || LIGHT_COLORS.themePrimary,
+    keyboardBg: storeThemeColors?.keyboardBg || LIGHT_COLORS.keyboardBg,
+    keyBg: storeThemeColors?.keyBg || LIGHT_COLORS.keyBg,
+    keyText: storeThemeColors?.keyText || LIGHT_COLORS.keyText,
+    specialKeyBg: storeThemeColors?.specialKeyBg || LIGHT_COLORS.specialKeyBg,
+    specialKeyText: storeThemeColors?.specialKeyText || LIGHT_COLORS.specialKeyText,
+    themePrimary: storeThemeColors?.themePrimary || LIGHT_COLORS.themePrimary,
     keyHeight: storeKeyHeight || LIGHT_COLORS.keyHeight,
     keyBorderRadius: storeKeyBorderRadius || LIGHT_COLORS.keyBorderRadius,
     fontSize: storeFontSize || LIGHT_COLORS.fontSize,
   }));
 
-  // Sync state whenever Zustand settings store updates
+  // Sync state whenever Zustand settings store updates (in-app)
   useEffect(() => {
-    setColors({
-      keyboardBg: storeThemeColors.keyboardBg || LIGHT_COLORS.keyboardBg,
-      keyBg: storeThemeColors.keyBg || LIGHT_COLORS.keyBg,
-      keyText: storeThemeColors.keyText || LIGHT_COLORS.keyText,
-      specialKeyBg: storeThemeColors.specialKeyBg || LIGHT_COLORS.specialKeyBg,
-      specialKeyText: storeThemeColors.specialKeyText || LIGHT_COLORS.specialKeyText,
-      themePrimary: storeThemeColors.themePrimary || LIGHT_COLORS.themePrimary,
-      keyHeight: storeKeyHeight || LIGHT_COLORS.keyHeight,
-      keyBorderRadius: storeKeyBorderRadius || LIGHT_COLORS.keyBorderRadius,
-      fontSize: storeFontSize || LIGHT_COLORS.fontSize,
-    });
+    if (storeThemeColors && storeThemeColors.keyboardBg) {
+      setColors({
+        keyboardBg: storeThemeColors.keyboardBg,
+        keyBg: storeThemeColors.keyBg,
+        keyText: storeThemeColors.keyText,
+        specialKeyBg: storeThemeColors.specialKeyBg,
+        specialKeyText: storeThemeColors.specialKeyText,
+        themePrimary: storeThemeColors.themePrimary,
+        keyHeight: storeKeyHeight || LIGHT_COLORS.keyHeight,
+        keyBorderRadius: storeKeyBorderRadius || LIGHT_COLORS.keyBorderRadius,
+        fontSize: storeFontSize || LIGHT_COLORS.fontSize,
+      });
+    }
   }, [storeThemeColors, storeKeyHeight, storeKeyBorderRadius, storeFontSize]);
 
-  // Also hydrate from native SharedPreferences on mount if available (e.g. IME process)
+  // Hydrate from native SharedPreferences and listen for live events (e.g. IME process)
   useEffect(() => {
-    getKickKey()
-      ?.getPreferences()
-      ?.then((prefs: any) => {
-        if (!prefs) return;
-        const theme = prefs.theme || 'light';
-        const isDark = theme === 'nord';
+    const fetchNativePrefs = () => {
+      getKickKey()
+        ?.getPreferences()
+        ?.then((prefs: any) => {
+          if (!prefs || Object.keys(prefs).length === 0) return;
+          const theme = prefs.theme || 'light';
+          const isDark = theme === 'nord' || prefs.keyboardBg === '#2e3440';
+          const defaultColors = isDark ? DARK_COLORS : LIGHT_COLORS;
 
-        const keyHeight = typeof prefs.keyHeight === 'number' ? prefs.keyHeight : (isDark ? DARK_COLORS.keyHeight : LIGHT_COLORS.keyHeight);
-        const keyBorderRadius = typeof prefs.keyBorderRadius === 'number' ? prefs.keyBorderRadius : (isDark ? DARK_COLORS.keyBorderRadius : LIGHT_COLORS.keyBorderRadius);
-        const fontSize = typeof prefs.fontSize === 'number' ? prefs.fontSize : (isDark ? DARK_COLORS.fontSize : LIGHT_COLORS.fontSize);
+          const keyHeight = typeof prefs.keyHeight === 'number' ? prefs.keyHeight : defaultColors.keyHeight;
+          const keyBorderRadius = typeof prefs.keyBorderRadius === 'number' ? prefs.keyBorderRadius : defaultColors.keyBorderRadius;
+          const fontSize = typeof prefs.fontSize === 'number' ? prefs.fontSize : defaultColors.fontSize;
 
-        const defaultColors = isDark ? DARK_COLORS : LIGHT_COLORS;
+          setColors((prev) => ({
+            keyboardBg:    prefs.keyboardBg   || prev.keyboardBg,
+            keyBg:         prefs.themeKeyBg   || prev.keyBg,
+            keyText:       prefs.themeKeyText  || prev.keyText,
+            specialKeyBg:  prefs.specialKeyBg  || prev.specialKeyBg,
+            specialKeyText: defaultColors.specialKeyText,
+            themePrimary:  prefs.themePrimary  || prev.themePrimary,
+            keyHeight:     keyHeight           || prev.keyHeight,
+            keyBorderRadius: keyBorderRadius   || prev.keyBorderRadius,
+            fontSize:      fontSize            || prev.fontSize,
+          }));
+        })
+        .catch(() => {});
+    };
 
-        setColors({
-          keyboardBg:    prefs.keyboardBg   || defaultColors.keyboardBg,
-          keyBg:         prefs.themeKeyBg   || defaultColors.keyBg,
-          keyText:       prefs.themeKeyText  || defaultColors.keyText,
-          specialKeyBg:  prefs.specialKeyBg  || defaultColors.specialKeyBg,
-          specialKeyText: defaultColors.specialKeyText,
-          themePrimary:  prefs.themePrimary  || defaultColors.themePrimary,
-          keyHeight,
-          keyBorderRadius,
-          fontSize,
-        });
-      })
-      .catch(() => {});
+    fetchNativePrefs();
+
+    if (NativeModules.KickKey) {
+      const emitter = new NativeEventEmitter(NativeModules.KickKey);
+      const sub = emitter.addListener('kickkey_preferencesChanged', (prefMap: any) => {
+        if (prefMap) {
+          const isDark = prefMap.theme === 'nord' || prefMap.keyboardBg === '#2e3440';
+          const defaultColors = isDark ? DARK_COLORS : LIGHT_COLORS;
+
+          setColors((prev) => ({
+            keyboardBg:    prefMap.keyboardBg   || defaultColors.keyboardBg,
+            keyBg:         prefMap.themeKeyBg   || defaultColors.keyBg,
+            keyText:       prefMap.themeKeyText  || defaultColors.keyText,
+            specialKeyBg:  prefMap.specialKeyBg  || defaultColors.specialKeyBg,
+            specialKeyText: defaultColors.specialKeyText,
+            themePrimary:  prefMap.themePrimary  || defaultColors.themePrimary,
+            keyHeight:     prefMap.keyHeight     || prev.keyHeight,
+            keyBorderRadius: prefMap.keyBorderRadius || prev.keyBorderRadius,
+            fontSize:      prefMap.fontSize      || prev.fontSize,
+          }));
+        } else {
+          fetchNativePrefs();
+        }
+      });
+      return () => sub.remove();
+    }
   }, []);
 
   return colors;

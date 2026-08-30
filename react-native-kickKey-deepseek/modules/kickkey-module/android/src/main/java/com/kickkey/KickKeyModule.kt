@@ -103,6 +103,8 @@ class KickKeyModule : Module() {
     override fun definition() = ModuleDefinition {
         Name("KickKey")
 
+        Events("kickkey_forceRerender", "kickkey_preferencesChanged")
+
         // ── UPDATED: commitKey notifies suggestion engine ─────────────────
 
         Function("commitKey") { code: String, language: String ->
@@ -589,6 +591,11 @@ class KickKeyModule : Module() {
                 }
             }
             editor.apply()
+            try {
+                sendEvent("kickkey_preferencesChanged", prefMap)
+            } catch (e: Exception) {
+                android.util.Log.w("KickKeyModule", "Failed to send kickkey_preferencesChanged event: ${e.message}")
+            }
         }
 
         // ── IME status (carried over from Phase 1) ────────────────────────────
