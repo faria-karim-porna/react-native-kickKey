@@ -9,9 +9,25 @@ import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
 
 const { width } = Dimensions.get('window');
 
+function isDarkTheme(colors: KeyboardThemeColors): boolean {
+  const bg = colors.keyboardBg || colors.keyBg;
+  if (!bg) return false;
+  let hex = bg.replace('#', '');
+  if (hex.length === 3) {
+    hex = hex.split('').map((c) => c + c).join('');
+  }
+  if (hex.length >= 6) {
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  }
+  return false;
+}
+
 export function createKeyboardStyles(colors: KeyboardThemeColors) {
   // Derive secondary colors from the theme
-  const isDark = colors.keyText === '#eceff4';
+  const isDark = isDarkTheme(colors);
   const keyShadowTL = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.2)';
   const keyShadowBR = isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)';
   const keyBorderColorTL = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.2)';

@@ -5,8 +5,25 @@
 
 import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
 
+function isDarkTheme(colors?: KeyboardThemeColors): boolean {
+  if (!colors) return false;
+  const bg = colors.keyboardBg || colors.keyBg;
+  if (!bg) return false;
+  let hex = bg.replace('#', '');
+  if (hex.length === 3) {
+    hex = hex.split('').map((c) => c + c).join('');
+  }
+  if (hex.length >= 6) {
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  }
+  return false;
+}
+
 export const config = (themeColors?: KeyboardThemeColors) => {
-  const isDark = themeColors?.keyText === '#eceff4';
+  const isDark = isDarkTheme(themeColors);
   return {
     cellSize: 10,
     maxWireLength: 40,
