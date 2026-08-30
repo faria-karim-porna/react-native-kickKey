@@ -105,6 +105,27 @@ object PointerOverlay {
     }
 
     /**
+     * Retrieves the height (in pixels) of the system status bar (battery/network/notifications area).
+     */
+    fun getStatusBarHeight(): Int {
+        val ctx = appContext ?: return 0
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+            val insets = wm?.currentWindowMetrics?.windowInsets?.getInsetsIgnoringVisibility(
+                android.view.WindowInsets.Type.statusBars()
+            )
+            if (insets != null && insets.top > 0) {
+                return insets.top
+            }
+        }
+        val resourceId = ctx.resources.getIdentifier("status_bar_height", "dimen", "android")
+        if (resourceId > 0) {
+            return ctx.resources.getDimensionPixelSize(resourceId)
+        }
+        return 0
+    }
+
+    /**
      * Retrieves the current height (in pixels) of the active keyboard or floating panel.
      */
     fun getKeyboardHeight(): Int {
@@ -124,15 +145,23 @@ object PointerOverlay {
     }
 
     /**
-     * Calculates the exact overlay height (Y-coordinate where keyboard top starts).
-     * Formula: full screen height - accessibility / navigation menu height - keyboard height
+     * Calculates the Y position (in pixels) where the red overlay should start —
+     * just below the status bar (battery/network/notifications area).
+     */
+    fun getOverlayTopY(): Int = getStatusBarHeight()
+
+    /**
+     * Calculates the height of the red overlay:
+     * from below the status bar down to just above the keyboard.
+     * Formula: (screenH - navH - kbH) - statusBarH
      */
     fun getKeyboardTopY(): Int {
         val screenH = screenHeightPx()
         val navH = getNavBarHeight()
         val kbH = getKeyboardHeight()
+        val statusBarH = getStatusBarHeight()
 
-        val calculated = screenH - navH - kbH
+        val calculated = screenH - navH - kbH - statusBarH
         return calculated.coerceAtLeast(0)
     }
 
@@ -245,12 +274,14 @@ object PointerOverlay {
         val wm = getWindowManager() ?: return
         val overlayH = getKeyboardTopY()
         if (overlayH <= 0) return
+        val overlayTopY = getOverlayTopY()
         try {
             val params = redOverlay.layoutParams as? WindowManager.LayoutParams ?: return
-            if (params.height != overlayH) {
+            if (params.height != overlayH || params.y != overlayTopY) {
                 params.height = overlayH
+                params.y = overlayTopY
                 wm.updateViewLayout(redOverlay, params)
-                Log.i(TAG, "Updated overlay height to ${overlayH}px (top of keyboard)")
+                Log.i(TAG, "Updated overlay bounds: y=${overlayTopY}px, height=${overlayH}px")
             }
         } catch (e: Exception) {
             Log.w(TAG, "updateOverlayBounds failed: ${e.message}")
@@ -288,7 +319,8 @@ object PointerOverlay {
             } catch (e: Exception) {}
             cursorView = null
 
-            // 1. Red translucent touch-through screen overlay (covers entire screen above keyboard)
+            // 1. Red translucent touch-through screen overlay (covers screen below status bar, above keyboard)
+            val overlayTopY = getOverlayTopY()
             val redOverlay = TouchpadOverlayView(targetContext)
             val overlayParams = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -301,7 +333,7 @@ object PointerOverlay {
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
                 x = 0
-                y = 0
+                y = overlayTopY  // start below the status bar (battery/network/notifications)
             }
             wm.addView(redOverlay, overlayParams)
             screenOverlayView = redOverlay
@@ -324,7 +356,7 @@ object PointerOverlay {
             wm.addView(view, params)
             cursorView = view
             visible = true
-            Log.i(TAG, "Cursor & screen overlay attached (type=$type, overlayH=${overlayH}px, cursor=${size}px at $cursorX,$cursorY)")
+            Log.i(TAG, "Cursor & screen overlay attached (type=$type, overlayTopY=${overlayTopY}px, overlayH=${overlayH}px, cursor=${size}px at $cursorX,$cursorY)")
 
             // Follow-up checks to make sure height is accurately snapped to keyboard as IME finishes animating
             val delays = longArrayOf(50L, 150L, 300L, 500L, 800L)
