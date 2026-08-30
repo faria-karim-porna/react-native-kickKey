@@ -42,10 +42,10 @@ export default function Step4Done() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent', padding: 24, justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: 'transparent', padding: 24 },
   iconContainer: { alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
-  description: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 32 },
+  title: { fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
+  description: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   button: { paddingVertical: 16, borderRadius: 12, alignItems: 'center', borderTopWidth: 1.5, borderLeftWidth: 1.5, borderBottomWidth: 2, borderRightWidth: 2, shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 5 },
   buttonPressed: { transform: [{ translateY: 1 }], borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 0, borderRightWidth: 0, shadowOffset: { width: 1, height: 1 }, shadowOpacity: 0.2, shadowRadius: 1, elevation: 2 },
   buttonText: { fontSize: 16, fontWeight: '700' },
