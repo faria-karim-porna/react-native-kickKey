@@ -33,7 +33,7 @@ export default function RootLayout() {
   const segments = useSegments();
   const insets = useSafeAreaInsets();
   const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
-  const { isFullySetUp, isLoading } = useSetupStatus();
+  const { isEnabled, isDefault, isOverlayGranted, isFullySetUp, isLoading } = useSetupStatus();
   const colors = useAppColors();
 
   // Build a KeyboardThemeColors-compatible object for the Circuit
@@ -58,17 +58,24 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Wait until the first async bridge check has resolved before redirecting.
-    // Without this guard every tab switch could briefly see isFullySetUp=false
-    // and get bounced to onboarding.
     if (isLoading) return;
 
     const inOnboarding = segments[0] === 'onboarding';
     const shouldShowOnboarding = !hasCompletedOnboarding || !isFullySetUp;
 
     if (shouldShowOnboarding && !inOnboarding) {
-      router.replace('/onboarding/step1-enable');
+      const targetStep = !isEnabled
+        ? '/onboarding/step1-enable'
+        : !isDefault
+          ? '/onboarding/step2-default'
+          : !isOverlayGranted
+            ? '/onboarding/step3-overlay'
+            : '/onboarding/step4-done';
+      router.replace(targetStep as any);
+    } else if (!shouldShowOnboarding && inOnboarding) {
+      router.replace('/(tabs)');
     }
-  }, [hasCompletedOnboarding, isFullySetUp, isLoading, segments]);
+  }, [hasCompletedOnboarding, isFullySetUp, isEnabled, isDefault, isOverlayGranted, isLoading, segments]);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.rootBg }]} edges={['top']}>
@@ -88,8 +95,9 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: 'transparent' },
         }}
       >
-        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" />
       </Stack>
     </SafeAreaView>
   );
