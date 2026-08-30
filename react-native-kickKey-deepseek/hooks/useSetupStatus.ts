@@ -7,6 +7,8 @@ interface SetupStatus {
   isDefault: boolean;
   isOverlayGranted: boolean;
   isFullySetUp: boolean;
+  /** True until the first async bridge check has completed. */
+  isLoading: boolean;
   refresh: () => Promise<void>;
 }
 
@@ -17,6 +19,8 @@ export function useSetupStatus(): SetupStatus {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
   const [isOverlayGranted, setIsOverlayGranted] = useState(false);
+  // Start true so callers don't act on stale false values before the first check resolves.
+  const [isLoading, setIsLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = async () => {
@@ -28,6 +32,7 @@ export function useSetupStatus(): SetupStatus {
     setIsEnabled(enabled);
     setIsDefault(def);
     setIsOverlayGranted(overlay);
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -49,6 +54,7 @@ export function useSetupStatus(): SetupStatus {
     isDefault,
     isOverlayGranted,
     isFullySetUp: isEnabled && isDefault,
+    isLoading,
     refresh,
   };
 }
