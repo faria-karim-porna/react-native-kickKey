@@ -10,7 +10,7 @@
 // ============================================================
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { View } from 'react-native';
+import { View, Dimensions } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { createKeyboardStyles } from '../dynamicStyles';
 import { config } from './config';
@@ -37,29 +37,37 @@ type CircuitProps = {
   animated?: boolean;
   /** Theme colors for dark mode support. */
   themeColors: KeyboardThemeColors;
+  /** Optional custom grid cell size. */
+  cellSize?: number;
 };
 
-const CircuitComponent = ({ animated = true, themeColors }: CircuitProps) => {
+const CircuitComponent = ({ animated = true, themeColors, cellSize }: CircuitProps) => {
   const [wires, setWires] = useState<WireShape[]>([]);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>(() => {
+    const win = Dimensions.get('window');
+    return { width: win.width, height: win.height };
+  });
 
   const cfg = useMemo(() => config(themeColors), [themeColors]);
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
 
   useEffect(() => {
     generateWires();
-  }, [dimensions, cfg]);
+  }, [dimensions, cfg, cellSize]);
 
   const generateWires = () => {
     const { width, height } = dimensions;
     if (width < 100 || height < 100) return;
 
+    // Use larger cell size for full-screen background layouts so generation is instant
+    const effectiveCellSize = cellSize ?? (height > 500 ? 14 : cfg.cellSize);
+
     const allCells: Cell[] = [];
     const cellLookup: { [key: string]: Cell } = {};
     const allWires: Wire[] = [];
 
-    const totalRows = floor(height / cfg.cellSize);
-    const totalCols = floor(width / cfg.cellSize);
+    const totalRows = floor(height / effectiveCellSize);
+    const totalCols = floor(width / effectiveCellSize);
     if (totalRows === 0 || totalCols === 0) return;
 
     let freeCellCount = totalRows * totalCols;
@@ -74,13 +82,13 @@ const CircuitComponent = ({ animated = true, themeColors }: CircuitProps) => {
 
     const newWires: WireShape[] = [];
     let attempts = 0;
-    const maxAttempts = 1000;
+    const maxAttempts = Math.min(totalRows * totalCols, 500);
 
     while (allWires.length < freeCellCount && attempts < maxAttempts) {
       attempts++;
       const randomIndex = floor(random() * allCells.length);
       const cell = allCells[randomIndex];
-      if (!cell.isFree) continue;
+      if (!cell || !cell.isFree) continue;
 
       const wire = new Wire(cell);
       freeCellCount--;
@@ -88,22 +96,22 @@ const CircuitComponent = ({ animated = true, themeColors }: CircuitProps) => {
       wire.grow(totalRows, totalCols, allCells, cellLookup);
 
       if (wire.pathCells.length >= 2) {
-        const pathData = wire.getPathData(cfg.cellSize);
-        const startDot = wire.getStartDot(cfg.cellSize);
-        const endDot = wire.getEndDot(cfg.cellSize);
+        const pathData = wire.getPathData(effectiveCellSize);
+        const startDot = wire.getStartDot(effectiveCellSize);
+        const endDot = wire.getEndDot(effectiveCellSize);
 
         let pathLength = 0;
         for (let i = 1; i < wire.pathCells.length; i++) {
           const prev = wire.pathCells[i - 1];
           const curr = wire.pathCells[i];
-          const dx = Math.abs(curr.x - prev.x) * cfg.cellSize;
-          const dy = Math.abs(curr.y - prev.y) * cfg.cellSize;
+          const dx = Math.abs(curr.x - prev.x) * effectiveCellSize;
+          const dy = Math.abs(curr.y - prev.y) * effectiveCellSize;
           pathLength += Math.sqrt(dx * dx + dy * dy);
         }
 
         const animationTime = pathLength / cfg.glowSpeed;
         const isAnimated = random() > 0.5;
-        const radius = random() * (cfg.cellSize / 6) + cfg.cellSize / 12;
+        const radius = random() * (effectiveCellSize / 6) + effectiveCellSize / 12;
         const isFill = random() > 0.5;
 
         newWires.push({
@@ -132,7 +140,9 @@ const CircuitComponent = ({ animated = true, themeColors }: CircuitProps) => {
       style={[styles.circuitContainer, { backgroundColor: cfg.bgColor }]}
       onLayout={(event) => {
         const { width, height } = event.nativeEvent.layout;
-        setDimensions({ width, height });
+        if (width > 0 && height > 0 && (width !== dimensions.width || height !== dimensions.height)) {
+          setDimensions({ width, height });
+        }
       }}
     >
       {dimensions.width > 0 && dimensions.height > 0 ? (
