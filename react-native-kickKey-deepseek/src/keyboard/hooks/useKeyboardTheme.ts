@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import { NativeModules } from 'react-native';
+import { useSettingsStore } from '../../../store/settingsStore';
 
 export interface KeyboardThemeColors {
   keyboardBg: string;
@@ -62,8 +63,39 @@ function getKickKey() {
  * re-mounts the keyboard).
  */
 export function useKeyboardTheme(): KeyboardThemeColors {
-  const [colors, setColors] = useState<KeyboardThemeColors>(LIGHT_COLORS);
+  const storeThemeColors = useSettingsStore((s) => s.themeColors);
+  const storeKeyHeight = useSettingsStore((s) => s.keyHeight);
+  const storeKeyBorderRadius = useSettingsStore((s) => s.keyBorderRadius);
+  const storeFontSize = useSettingsStore((s) => s.fontSize);
 
+  const [colors, setColors] = useState<KeyboardThemeColors>(() => ({
+    keyboardBg: storeThemeColors.keyboardBg || LIGHT_COLORS.keyboardBg,
+    keyBg: storeThemeColors.keyBg || LIGHT_COLORS.keyBg,
+    keyText: storeThemeColors.keyText || LIGHT_COLORS.keyText,
+    specialKeyBg: storeThemeColors.specialKeyBg || LIGHT_COLORS.specialKeyBg,
+    specialKeyText: storeThemeColors.specialKeyText || LIGHT_COLORS.specialKeyText,
+    themePrimary: storeThemeColors.themePrimary || LIGHT_COLORS.themePrimary,
+    keyHeight: storeKeyHeight || LIGHT_COLORS.keyHeight,
+    keyBorderRadius: storeKeyBorderRadius || LIGHT_COLORS.keyBorderRadius,
+    fontSize: storeFontSize || LIGHT_COLORS.fontSize,
+  }));
+
+  // Sync state whenever Zustand settings store updates
+  useEffect(() => {
+    setColors({
+      keyboardBg: storeThemeColors.keyboardBg || LIGHT_COLORS.keyboardBg,
+      keyBg: storeThemeColors.keyBg || LIGHT_COLORS.keyBg,
+      keyText: storeThemeColors.keyText || LIGHT_COLORS.keyText,
+      specialKeyBg: storeThemeColors.specialKeyBg || LIGHT_COLORS.specialKeyBg,
+      specialKeyText: storeThemeColors.specialKeyText || LIGHT_COLORS.specialKeyText,
+      themePrimary: storeThemeColors.themePrimary || LIGHT_COLORS.themePrimary,
+      keyHeight: storeKeyHeight || LIGHT_COLORS.keyHeight,
+      keyBorderRadius: storeKeyBorderRadius || LIGHT_COLORS.keyBorderRadius,
+      fontSize: storeFontSize || LIGHT_COLORS.fontSize,
+    });
+  }, [storeThemeColors, storeKeyHeight, storeKeyBorderRadius, storeFontSize]);
+
+  // Also hydrate from native SharedPreferences on mount if available (e.g. IME process)
   useEffect(() => {
     getKickKey()
       ?.getPreferences()
@@ -76,31 +108,19 @@ export function useKeyboardTheme(): KeyboardThemeColors {
         const keyBorderRadius = typeof prefs.keyBorderRadius === 'number' ? prefs.keyBorderRadius : (isDark ? DARK_COLORS.keyBorderRadius : LIGHT_COLORS.keyBorderRadius);
         const fontSize = typeof prefs.fontSize === 'number' ? prefs.fontSize : (isDark ? DARK_COLORS.fontSize : LIGHT_COLORS.fontSize);
 
-        if (isDark) {
-          setColors({
-            keyboardBg:    prefs.keyboardBg   || DARK_COLORS.keyboardBg,
-            keyBg:         prefs.themeKeyBg   || DARK_COLORS.keyBg,
-            keyText:       prefs.themeKeyText  || DARK_COLORS.keyText,
-            specialKeyBg:  prefs.specialKeyBg  || DARK_COLORS.specialKeyBg,
-            specialKeyText: DARK_COLORS.specialKeyText,
-            themePrimary:  prefs.themePrimary  || DARK_COLORS.themePrimary,
-            keyHeight,
-            keyBorderRadius,
-            fontSize,
-          });
-        } else {
-          setColors({
-            keyboardBg:    prefs.keyboardBg   || LIGHT_COLORS.keyboardBg,
-            keyBg:         prefs.themeKeyBg   || LIGHT_COLORS.keyBg,
-            keyText:       prefs.themeKeyText  || LIGHT_COLORS.keyText,
-            specialKeyBg:  prefs.specialKeyBg  || LIGHT_COLORS.specialKeyBg,
-            specialKeyText: LIGHT_COLORS.specialKeyText,
-            themePrimary:  prefs.themePrimary  || LIGHT_COLORS.themePrimary,
-            keyHeight,
-            keyBorderRadius,
-            fontSize,
-          });
-        }
+        const defaultColors = isDark ? DARK_COLORS : LIGHT_COLORS;
+
+        setColors({
+          keyboardBg:    prefs.keyboardBg   || defaultColors.keyboardBg,
+          keyBg:         prefs.themeKeyBg   || defaultColors.keyBg,
+          keyText:       prefs.themeKeyText  || defaultColors.keyText,
+          specialKeyBg:  prefs.specialKeyBg  || defaultColors.specialKeyBg,
+          specialKeyText: defaultColors.specialKeyText,
+          themePrimary:  prefs.themePrimary  || defaultColors.themePrimary,
+          keyHeight,
+          keyBorderRadius,
+          fontSize,
+        });
       })
       .catch(() => {});
   }, []);
