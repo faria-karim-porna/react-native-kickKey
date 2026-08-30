@@ -147,20 +147,19 @@ object PointerOverlay {
      * Calculates the Y position (in pixels) where the red overlay should start —
      * just below the status bar (battery/network/notifications area).
      */
-    fun getOverlayTopY(): Int = getStatusBarHeight()
+    fun getOverlayTopY(): Int = 0
 
     /**
      * Calculates the height of the red overlay:
-     * from below the status bar down to just above the keyboard.
-     * Formula: (screenH - navH - kbH) - statusBarH
+     * from the very top of the screen (y=0) down to just above the keyboard.
+     * Formula: screenH - navH - kbH
      */
     fun getKeyboardTopY(): Int {
         val screenH = screenHeightPx()
         val navH = getNavBarHeight()
         val kbH = getKeyboardHeight()
-        val statusBarH = getStatusBarHeight()
 
-        val calculated = screenH - navH - kbH - statusBarH
+        val calculated = screenH - navH - kbH
         return calculated.coerceAtLeast(0)
     }
 
