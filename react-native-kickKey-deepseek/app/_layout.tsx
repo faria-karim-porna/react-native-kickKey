@@ -33,7 +33,7 @@ export default function RootLayout() {
   const segments = useSegments();
   const insets = useSafeAreaInsets();
   const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
-  const { isFullySetUp } = useSetupStatus();
+  const { isFullySetUp, isLoading } = useSetupStatus();
   const colors = useAppColors();
 
   // Build a KeyboardThemeColors-compatible object for the Circuit
@@ -57,13 +57,18 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    // Wait until the first async bridge check has resolved before redirecting.
+    // Without this guard every tab switch could briefly see isFullySetUp=false
+    // and get bounced to onboarding.
+    if (isLoading) return;
+
     const inOnboarding = segments[0] === 'onboarding';
     const shouldShowOnboarding = !hasCompletedOnboarding || !isFullySetUp;
 
     if (shouldShowOnboarding && !inOnboarding) {
       router.replace('/onboarding/step1-enable');
     }
-  }, [hasCompletedOnboarding, isFullySetUp, segments]);
+  }, [hasCompletedOnboarding, isFullySetUp, isLoading, segments]);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.rootBg }]} edges={['top']}>
