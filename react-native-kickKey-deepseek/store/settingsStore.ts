@@ -3,7 +3,63 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ThemeName = 'dark' | 'light' | 'nord' | 'cyberpunk' | 'midnight' | 'sunset' | 'custom' | string;
-export type CursorType = 'classic' | 'bubble' | 'sharp' | 'motion' | 'solid' | 'dot' | 'crosshair' | 'target' | 'dashed' | 'loading' | 'sparkle' | 'pointer' | 'hand' | 'click' | 'fast' | 'energy' | 'refresh' | 'filled' | 'play' | 'bold' | 'underline' | 'outline' | 'thick' | 'thin' | 'small';
+export type CursorType =
+  // Pointers
+  | 'cursor-alt-thick-pointer'
+  | 'cursor-pointer-classic'
+  | 'cursor-pointer-nested'
+  | 'cursor-pointer-small'
+  | 'cursor-pointer-standard'
+  | 'cursor-simple-triangle'
+  | 'pointer-cursor-detailed'
+  | 'pointer-cursor-settings'
+  | 'pointer-hand-cursor'
+  // Hands
+  | 'hand-click-cursor'
+  | 'hand-grab-closed'
+  | 'hand-grab-cursor'
+  | 'hand-open-fingers'
+  | 'hand-open-palm'
+  | 'hand-pointing-index'
+  // Click Effects
+  | 'cursor-click-burst-fill'
+  | 'cursor-click-crosshair'
+  | 'cursor-click-lines'
+  | 'cursor-click-sparkle-crosshair'
+  | 'cursor-click-sparkle-dots'
+  | 'cursor-click-target-corners'
+  // Text & Edit
+  | 'cursor-edit-pencil'
+  | 'edit-pen-cursor-filled'
+  | 'edit-pen-cursor-outline'
+  | 'pencil-edit-cursor'
+  | 'text-cursor-i-beam-round'
+  | 'text-cursor-i-beam-serif'
+  // Movement
+  | 'cursor-move-diagonal-down'
+  | 'drag-drop-arrows'
+  | 'move-arrows-4way'
+  | 'move-arrows-cross'
+  | 'move-arrows-cross-circle'
+  | 'move-arrows-horizontal'
+  | 'move-arrows-large'
+  // Scroll
+  | 'cursor-arrow-scroll-wheel'
+  | 'cursor-arrow-scroll-wheel-gray'
+  | 'scroll-arrows-4way'
+  | 'scroll-arrows-down'
+  | 'scroll-arrows-horizontal'
+  | 'scroll-arrows-vertical'
+  | 'scroll-arrows-vertical-outline'
+  // Special
+  | 'cursor-diagonal-line'
+  | 'cursor-gps-location'
+  | 'cursor-pixel-block'
+  | 'cursor-plus-add'
+  | 'cursor-plus-cross'
+  | 'cursor-rays-light'
+  | 'keyboard-arrows-icon'
+  | 'magic-wand-sparkle';
 
 export interface ThemeColors {
   keyboardBg: string;
@@ -95,7 +151,7 @@ export const useSettingsStore = create<SettingsState>()(
       setKeyBorderRadius: (keyBorderRadius) => set({ keyBorderRadius }),
       setFontSize: (fontSize) => set({ fontSize }),
 
-      cursorType: 'classic',
+      cursorType: 'cursor-pointer-classic',
       cursorColor: '#8594aa',
       cursorSize: 24,
       setCursorType: (cursorType) => set({ cursorType }),

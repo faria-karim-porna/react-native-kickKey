@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, AppState, Pressable, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, AppState, Pressable, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, Rect, Line, Circle } from 'react-native-svg';
+import { SvgUri } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { CursorType } from '../../store/settingsStore';
@@ -10,34 +10,161 @@ import KickKey from '../../modules/kickkey-module';
 import { useAppColors } from '../../hooks/useAppColors';
 import { useTranslation } from '../../hooks/useTranslation';
 
-// ─── Cursor type definitions ────────────────────────────────────────────────
+// ─── SVG asset map ────────────────────────────────────────────────────────
 
-const CURSOR_TYPES: { type: CursorType; label: string }[] = [
-  { type: 'classic',     label: 'Classic' },
-  { type: 'bubble',      label: 'Bubble' },
-  { type: 'sharp',       label: 'Sharp' },
-  { type: 'motion',      label: 'Motion' },
-  { type: 'solid',       label: 'Solid' },
-  { type: 'dot',         label: 'Dot' },
-  { type: 'crosshair',   label: 'Crosshair' },
-  { type: 'target',      label: 'Target' },
-  { type: 'dashed',      label: 'Dashed' },
-  { type: 'loading',     label: 'Loading' },
-  { type: 'sparkle',     label: 'Sparkle' },
-  { type: 'pointer',     label: 'Pointer' },
-  { type: 'hand',        label: 'Hand' },
-  { type: 'click',       label: 'Click' },
-  { type: 'fast',        label: 'Fast' },
-  { type: 'energy',      label: 'Energy' },
-  { type: 'refresh',     label: 'Refresh' },
-  { type: 'filled',      label: 'Filled' },
-  { type: 'play',        label: 'Play' },
-  { type: 'bold',        label: 'Bold' },
-  { type: 'underline',   label: 'Underline' },
-  { type: 'outline',     label: 'Outline' },
-  { type: 'thick',       label: 'Thick' },
-  { type: 'thin',        label: 'Thin' },
-  { type: 'small',       label: 'Small' },
+const CURSOR_SVG_ASSETS: Record<CursorType, ReturnType<typeof require>> = {
+  'cursor-alt-thick-pointer':         require('../../assets/svg/cursor-alt-thick-pointer.svg'),
+  'cursor-pointer-classic':           require('../../assets/svg/cursor-pointer-classic.svg'),
+  'cursor-pointer-nested':            require('../../assets/svg/cursor-pointer-nested.svg'),
+  'cursor-pointer-small':             require('../../assets/svg/cursor-pointer-small.svg'),
+  'cursor-pointer-standard':          require('../../assets/svg/cursor-pointer-standard.svg'),
+  'cursor-simple-triangle':           require('../../assets/svg/cursor-simple-triangle.svg'),
+  'pointer-cursor-detailed':          require('../../assets/svg/pointer-cursor-detailed.svg'),
+  'pointer-cursor-settings':          require('../../assets/svg/pointer-cursor-settings.svg'),
+  'pointer-hand-cursor':              require('../../assets/svg/pointer-hand-cursor.svg'),
+  'hand-click-cursor':                require('../../assets/svg/hand-click-cursor.svg'),
+  'hand-grab-closed':                 require('../../assets/svg/hand-grab-closed.svg'),
+  'hand-grab-cursor':                 require('../../assets/svg/hand-grab-cursor.svg'),
+  'hand-open-fingers':                require('../../assets/svg/hand-open-fingers.svg'),
+  'hand-open-palm':                   require('../../assets/svg/hand-open-palm.svg'),
+  'hand-pointing-index':              require('../../assets/svg/hand-pointing-index.svg'),
+  'cursor-click-burst-fill':          require('../../assets/svg/cursor-click-burst-fill.svg'),
+  'cursor-click-crosshair':           require('../../assets/svg/cursor-click-crosshair.svg'),
+  'cursor-click-lines':               require('../../assets/svg/cursor-click-lines.svg'),
+  'cursor-click-sparkle-crosshair':   require('../../assets/svg/cursor-click-sparkle-crosshair.svg'),
+  'cursor-click-sparkle-dots':        require('../../assets/svg/cursor-click-sparkle-dots.svg'),
+  'cursor-click-target-corners':      require('../../assets/svg/cursor-click-target-corners.svg'),
+  'cursor-edit-pencil':               require('../../assets/svg/cursor-edit-pencil.svg'),
+  'edit-pen-cursor-filled':           require('../../assets/svg/edit-pen-cursor-filled.svg'),
+  'edit-pen-cursor-outline':          require('../../assets/svg/edit-pen-cursor-outline.svg'),
+  'pencil-edit-cursor':               require('../../assets/svg/pencil-edit-cursor.svg'),
+  'text-cursor-i-beam-round':         require('../../assets/svg/text-cursor-i-beam-round.svg'),
+  'text-cursor-i-beam-serif':         require('../../assets/svg/text-cursor-i-beam-serif.svg'),
+  'cursor-move-diagonal-down':        require('../../assets/svg/cursor-move-diagonal-down.svg'),
+  'drag-drop-arrows':                 require('../../assets/svg/drag-drop-arrows.svg'),
+  'move-arrows-4way':                 require('../../assets/svg/move-arrows-4way.svg'),
+  'move-arrows-cross':                require('../../assets/svg/move-arrows-cross.svg'),
+  'move-arrows-cross-circle':         require('../../assets/svg/move-arrows-cross-circle.svg'),
+  'move-arrows-horizontal':           require('../../assets/svg/move-arrows-horizontal.svg'),
+  'move-arrows-large':                require('../../assets/svg/move-arrows-large.svg'),
+  'cursor-arrow-scroll-wheel':        require('../../assets/svg/cursor-arrow-scroll-wheel.svg'),
+  'cursor-arrow-scroll-wheel-gray':   require('../../assets/svg/cursor-arrow-scroll-wheel-gray.svg'),
+  'scroll-arrows-4way':               require('../../assets/svg/scroll-arrows-4way.svg'),
+  'scroll-arrows-down':               require('../../assets/svg/scroll-arrows-down.svg'),
+  'scroll-arrows-horizontal':         require('../../assets/svg/scroll-arrows-horizontal.svg'),
+  'scroll-arrows-vertical':           require('../../assets/svg/scroll-arrows-vertical.svg'),
+  'scroll-arrows-vertical-outline':   require('../../assets/svg/scroll-arrows-vertical-outline.svg'),
+  'cursor-diagonal-line':             require('../../assets/svg/cursor-diagonal-line.svg'),
+  'cursor-gps-location':              require('../../assets/svg/cursor-gps-location.svg'),
+  'cursor-pixel-block':               require('../../assets/svg/cursor-pixel-block.svg'),
+  'cursor-plus-add':                  require('../../assets/svg/cursor-plus-add.svg'),
+  'cursor-plus-cross':                require('../../assets/svg/cursor-plus-cross.svg'),
+  'cursor-rays-light':                require('../../assets/svg/cursor-rays-light.svg'),
+  'keyboard-arrows-icon':             require('../../assets/svg/keyboard-arrows-icon.svg'),
+  'magic-wand-sparkle':               require('../../assets/svg/magic-wand-sparkle.svg'),
+};
+
+function getCursorSvgUri(type: CursorType): string {
+  return Image.resolveAssetSource(CURSOR_SVG_ASSETS[type]).uri;
+}
+
+// ─── Cursor categories ──────────────────────────────────────────────────────
+
+interface CursorEntry {
+  type: CursorType;
+  label: string;
+}
+
+interface CursorCategory {
+  name: string;
+  entries: CursorEntry[];
+}
+
+const CURSOR_CATEGORIES: CursorCategory[] = [
+  {
+    name: 'Pointers',
+    entries: [
+      { type: 'cursor-pointer-classic',     label: 'Classic' },
+      { type: 'cursor-pointer-standard',    label: 'Standard' },
+      { type: 'cursor-pointer-nested',      label: 'Nested' },
+      { type: 'cursor-pointer-small',       label: 'Small' },
+      { type: 'cursor-alt-thick-pointer',   label: 'Alt Thick' },
+      { type: 'cursor-simple-triangle',     label: 'Triangle' },
+      { type: 'pointer-cursor-detailed',    label: 'Detailed' },
+      { type: 'pointer-cursor-settings',    label: 'Settings' },
+      { type: 'pointer-hand-cursor',        label: 'Hand Cursor' },
+    ],
+  },
+  {
+    name: 'Hands',
+    entries: [
+      { type: 'hand-pointing-index',  label: 'Pointing' },
+      { type: 'hand-open-palm',       label: 'Open Palm' },
+      { type: 'hand-open-fingers',    label: 'Open Fingers' },
+      { type: 'hand-grab-cursor',     label: 'Grab' },
+      { type: 'hand-grab-closed',     label: 'Grab Closed' },
+      { type: 'hand-click-cursor',    label: 'Click' },
+    ],
+  },
+  {
+    name: 'Click Effects',
+    entries: [
+      { type: 'cursor-click-crosshair',         label: 'Crosshair' },
+      { type: 'cursor-click-target-corners',    label: 'Target' },
+      { type: 'cursor-click-burst-fill',        label: 'Burst' },
+      { type: 'cursor-click-lines',             label: 'Lines' },
+      { type: 'cursor-click-sparkle-crosshair', label: 'Sparkle Cross' },
+      { type: 'cursor-click-sparkle-dots',      label: 'Sparkle Dots' },
+    ],
+  },
+  {
+    name: 'Text & Edit',
+    entries: [
+      { type: 'text-cursor-i-beam-round',  label: 'I-Beam Round' },
+      { type: 'text-cursor-i-beam-serif',  label: 'I-Beam Serif' },
+      { type: 'pencil-edit-cursor',         label: 'Pencil' },
+      { type: 'cursor-edit-pencil',         label: 'Edit Pencil' },
+      { type: 'edit-pen-cursor-filled',     label: 'Pen Filled' },
+      { type: 'edit-pen-cursor-outline',    label: 'Pen Outline' },
+    ],
+  },
+  {
+    name: 'Movement',
+    entries: [
+      { type: 'move-arrows-4way',           label: '4-Way' },
+      { type: 'move-arrows-cross',          label: 'Cross' },
+      { type: 'move-arrows-cross-circle',   label: 'Cross Circle' },
+      { type: 'move-arrows-horizontal',     label: 'Horizontal' },
+      { type: 'move-arrows-large',          label: 'Large' },
+      { type: 'cursor-move-diagonal-down',  label: 'Diagonal' },
+      { type: 'drag-drop-arrows',           label: 'Drag Drop' },
+    ],
+  },
+  {
+    name: 'Scroll',
+    entries: [
+      { type: 'scroll-arrows-vertical',         label: 'Vertical' },
+      { type: 'scroll-arrows-vertical-outline', label: 'Vertical Outline' },
+      { type: 'scroll-arrows-horizontal',       label: 'Horizontal' },
+      { type: 'scroll-arrows-down',             label: 'Down' },
+      { type: 'scroll-arrows-4way',             label: '4-Way' },
+      { type: 'cursor-arrow-scroll-wheel',      label: 'Scroll Wheel' },
+      { type: 'cursor-arrow-scroll-wheel-gray', label: 'Scroll Gray' },
+    ],
+  },
+  {
+    name: 'Special',
+    entries: [
+      { type: 'magic-wand-sparkle',      label: 'Magic Wand' },
+      { type: 'cursor-rays-light',       label: 'Rays' },
+      { type: 'cursor-gps-location',     label: 'GPS' },
+      { type: 'cursor-pixel-block',      label: 'Pixel' },
+      { type: 'cursor-plus-add',         label: 'Plus Add' },
+      { type: 'cursor-plus-cross',       label: 'Plus Cross' },
+      { type: 'cursor-diagonal-line',    label: 'Diagonal Line' },
+      { type: 'keyboard-arrows-icon',    label: 'Keyboard' },
+    ],
+  },
 ];
 
 const CURSOR_COLORS = [
@@ -46,36 +173,7 @@ const CURSOR_COLORS = [
   '#3498db', '#9b59b6', '#e91e63', '#00bcd4',
 ];
 
-function CursorPreview({ type, color, size }: { type: CursorType; color: string; size: number }) {
-  const s = Math.round(size * 0.6);
-  switch (type) {
-    case 'classic': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z" stroke={color} strokeWidth="1.5" fill="none" /></Svg>);
-    case 'bubble': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M6 4c0 0 2-1 6-1s6 2 6 2l-4 8 3 6-2.5 1.2-3-6L6 18V4z" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>);
-    case 'sharp': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 2l14 11-6 1 3.5 7-2.5 1.2-3.5-7L5 22V2z" stroke={color} strokeWidth="1.5" fill="none" /></Svg>);
-    case 'motion': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M4 2l12 9.5-5 1.5 3 6-2.5 1.2-3-6L4 20V2z" fill={color} /><Path d="M9 12l-3 6-2 1" stroke={color} strokeWidth="1.5" fill="none" /></Svg>);
-    case 'solid': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M4 2l16 12-6 1 4 7-2.5 1.2-4-7L4 22V2z" fill={color} /></Svg>);
-    case 'dot': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 3l12 9-5 1.5 3 6-2.5 1.2-3-6L5 21V3z" fill={color} /><Circle cx="16" cy="18" r="2.5" fill={color} /></Svg>);
-    case 'crosshair': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Circle cx="12" cy="12" r="8" stroke={color} strokeWidth="1.5" fill="none" /><Line x1="12" y1="4" x2="12" y2="20" stroke={color} strokeWidth="1.5" /><Line x1="4" y1="12" x2="20" y2="12" stroke={color} strokeWidth="1.5" /><Circle cx="12" cy="12" r="2" fill={color} /></Svg>);
-    case 'target': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z" fill={color} /><Circle cx="8" cy="8" r="4" stroke={color} strokeWidth="1.5" fill="none" /><Circle cx="8" cy="8" r="1" fill={color} /></Svg>);
-    case 'dashed': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z" fill={color} /><Circle cx="8" cy="8" r="4" stroke={color} strokeWidth="1.5" fill="none" strokeDasharray="2 2" /></Svg>);
-    case 'loading': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z" fill={color} /><Path d="M12 4a8 8 0 0 1 8 8" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" /></Svg>);
-    case 'sparkle': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M6 4c0 0 2-1 6-1s6 2 6 2l-4 8 3 6-2.5 1.2-3-6L6 18V4z" stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /><Circle cx="4" cy="6" r="1" fill={color} /><Circle cx="3" cy="10" r="0.7" fill={color} /><Circle cx="6" cy="3" r="0.7" fill={color} /></Svg>);
-    case 'pointer': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z" stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>);
-    case 'hand': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-5.5a1.5 1.5 0 0 1 3 0V11m0-3.5a1.5 1.5 0 0 1 3 0V11m0-4.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V9.5a1.5 1.5 0 0 1 3 0V11" stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>);
-    case 'click': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z" fill={color} /><Circle cx="6" cy="8" r="3" stroke={color} strokeWidth="1.5" fill="none" /></Svg>);
-    case 'fast': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z" fill={color} /><Path d="M4 10l3 2" stroke={color} strokeWidth="1.5" strokeLinecap="round" /><Path d="M4 14l3 2" stroke={color} strokeWidth="1.5" strokeLinecap="round" /></Svg>);
-    case 'energy': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z" stroke={color} strokeWidth="1.5" fill="none" /><Path d="M5 6l1-2M3 9l-1.5-1M3 12l-1.5 1" stroke={color} strokeWidth="1" strokeLinecap="round" /></Svg>);
-    case 'refresh': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M7 2l2 16 3-3 4 5-1.5 1-4-5-3 3V2z" fill={color} /><Path d="M12 4a8 8 0 0 1 8 8" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" /><Path d="M18 6l2 2-2 2" stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>);
-    case 'filled': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M4 2l16 12-6 1 4 7-2.5 1.2-4-7L4 22V2z" fill={color} /><Path d="M4 2l16 12-6 1 4 7-2.5 1.2-4-7L4 22V2z" stroke={color} strokeWidth="0.5" fill="none" /></Svg>);
-    case 'play': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M8 4l12 8-12 8V4z" fill={color} /><Path d="M6 20v-1" stroke={color} strokeWidth="2" strokeLinecap="round" /></Svg>);
-    case 'bold': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z" fill={color} /></Svg>);
-    case 'underline': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M8 4l12 8-12 8V4z" fill={color} /><Line x1="6" y1="20" x2="20" y2="20" stroke={color} strokeWidth="2" strokeLinecap="round" /></Svg>);
-    case 'outline': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z" stroke={color} strokeWidth="2" fill="none" /></Svg>);
-    case 'thick': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z" stroke={color} strokeWidth="3" fill="none" strokeLinejoin="round" /></Svg>);
-    case 'thin': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M5 3l12 9.5-5 1.5 3 6-2.5 1.2-3-6L5 21V3z" stroke={color} strokeWidth="1" fill="none" /></Svg>);
-    case 'small': return (<Svg width={s} height={s} viewBox="0 0 24 24"><Path d="M8 4l8 6-3 1 2 4-1.5 0.7-2-4-3 2V4z" stroke={color} strokeWidth="1.5" fill="none" /></Svg>);
-  }
-}
+
 
 
 // ─── SliderRow (reusable) ──────────────────────────────────────────────────
@@ -202,19 +300,24 @@ export default function SettingsScreen() {
 
         {/* ── Cursor ───────────────────────────────────────────── */}
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.cursorType}</Text>
-        <View style={styles.cursorTypeGrid}>
-          {CURSOR_TYPES.map(({ type, label }) => (
-            <TouchableOpacity
-              key={type}
-              style={[styles.cursorTypeCard, { backgroundColor: colors.card, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, cursorType === type && { borderColor: colors.accent, borderWidth: 2 }]}
-              onPress={() => setCursorType(type)}
-              activeOpacity={0.8}
-            >
-              <CursorPreview type={type} color={cursorType === type ? colors.accent : colors.textMuted} size={cursorSize} />
-              <Text style={[styles.cursorTypeLabel, { color: colors.textSecondary }, cursorType === type && { color: colors.accent }]}>{label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {CURSOR_CATEGORIES.map((category) => (
+          <View key={category.name} style={{ marginBottom: 12 }}>
+            <Text style={[styles.categoryLabel, { color: colors.textMuted }]}>{category.name}</Text>
+            <View style={styles.cursorTypeGrid}>
+              {category.entries.map(({ type, label }) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[styles.cursorTypeCard, { backgroundColor: colors.card, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, cursorType === type && { borderColor: colors.accent, borderWidth: 2 }]}
+                  onPress={() => setCursorType(type)}
+                  activeOpacity={0.8}
+                >
+                  <SvgUri uri={getCursorSvgUri(type)} width={Math.round(cursorSize * 0.6)} height={Math.round(cursorSize * 0.6)} />
+                  <Text style={[styles.cursorTypeLabel, { color: colors.textSecondary }, cursorType === type && { color: colors.accent }]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
 
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.cursorColor}</Text>
         <View style={styles.colorPalette}>
@@ -226,7 +329,7 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.cursorSize}</Text>
         <View style={[styles.card, cardStyle]}>
           <View style={[styles.cursorSizePreview, { backgroundColor: colors.inputBg, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR }]}>
-            <CursorPreview type={cursorType} color={cursorColor} size={cursorSize} />
+            <SvgUri uri={getCursorSvgUri(cursorType)} width={cursorSize} height={cursorSize} />
           </View>
           <SliderRow label={t.size} value={cursorSize} min={12} max={48} onChange={setCursorSize} unit="px" colors={colors} />
         </View>
@@ -279,6 +382,7 @@ const styles = StyleSheet.create({
   sliderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   sliderLabel: { fontSize: 13 },
   sliderValue: { fontSize: 13, fontWeight: '600' },
+  categoryLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
   cursorTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 },
   cursorTypeCard: { width: '30%', borderRadius: 10, paddingVertical: 12, alignItems: 'center', gap: 6, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderBottomWidth: 2, borderRightWidth: 2, shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
   cursorTypeLabel: { fontSize: 11, fontWeight: '600' },
