@@ -562,11 +562,11 @@ class KickKeyModule : Module() {
             val prefs = context.getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
             mapOf(
                 "language"        to (prefs.getString("language",        "en")      ?: "en"),
-                "theme"           to (prefs.getString("theme",           "dark")    ?: "dark"),
-                "keyboardBg"      to (prefs.getString("keyboardBg",      "#0d0d1a") ?: "#0d0d1a"),
-                "themeKeyBg"      to (prefs.getString("themeKeyBg",      "#1e1e2e") ?: "#1e1e2e"),
-                "themeKeyText"    to (prefs.getString("themeKeyText",    "#ffffff") ?: "#ffffff"),
-                "specialKeyBg"    to (prefs.getString("specialKeyBg",   "#2a2a40") ?: "#2a2a40"),
+                "theme"           to (prefs.getString("theme",           "system")  ?: "system"),
+                "keyboardBg"      to (prefs.getString("keyboardBg",      "#e0e5ec") ?: "#e0e5ec"),
+                "themeKeyBg"      to (prefs.getString("themeKeyBg",      "#f2f2f2") ?: "#f2f2f2"),
+                "themeKeyText"    to (prefs.getString("themeKeyText",    "#444444") ?: "#444444"),
+                "specialKeyBg"    to (prefs.getString("specialKeyBg",   "#c8ccd0") ?: "#c8ccd0"),
                 "themePrimary"    to (prefs.getString("themePrimary",   "#8594aa") ?: "#8594aa"),
                 "keyHeight"       to prefs.getInt("keyHeight",        48),
                 "keyBorderRadius" to prefs.getInt("keyBorderRadius",   6),

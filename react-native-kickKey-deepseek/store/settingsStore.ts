@@ -2,7 +2,19 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeName = 'dark' | 'light' | 'nord' | 'cyberpunk' | 'midnight' | 'sunset' | 'custom' | string;
+export type ThemeName = 'system' | 'dark' | 'light' | 'nord' | 'cyberpunk' | 'midnight' | 'sunset' | 'custom' | string;
+
+/**
+ * Theme stored as 'system' follows the device's dark/light mode. Everything
+ * that renders colors resolves it through resolveIsDark() — the keyboard
+ * bundle's useKeyboardTheme and the app's useAppColors share this helper so
+ * both processes always agree on the resolved palette.
+ */
+export function resolveIsDark(theme: ThemeName, systemIsDark: boolean): boolean {
+  if (theme === 'system') return systemIsDark;
+  if (theme === 'nord') return true;
+  return theme === 'dark';
+}
 /**
  * Every selectable cursor. Kept as a runtime array (not only a type) so a value
  * restored from AsyncStorage can be validated — names were renamed from short
@@ -139,7 +151,7 @@ export const useSettingsStore = create<SettingsState>()(
       language: 'en',
       setLanguage: (language) => set({ language }),
 
-      theme: 'light',
+      theme: 'system',
       themeColors: {
         keyboardBg:     '#e0e5ec',
         keyBg:          '#f2f2f2',

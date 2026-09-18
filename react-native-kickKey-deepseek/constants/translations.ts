@@ -58,6 +58,8 @@ const translations = {
     // Themes screen
     themesTitle: 'Themes',
     colorTheme: 'Color Theme',
+    systemThemeLabel: 'System (Auto)',
+    systemThemeDescription: 'Match the device\'s dark or light mode',
 
     // Language screen
     languageTitle: 'Language',
@@ -165,6 +167,8 @@ const translations = {
     // Themes screen
     themesTitle: 'থিম',
     colorTheme: 'রঙের থিম',
+    systemThemeLabel: 'সিস্টেম (অটো)',
+    systemThemeDescription: 'ডিভাইসের ডার্ক বা লাইট মোড অনুযায়ী',
 
     // Language screen
     languageTitle: 'ভাষা',

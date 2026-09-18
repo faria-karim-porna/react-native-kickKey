@@ -1,4 +1,6 @@
-import { useSettingsStore } from '../store/settingsStore';
+import { useSyncExternalStore } from 'react';
+import { Appearance } from 'react-native';
+import { useSettingsStore, resolveIsDark } from '../store/settingsStore';
 
 export interface AppColors {
   /** Root background (behind circuit) */
@@ -89,7 +91,29 @@ const DARK: AppColors = {
   circuitGlow: '#3b4252',
 };
 
+/**
+ * Subscribe to the OS color scheme. useSyncExternalStore is needed because
+ * Appearance is an external, mutable global — without a subscription a
+ * mid-session dark/light toggle would never re-render the app.
+ */
+function subscribe(callback: () => void) {
+  const sub = Appearance.addChangeListener((prefs: { colorScheme?: string | null }) => {
+    // Ignore changes while the scheme can't be read yet (e.g. SSR/bridging edge cases)
+    if (prefs.colorScheme) callback();
+  });
+  return () => sub.remove();
+}
+
+export function useSystemIsDark(): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    () => Appearance.getColorScheme() === 'dark',
+    () => false
+  );
+}
+
 export function useAppColors(): AppColors {
   const theme = useSettingsStore((s) => s.theme);
-  return theme === 'nord' ? DARK : LIGHT;
+  const systemIsDark = useSystemIsDark();
+  return resolveIsDark(theme, systemIsDark) ? DARK : LIGHT;
 }
