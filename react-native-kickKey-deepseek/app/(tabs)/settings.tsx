@@ -64,8 +64,13 @@ const CURSOR_SVG_ASSETS: Record<CursorType, ReturnType<typeof require>> = {
   'magic-wand-sparkle':               require('../../assets/svg/magic-wand-sparkle.svg'),
 };
 
+const DEFAULT_CURSOR_TYPE: CursorType = 'cursor-pointer-classic';
+
 function getCursorSvgUri(type: CursorType): string {
-  return Image.resolveAssetSource(CURSOR_SVG_ASSETS[type]).uri;
+  // A persisted cursorType from an older app version may not exist any more,
+  // so never index the asset map without a fallback.
+  const asset = CURSOR_SVG_ASSETS[type] ?? CURSOR_SVG_ASSETS[DEFAULT_CURSOR_TYPE];
+  return Image.resolveAssetSource(asset)?.uri ?? '';
 }
 
 // ─── Cursor categories ──────────────────────────────────────────────────────

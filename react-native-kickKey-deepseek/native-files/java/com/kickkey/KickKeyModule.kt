@@ -644,6 +644,46 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         promise.resolve(null)
     }
 
+    /**
+     * Replaces the entire per-language custom dictionary ("en" / "bn"). The
+     * SuggestionEngine caches the words in memory, so it reloads right away when
+     * it lives in this process (it is null in the companion app process).
+     */
+    @ReactMethod
+    fun setCustomDictionary(enWords: ReadableArray?, bnWords: ReadableArray?, promise: Promise) {
+        reactApplicationContext
+            .getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+            .edit()
+            .putString("custom_words_en", readableArrayToList(enWords).joinToString("\n"))
+            .putString("custom_words_bn", readableArrayToList(bnWords).joinToString("\n"))
+            .apply()
+        suggestionEngine?.reloadCustomWords()
+        promise.resolve(null)
+    }
+
+    /** Returns the custom dictionary words stored for [lang] ("en" or "bn"). */
+    @ReactMethod
+    fun getCustomDictionary(lang: String, promise: Promise) {
+        val key = if (lang == "bn") "custom_words_bn" else "custom_words_en"
+        val raw = reactApplicationContext
+            .getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+            .getString(key, "") ?: ""
+        val array = Arguments.createArray()
+        if (raw.isNotEmpty()) {
+            raw.split("\n").forEach { array.pushString(it) }
+        }
+        promise.resolve(array)
+    }
+
+    private fun readableArrayToList(array: ReadableArray?): List<String> {
+        if (array == null) return emptyList()
+        val list = mutableListOf<String>()
+        for (i in 0 until array.size()) {
+            array.getString(i)?.let { list.add(it) }
+        }
+        return list
+    }
+
     @ReactMethod
     fun getPreferences(promise: Promise) {
         val context = reactApplicationContext

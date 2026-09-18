@@ -28,15 +28,20 @@ export function useKickKeyBridge() {
     removeDictionaryWord: (word: string): Promise<void> =>
       isAvailable ? KickKey.removeDictionaryWord(word) : Promise.resolve(),
 
-    setCustomDictionary: (enWords: string[] = [], bnWords: string[] = []): Promise<void> =>
-      isAvailable
-        ? KickKey.setCustomDictionary(
-            Array.isArray(enWords) ? enWords : [],
-            Array.isArray(bnWords) ? bnWords : []
-          )
-        : Promise.resolve(),
+    setCustomDictionary: (enWords: string[] = [], bnWords: string[] = []): Promise<void> => {
+      // A native build older than this JS bundle has no setCustomDictionary, and
+      // calling through would throw "undefined is not a function" from the effect
+      // that calls this, so check the method itself instead of the module.
+      if (typeof KickKey?.setCustomDictionary !== 'function') return Promise.resolve();
+      return KickKey.setCustomDictionary(
+        Array.isArray(enWords) ? enWords : [],
+        Array.isArray(bnWords) ? bnWords : []
+      );
+    },
     getCustomDictionary: (lang: string): Promise<string[]> =>
-      isAvailable ? KickKey.getCustomDictionary(lang) : Promise.resolve([]),
+      typeof KickKey?.getCustomDictionary === 'function'
+        ? KickKey.getCustomDictionary(lang)
+        : Promise.resolve([]),
 
     isOverlayGranted: (): Promise<boolean> =>
       isAvailable ? KickKey.isOverlayGranted() : Promise.resolve(false),

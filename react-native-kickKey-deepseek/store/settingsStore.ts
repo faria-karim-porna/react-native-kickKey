@@ -3,63 +3,72 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ThemeName = 'dark' | 'light' | 'nord' | 'cyberpunk' | 'midnight' | 'sunset' | 'custom' | string;
-export type CursorType =
+/**
+ * Every selectable cursor. Kept as a runtime array (not only a type) so a value
+ * restored from AsyncStorage can be validated — names were renamed from short
+ * ones ('classic', 'bubble', …) to asset names, so old persisted states would
+ * otherwise reference a cursor that no longer exists.
+ */
+export const CURSOR_TYPES = [
   // Pointers
-  | 'cursor-alt-thick-pointer'
-  | 'cursor-pointer-classic'
-  | 'cursor-pointer-nested'
-  | 'cursor-pointer-small'
-  | 'cursor-pointer-standard'
-  | 'cursor-simple-triangle'
-  | 'pointer-cursor-detailed'
-  | 'pointer-cursor-settings'
-  | 'pointer-hand-cursor'
+  'cursor-alt-thick-pointer',
+  'cursor-pointer-classic',
+  'cursor-pointer-nested',
+  'cursor-pointer-small',
+  'cursor-pointer-standard',
+  'cursor-simple-triangle',
+  'pointer-cursor-detailed',
+  'pointer-cursor-settings',
+  'pointer-hand-cursor',
   // Hands
-  | 'hand-click-cursor'
-  | 'hand-grab-closed'
-  | 'hand-grab-cursor'
-  | 'hand-open-fingers'
-  | 'hand-open-palm'
-  | 'hand-pointing-index'
+  'hand-click-cursor',
+  'hand-grab-closed',
+  'hand-grab-cursor',
+  'hand-open-fingers',
+  'hand-open-palm',
+  'hand-pointing-index',
   // Click Effects
-  | 'cursor-click-burst-fill'
-  | 'cursor-click-crosshair'
-  | 'cursor-click-lines'
-  | 'cursor-click-sparkle-crosshair'
-  | 'cursor-click-sparkle-dots'
-  | 'cursor-click-target-corners'
+  'cursor-click-burst-fill',
+  'cursor-click-crosshair',
+  'cursor-click-lines',
+  'cursor-click-sparkle-crosshair',
+  'cursor-click-sparkle-dots',
+  'cursor-click-target-corners',
   // Text & Edit
-  | 'cursor-edit-pencil'
-  | 'edit-pen-cursor-filled'
-  | 'edit-pen-cursor-outline'
-  | 'pencil-edit-cursor'
-  | 'text-cursor-i-beam-round'
-  | 'text-cursor-i-beam-serif'
+  'cursor-edit-pencil',
+  'edit-pen-cursor-filled',
+  'edit-pen-cursor-outline',
+  'pencil-edit-cursor',
+  'text-cursor-i-beam-round',
+  'text-cursor-i-beam-serif',
   // Movement
-  | 'cursor-move-diagonal-down'
-  | 'drag-drop-arrows'
-  | 'move-arrows-4way'
-  | 'move-arrows-cross'
-  | 'move-arrows-cross-circle'
-  | 'move-arrows-horizontal'
-  | 'move-arrows-large'
+  'cursor-move-diagonal-down',
+  'drag-drop-arrows',
+  'move-arrows-4way',
+  'move-arrows-cross',
+  'move-arrows-cross-circle',
+  'move-arrows-horizontal',
+  'move-arrows-large',
   // Scroll
-  | 'cursor-arrow-scroll-wheel'
-  | 'cursor-arrow-scroll-wheel-gray'
-  | 'scroll-arrows-4way'
-  | 'scroll-arrows-down'
-  | 'scroll-arrows-horizontal'
-  | 'scroll-arrows-vertical'
-  | 'scroll-arrows-vertical-outline'
+  'cursor-arrow-scroll-wheel',
+  'cursor-arrow-scroll-wheel-gray',
+  'scroll-arrows-4way',
+  'scroll-arrows-down',
+  'scroll-arrows-horizontal',
+  'scroll-arrows-vertical',
+  'scroll-arrows-vertical-outline',
   // Special
-  | 'cursor-diagonal-line'
-  | 'cursor-gps-location'
-  | 'cursor-pixel-block'
-  | 'cursor-plus-add'
-  | 'cursor-plus-cross'
-  | 'cursor-rays-light'
-  | 'keyboard-arrows-icon'
-  | 'magic-wand-sparkle';
+  'cursor-diagonal-line',
+  'cursor-gps-location',
+  'cursor-pixel-block',
+  'cursor-plus-add',
+  'cursor-plus-cross',
+  'cursor-rays-light',
+  'keyboard-arrows-icon',
+  'magic-wand-sparkle',
+] as const;
+
+export type CursorType = (typeof CURSOR_TYPES)[number];
 
 export interface ThemeColors {
   keyboardBg: string;
@@ -186,13 +195,21 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'kickkey-settings',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 2,
+      version: 3,
       migrate: (persisted) => {
         const state = persisted as Record<string, any> | undefined;
         if (!state) return persisted;
         // v0 → v1: 'amoled' preset removed
         if (state.theme === 'amoled') {
           state.theme = 'dark' as ThemeName;
+        }
+        // v2 → v3: cursor names changed to match their SVG assets, so any value
+        // that is no longer known (e.g. the old 'classic') falls back to default.
+        if (
+          typeof state.cursorType !== 'string' ||
+          !(CURSOR_TYPES as readonly string[]).includes(state.cursorType)
+        ) {
+          state.cursorType = 'cursor-pointer-classic' as CursorType;
         }
         // v1 → v2: split flat customWords into per-language arrays
         if (Array.isArray(state.customWords)) {
