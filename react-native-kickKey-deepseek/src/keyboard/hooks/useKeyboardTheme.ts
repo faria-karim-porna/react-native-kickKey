@@ -16,7 +16,7 @@
 // sliders and are pushed via useSettingsSync.
 // ============================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Appearance, NativeModules, NativeEventEmitter } from 'react-native';
 import { useSettingsStore, resolveIsDark } from '../../../store/settingsStore';
 
@@ -109,7 +109,12 @@ export function useKeyboardTheme(): KeyboardThemeColors {
   });
 
   // Sync state whenever Zustand settings store updates (in-app)
+  const isInitialMount = useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     const isDark = resolveIsDark(storeTheme, systemIsDark);
     const fallback = isDark ? DARK_COLORS : LIGHT_COLORS;
     const useStored = storeTheme !== 'system' && storeThemeColors?.keyboardBg;
@@ -128,33 +133,55 @@ export function useKeyboardTheme(): KeyboardThemeColors {
 
   // Hydrate from native SharedPreferences and listen for live events (e.g. IME process)
   useEffect(() => {
+    const applyPrefs = (prefs: any) => {
+      if (!prefs || Object.keys(prefs).length === 0) return;
+      const theme = prefs.theme || 'system';
+      const isDark = resolveIsDark(theme, systemIsDarkNow());
+      const defaultColors = isDark ? DARK_COLORS : LIGHT_COLORS;
+      const useStored = theme !== 'system';
+
+      const keyHeight = typeof prefs.keyHeight === 'number' ? prefs.keyHeight : defaultColors.keyHeight;
+      const keyBorderRadius = typeof prefs.keyBorderRadius === 'number' ? prefs.keyBorderRadius : defaultColors.keyBorderRadius;
+      const fontSize = typeof prefs.fontSize === 'number' ? prefs.fontSize : defaultColors.fontSize;
+
+      const newColors: KeyboardThemeColors = {
+        keyboardBg:    useStored ? (prefs.keyboardBg  || defaultColors.keyboardBg) : defaultColors.keyboardBg,
+        keyBg:         useStored ? (prefs.themeKeyBg  || defaultColors.keyBg)      : defaultColors.keyBg,
+        keyText:       useStored ? (prefs.themeKeyText || defaultColors.keyText)   : defaultColors.keyText,
+        specialKeyBg:  useStored ? (prefs.specialKeyBg || defaultColors.specialKeyBg) : defaultColors.specialKeyBg,
+        specialKeyText: useStored ? (prefs.specialKeyText || defaultColors.specialKeyText) : defaultColors.specialKeyText,
+        themePrimary:  useStored ? (prefs.themePrimary || defaultColors.themePrimary) : defaultColors.themePrimary,
+        keyHeight:     keyHeight,
+        keyBorderRadius: keyBorderRadius,
+        fontSize:      fontSize,
+      };
+
+      // Keep local Zustand state in sync within this process
+      try {
+        useSettingsStore.setState((s) => ({
+          theme,
+          themeColors: {
+            ...s.themeColors,
+            keyboardBg: newColors.keyboardBg,
+            keyBg: newColors.keyBg,
+            keyText: newColors.keyText,
+            specialKeyBg: newColors.specialKeyBg,
+            specialKeyText: newColors.specialKeyText,
+            themePrimary: newColors.themePrimary,
+          },
+          keyHeight: newColors.keyHeight,
+          keyBorderRadius: newColors.keyBorderRadius,
+          fontSize: newColors.fontSize,
+        }));
+      } catch (e) {}
+
+      setColors(newColors);
+    };
+
     const fetchNativePrefs = () => {
       getKickKey()
         ?.getPreferences()
-        ?.then((prefs: any) => {
-          if (!prefs || Object.keys(prefs).length === 0) return;
-          const theme = prefs.theme || 'system';
-          const isDark = resolveIsDark(theme, systemIsDarkNow());
-          const defaultColors = isDark ? DARK_COLORS : LIGHT_COLORS;
-          // 'system' resolves from the device; presets use the pushed colors.
-          const useStored = theme !== 'system';
-
-          const keyHeight = typeof prefs.keyHeight === 'number' ? prefs.keyHeight : defaultColors.keyHeight;
-          const keyBorderRadius = typeof prefs.keyBorderRadius === 'number' ? prefs.keyBorderRadius : defaultColors.keyBorderRadius;
-          const fontSize = typeof prefs.fontSize === 'number' ? prefs.fontSize : defaultColors.fontSize;
-
-          setColors((prev) => ({
-            keyboardBg:    useStored ? (prefs.keyboardBg  || prev.keyboardBg) : defaultColors.keyboardBg,
-            keyBg:         useStored ? (prefs.themeKeyBg  || prev.keyBg)      : defaultColors.keyBg,
-            keyText:       useStored ? (prefs.themeKeyText || prev.keyText)   : defaultColors.keyText,
-            specialKeyBg:  useStored ? (prefs.specialKeyBg || prev.specialKeyBg) : defaultColors.specialKeyBg,
-            specialKeyText: useStored ? (prefs.specialKeyText || defaultColors.specialKeyText) : defaultColors.specialKeyText,
-            themePrimary:  useStored ? (prefs.themePrimary || prev.themePrimary) : defaultColors.themePrimary,
-            keyHeight:     keyHeight           || prev.keyHeight,
-            keyBorderRadius: keyBorderRadius   || prev.keyBorderRadius,
-            fontSize:      fontSize            || prev.fontSize,
-          }));
-        })
+        ?.then((prefs: any) => applyPrefs(prefs))
         .catch(() => {});
     };
 
@@ -164,22 +191,7 @@ export function useKeyboardTheme(): KeyboardThemeColors {
       const emitter = new NativeEventEmitter(NativeModules.KickKey);
       const sub = emitter.addListener('kickkey_preferencesChanged', (prefMap: any) => {
         if (prefMap) {
-          const theme = prefMap.theme || 'system';
-          const isDark = resolveIsDark(theme, systemIsDarkNow());
-          const defaultColors = isDark ? DARK_COLORS : LIGHT_COLORS;
-          const useStored = theme !== 'system';
-
-          setColors((prev) => ({
-            keyboardBg:    useStored ? (prefMap.keyboardBg  || defaultColors.keyboardBg) : defaultColors.keyboardBg,
-            keyBg:         useStored ? (prefMap.themeKeyBg  || defaultColors.keyBg)      : defaultColors.keyBg,
-            keyText:       useStored ? (prefMap.themeKeyText || defaultColors.keyText)   : defaultColors.keyText,
-            specialKeyBg:  useStored ? (prefMap.specialKeyBg || defaultColors.specialKeyBg) : defaultColors.specialKeyBg,
-            specialKeyText: useStored ? (prefMap.specialKeyText || defaultColors.specialKeyText) : defaultColors.specialKeyText,
-            themePrimary:  useStored ? (prefMap.themePrimary || defaultColors.themePrimary) : defaultColors.themePrimary,
-            keyHeight:     prefMap.keyHeight     || prev.keyHeight,
-            keyBorderRadius: prefMap.keyBorderRadius || prev.keyBorderRadius,
-            fontSize:      prefMap.fontSize      || prev.fontSize,
-          }));
+          applyPrefs(prefMap);
         } else {
           fetchNativePrefs();
         }

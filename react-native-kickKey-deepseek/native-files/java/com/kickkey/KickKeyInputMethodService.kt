@@ -94,6 +94,23 @@ class KickKeyInputMethodService : InputMethodService() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == KickKeyModule.ACTION_PREFERENCES_CHANGED) {
                 val extras = intent.extras
+                if (context != null && extras != null) {
+                    try {
+                        val prefs = context.getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+                        val editor = prefs.edit()
+                        for (key in extras.keySet()) {
+                            when (val v = extras.get(key)) {
+                                is String  -> editor.putString(key, v)
+                                is Boolean -> editor.putBoolean(key, v)
+                                is Int     -> editor.putInt(key, v)
+                                is Double  -> editor.putInt(key, v.toInt())
+                            }
+                        }
+                        editor.commit()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to update local prefs in preferencesReceiver: ${e.message}")
+                    }
+                }
                 val app = application as? KickKeyApplication
                 val ctx = (app?.keyboardReactHost?.currentReactContext as? com.facebook.react.bridge.ReactApplicationContext)
                     ?: KickKeyModule.keyboardReactContext

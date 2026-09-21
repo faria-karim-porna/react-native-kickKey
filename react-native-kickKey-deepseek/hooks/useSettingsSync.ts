@@ -26,10 +26,21 @@ export function useSettingsSync() {
   const autoCorrect        = useSettingsStore((s) => s.autoCorrect);
   const showSuggestions    = useSettingsStore((s) => s.showSuggestions);
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+  const prevThemeRef = useRef(theme);
+  const prevThemeColorsRef = useRef(themeColors);
+  const prevLanguageRef = useRef(language);
 
-    debounceRef.current = setTimeout(() => {
+  useEffect(() => {
+    const isImmediateChange =
+      prevThemeRef.current !== theme ||
+      prevThemeColorsRef.current !== themeColors ||
+      prevLanguageRef.current !== language;
+
+    prevThemeRef.current = theme;
+    prevThemeColorsRef.current = themeColors;
+    prevLanguageRef.current = language;
+
+    const sync = () => {
       savePreferences({
         language,
         theme,
@@ -50,7 +61,15 @@ export function useSettingsSync() {
       }).catch(() => {
         // Silently ignore
       });
-    }, 300);
+    };
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (isImmediateChange) {
+      sync();
+    } else {
+      debounceRef.current = setTimeout(sync, 250);
+    }
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);

@@ -804,7 +804,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
                 }
             }
         }
-        editor.apply()
+        editor.commit()
 
         // 1. Emit locally to ReactContext in current process
         emitPreferences(reactApplicationContext, prefMap)
