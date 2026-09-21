@@ -62,7 +62,7 @@ const LIGHT: AppColors = {
   buttonText: '#ffffff',
   sectionLabel: '#444444',
   separator: 'rgba(0,0,0,0.08)',
-  statusBarStyle: 'light',
+  statusBarStyle: 'dark',
   circuitBg: '#ffffff',
   circuitWire: '#8594aa',
   circuitGlow: '#d9e0ef',

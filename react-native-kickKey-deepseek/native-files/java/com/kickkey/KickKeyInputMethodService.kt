@@ -1,6 +1,9 @@
 package com.kickkey
 
+import android.content.Context
+import android.content.Intent
 import android.inputmethodservice.InputMethodService
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -87,6 +90,22 @@ class KickKeyInputMethodService : InputMethodService() {
     private val hostLifecycleHistory = mutableListOf<String>()
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    private val preferencesReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == KickKeyModule.ACTION_PREFERENCES_CHANGED) {
+                val extras = intent.extras
+                val app = application as? KickKeyApplication
+                val ctx = (app?.keyboardReactHost?.currentReactContext as? com.facebook.react.bridge.ReactApplicationContext)
+                    ?: KickKeyModule.keyboardReactContext
+                if (ctx != null && extras != null) {
+                    KickKeyModule.emitPreferencesFromBundle(ctx, extras)
+                } else if (ctx != null && context != null) {
+                    KickKeyModule.emitCurrentPreferences(ctx, context)
+                }
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -95,6 +114,17 @@ class KickKeyInputMethodService : InputMethodService() {
         KickKeyModule.suggestionEngine  = SuggestionEngine(this)
         KickKeyModule.clipboardHandler  = ClipboardHandler(this)
         Log.i(TAG, "IME created — all handlers ready (keyboardHeightPx=${keyboardHeightPx})")
+
+        try {
+            val filter = android.content.IntentFilter(KickKeyModule.ACTION_PREFERENCES_CHANGED)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(preferencesReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(preferencesReceiver, filter)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to register preferencesReceiver: ${e.message}")
+        }
 
         try {
             val am = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
@@ -847,6 +877,18 @@ class KickKeyInputMethodService : InputMethodService() {
         KickKeyModule.banglaEngine?.reset()
         KickKeyModule.suggestionEngine?.reset()
 
+        // Sync latest preferences to keyboard JS every time keyboard appears
+        try {
+            val app = application as? KickKeyApplication
+            val ctx = (app?.keyboardReactHost?.currentReactContext as? com.facebook.react.bridge.ReactApplicationContext)
+                ?: KickKeyModule.keyboardReactContext
+            if (ctx != null) {
+                KickKeyModule.emitCurrentPreferences(ctx, this)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to sync preferences on onStartInputView: ${e.message}")
+        }
+
         val typeClass  = info.inputType and 0x0000000F
         val isPassword = (info.inputType and 0x000000D0) != 0
         val isNumber   = typeClass == 0x00000002
@@ -941,6 +983,11 @@ class KickKeyInputMethodService : InputMethodService() {
 
     override fun onDestroy() {
         instance = null
+        try {
+            unregisterReceiver(preferencesReceiver)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to unregister preferencesReceiver: ${e.message}")
+        }
         PointerOverlay.hide()
         disposeSurface()
         KickKeyModule.hapticManager    = null

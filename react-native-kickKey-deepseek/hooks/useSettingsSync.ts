@@ -37,6 +37,7 @@ export function useSettingsSync() {
         themeKeyBg:      themeColors.keyBg,
         themeKeyText:    themeColors.keyText,
         specialKeyBg:    themeColors.specialKeyBg,
+        specialKeyText:  themeColors.specialKeyText,
         themePrimary:    themeColors.themePrimary,
         keyHeight,
         keyBorderRadius,

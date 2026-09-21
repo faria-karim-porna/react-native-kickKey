@@ -1,8 +1,8 @@
 import React from 'react';
-import { Text, TouchableOpacity, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TouchableOpacity, ScrollView, StyleSheet, View, Appearance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettingsStore } from '../../store/settingsStore';
-import { THEME_PRESETS } from '../../constants/Themes';
+import { THEME_PRESETS, LIGHT_PRESET, NORD_PRESET } from '../../constants/Themes';
 import ThemeCard from '../../components/ThemeCard';
 import { useAppColors } from '../../hooks/useAppColors';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -21,6 +21,13 @@ export default function ThemesScreen() {
     setThemeColors(preset.colors);
   };
 
+  const handleSelectSystem = () => {
+    setTheme('system');
+    const isDark = Appearance.getColorScheme() === 'dark';
+    const preset = isDark ? NORD_PRESET : LIGHT_PRESET;
+    setThemeColors(preset.colors);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -29,7 +36,7 @@ export default function ThemesScreen() {
 
         <SystemThemeCard
           isSelected={theme === 'system'}
-          onPress={() => setTheme('system')}
+          onPress={handleSelectSystem}
         />
 
         {THEME_PRESETS.map((preset) => (

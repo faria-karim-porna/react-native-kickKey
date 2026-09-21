@@ -68,6 +68,69 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         // @Volatile: written/read on the main thread (IME service).
         @Volatile
         var lastInputStartedParams: ReadableMap? = null
+
+        const val ACTION_PREFERENCES_CHANGED = "com.kickkey.PREFERENCES_CHANGED"
+
+        fun emitPreferences(reactContext: ReactApplicationContext?, prefMap: ReadableMap?) {
+            if (reactContext == null || prefMap == null) return
+            try {
+                reactContext
+                    .getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                    ?.emit("kickkey_preferencesChanged", prefMap)
+            } catch (e: Exception) {
+                Log.w("KickKeyModule", "Failed to emit kickkey_preferencesChanged: ${e.message}")
+            }
+        }
+
+        fun emitPreferencesFromBundle(reactContext: ReactApplicationContext?, bundle: android.os.Bundle?) {
+            if (reactContext == null || bundle == null) return
+            try {
+                val map = Arguments.createMap()
+                for (key in bundle.keySet()) {
+                    when (val v = bundle.get(key)) {
+                        is String -> map.putString(key, v)
+                        is Boolean -> map.putBoolean(key, v)
+                        is Int -> map.putInt(key, v)
+                        is Double -> map.putDouble(key, v)
+                    }
+                }
+                reactContext
+                    .getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                    ?.emit("kickkey_preferencesChanged", map)
+            } catch (e: Exception) {
+                Log.w("KickKeyModule", "Failed to emit preferences from bundle: ${e.message}")
+            }
+        }
+
+        fun emitCurrentPreferences(reactContext: ReactApplicationContext?, context: Context) {
+            if (reactContext == null) return
+            try {
+                val prefs = context.getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+                val map = Arguments.createMap().apply {
+                    putString("language",        prefs.getString("language",        "en")      ?: "en")
+                    putString("theme",           prefs.getString("theme",           "system")  ?: "system")
+                    putString("keyboardBg",      prefs.getString("keyboardBg",      "#e0e5ec") ?: "#e0e5ec")
+                    putString("themeKeyBg",      prefs.getString("themeKeyBg",      "#f2f2f2") ?: "#f2f2f2")
+                    putString("themeKeyText",    prefs.getString("themeKeyText",    "#444444") ?: "#444444")
+                    putString("specialKeyBg",    prefs.getString("specialKeyBg",   "#c8ccd0") ?: "#c8ccd0")
+                    putString("specialKeyText",  prefs.getString("specialKeyText",  "#444444") ?: "#444444")
+                    putString("themePrimary",    prefs.getString("themePrimary",   "#8594aa") ?: "#8594aa")
+                    putInt("keyHeight",          prefs.getInt("keyHeight",        48))
+                    putInt("keyBorderRadius",     prefs.getInt("keyBorderRadius",   6))
+                    putInt("fontSize",          prefs.getInt("fontSize",          16))
+                    putInt("keyMargin",          prefs.getInt("keyMargin",          3))
+                    putBoolean("hapticEnabled",   prefs.getBoolean("hapticEnabled",  true))
+                    putBoolean("soundEnabled",    prefs.getBoolean("soundEnabled",   false))
+                    putBoolean("autoCorrect",     prefs.getBoolean("autoCorrect",    true))
+                    putBoolean("showSuggestions", prefs.getBoolean("showSuggestions",true))
+                }
+                reactContext
+                    .getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                    ?.emit("kickkey_preferencesChanged", map)
+            } catch (e: Exception) {
+                Log.w("KickKeyModule", "Failed to emit current preferences: ${e.message}")
+            }
+        }
     }
 
     override fun getName(): String = "KickKey"
@@ -90,6 +153,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         // @ReactMethod, so the bridge/context is live). The IME watchdog uses this
         // fallback when host.currentReactContext returns null (RN 0.86 headless bug).
         keyboardReactContext = reactApplicationContext
+        emitCurrentPreferences(reactApplicationContext, reactApplicationContext)
         Log.i("KickKeyModule", "JS keyboard mounted and ready — React surface is rendering")
         promise.resolve(null)
     }
@@ -695,6 +759,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
             putString("themeKeyBg",      prefs.getString("themeKeyBg",      "#f2f2f2") ?: "#f2f2f2")
             putString("themeKeyText",    prefs.getString("themeKeyText",    "#444444") ?: "#444444")
             putString("specialKeyBg",    prefs.getString("specialKeyBg",   "#c8ccd0") ?: "#c8ccd0")
+            putString("specialKeyText",  prefs.getString("specialKeyText",  "#444444") ?: "#444444")
             putString("themePrimary",    prefs.getString("themePrimary",   "#8594aa") ?: "#8594aa")
             putInt("keyHeight",          prefs.getInt("keyHeight",        48))
             putInt("keyBorderRadius",     prefs.getInt("keyBorderRadius",   6))
@@ -715,18 +780,46 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
             .getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
             .edit()
 
+        val bundle = android.os.Bundle()
         val entryIterator = prefMap.entryIterator
         while (entryIterator.hasNext()) {
             val entry = entryIterator.next()
             val key = entry.key
             when (val value = entry.value) {
-                is String  -> editor.putString(key, value)
-                is Boolean -> editor.putBoolean(key, value)
-                is Double  -> editor.putInt(key, value.toInt())
-                is Int     -> editor.putInt(key, value)
+                is String  -> {
+                    editor.putString(key, value)
+                    bundle.putString(key, value)
+                }
+                is Boolean -> {
+                    editor.putBoolean(key, value)
+                    bundle.putBoolean(key, value)
+                }
+                is Double  -> {
+                    editor.putInt(key, value.toInt())
+                    bundle.putInt(key, value.toInt())
+                }
+                is Int     -> {
+                    editor.putInt(key, value)
+                    bundle.putInt(key, value)
+                }
             }
         }
         editor.apply()
+
+        // 1. Emit locally to ReactContext in current process
+        emitPreferences(reactApplicationContext, prefMap)
+
+        // 2. Broadcast across processes to :ime_process
+        try {
+            val intent = Intent(ACTION_PREFERENCES_CHANGED).apply {
+                setPackage(context.packageName)
+                putExtras(bundle)
+            }
+            context.sendBroadcast(intent)
+        } catch (e: Exception) {
+            Log.w("KickKeyModule", "Failed to broadcast preference change: ${e.message}")
+        }
+
         promise.resolve(null)
     }
 

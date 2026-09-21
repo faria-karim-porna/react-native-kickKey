@@ -19,7 +19,7 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
 11. [Done] Fix Background Behind Radius
 12. [Done] Fix Option Selections Menu
 13. [Done] Fix Theme Etc Selection Tab Menu
-14. Fix Theme Switch (*)
+14. [Done] Fix Theme Switch
 15. [Done] Fix Settings And Dictionary Issue
 16. Find and fix other issues
 17. Fix keyboard size and key gap (*)
