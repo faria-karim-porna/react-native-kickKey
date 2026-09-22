@@ -48,15 +48,45 @@ class KickKeyInputMethodService : InputMethodService() {
 
     /** Keyboard height in pixels, derived from dp × device density. */
     internal val keyboardHeightPx: Int
-        get() = (KEYBOARD_HEIGHT_DP * resources.displayMetrics.density).toInt()
+        get() {
+            val prefs = getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+            val keyHeight = prefs.getInt("keyHeight", 40)
+            val dp = if (keyHeight > 0) {
+                maxOf(KEYBOARD_HEIGHT_DP, 7 * keyHeight + 36)
+            } else {
+                KEYBOARD_HEIGHT_DP
+            }
+            return (dp * resources.displayMetrics.density).toInt()
+        }
 
     // ── Touchpad mode ───────────────────────────────────────────────────────
     internal val currentKeyboardHeightPx: Int
         get() = keyboardHeightPx
 
+    internal fun updateKeyboardHeight() {
+        mainHandler.post {
+            val container = keyboardContainer ?: return@post
+            val targetHeightPx = currentKeyboardHeightPx
+            if (container.layoutParams?.height != targetHeightPx) {
+                container.layoutParams = container.layoutParams?.apply {
+                    height = targetHeightPx
+                } ?: FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, targetHeightPx)
+                container.minimumHeight = targetHeightPx
+
+                val surfaceView = reactSurface?.view
+                surfaceView?.layoutParams = surfaceView?.layoutParams?.apply {
+                    height = targetHeightPx
+                } ?: FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, targetHeightPx)
+                surfaceView?.minimumHeight = targetHeightPx
+
+                container.requestLayout()
+            }
+        }
+    }
+
     /** Main-thread only. Called from KickKeyModule.setTouchpadMode. */
     fun setTouchpadStripMode(on: Boolean) {
-        // Keep keyboard at full height (275dp) so the touchpad area and its controls
+        // Keep keyboard at full height so the touchpad area and its controls
         // remain fully visible without moving the keyboard down.
         Log.i(TAG, "Touchpad mode: $on (height=${keyboardHeightPx}px)")
     }
@@ -119,6 +149,7 @@ class KickKeyInputMethodService : InputMethodService() {
                 } else if (ctx != null && context != null) {
                     KickKeyModule.emitCurrentPreferences(ctx, context)
                 }
+                updateKeyboardHeight()
             }
         }
     }
@@ -902,6 +933,7 @@ class KickKeyInputMethodService : InputMethodService() {
             if (ctx != null) {
                 KickKeyModule.emitCurrentPreferences(ctx, this)
             }
+            updateKeyboardHeight()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to sync preferences on onStartInputView: ${e.message}")
         }

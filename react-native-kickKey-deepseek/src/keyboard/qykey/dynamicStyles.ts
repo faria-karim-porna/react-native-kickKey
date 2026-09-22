@@ -95,9 +95,9 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       width: '100%',
     },
     key: {
-      height: 26,
+      height: colors.keyHeight,
       backgroundColor: colors.keyBg,
-      borderRadius: 8,
+      borderRadius: colors.keyBorderRadius,
       justifyContent: 'center',
       alignItems: 'center',
       borderTopWidth: 1.5,
@@ -125,10 +125,10 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       borderLeftColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.25)',
     },
     keyActive: {
-      fontSize: 10,
+      fontSize: Math.max(9, Math.round(colors.fontSize * 0.75)),
     },
     keyText: {
-      fontSize: 14,
+      fontSize: colors.fontSize,
       color: colors.keyText,
       fontWeight: '700',
       includeFontPadding: false,
@@ -146,14 +146,14 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     spaceText: {
       color: colors.keyText,
-      fontSize: 13,
+      fontSize: Math.max(10, Math.round(colors.fontSize * 0.92)),
       fontWeight: '700',
       textAlign: 'center',
       includeFontPadding: false,
     },
     toggleContainer: {
       backgroundColor: colors.specialKeyBg,
-      borderRadius: 9,
+      borderRadius: Math.max(0, colors.keyBorderRadius + 1),
       marginRight: 2,
       borderTopWidth: 2,
       borderLeftWidth: 2,
@@ -166,18 +166,18 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     slider: {
       width: 78,
-      height: 26,
+      height: colors.keyHeight,
       position: 'relative',
       justifyContent: 'center',
       overflow: 'hidden',
     },
     knob: {
       position: 'absolute',
-      height: 22,
+      height: Math.max(16, colors.keyHeight - 4),
       width: 36,
       top: 0,
       backgroundColor: knobBg,
-      borderRadius: 6,
+      borderRadius: Math.max(0, colors.keyBorderRadius - 2),
       zIndex: 1,
       borderTopWidth: 1.5,
       borderLeftWidth: 1.5,
@@ -202,16 +202,16 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     suggestionsContainer: {
       flex: 1,
-      height: 26,
+      height: colors.keyHeight,
       backgroundColor: colors.keyBg,
-      borderRadius: 8,
+      borderRadius: colors.keyBorderRadius,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-evenly',
       overflow: 'hidden',
     },
     suggestionText: {
-      fontSize: 13,
+      fontSize: Math.max(10, Math.round(colors.fontSize * 0.92)),
       color: colors.keyText,
       fontWeight: '600',
       flexShrink: 1,
@@ -219,7 +219,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     suggestionSeparator: {
       width: 1,
-      height: 18,
+      height: Math.max(12, colors.keyHeight - 8),
       backgroundColor: suggestionSep,
     },
     touchpadArea: {
@@ -227,7 +227,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       flexDirection: 'row',
       justifyContent: 'center',
       width: '100%',
-      height: 175,
+      height: 6 * colors.keyHeight + 15,
     },
     activeIndicator: {
       borderWidth: 0.5,
@@ -360,7 +360,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       justifyContent: 'center',
       position: 'relative',
       width: 42,
-      height: 26,
+      height: colors.keyHeight,
     },
     tooltip: {
       position: 'absolute',
@@ -401,7 +401,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       justifyContent: 'space-around',
       marginBottom: 6,
       backgroundColor: colors.specialKeyBg,
-      borderRadius: 10,
+      borderRadius: Math.max(0, colors.keyBorderRadius + 2),
       paddingVertical: 2,
       borderTopWidth: 2,
       borderLeftWidth: 2,
@@ -414,10 +414,10 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     tabButton: {
       width: 42,
-      height: 26,
+      height: colors.keyHeight,
       justifyContent: 'center',
       alignItems: 'center',
-      borderRadius: 7,
+      borderRadius: colors.keyBorderRadius,
       backgroundColor: tabBtnBg,
       borderTopWidth: 1.5,
       borderLeftWidth: 1.5,
@@ -447,7 +447,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       bottom: 2,
     },
     emojiGridContainer: {
-      height: 175,
+      height: 6 * colors.keyHeight + 15,
       paddingHorizontal: 2,
     },
     scrollContent: {
@@ -460,7 +460,8 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     emojiKey: {
       width: 42,
-      height: 38,
+      height: colors.keyHeight,
+      borderRadius: colors.keyBorderRadius,
       backgroundColor: emojiKeyBg,
     },
     emojiText: {
