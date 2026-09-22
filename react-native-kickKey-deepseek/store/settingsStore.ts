@@ -164,9 +164,9 @@ export const useSettingsStore = create<SettingsState>()(
       setThemeColors: (colors) =>
         set((s) => ({ themeColors: { ...s.themeColors, ...colors } })),
 
-      keyHeight: 48,
-      keyBorderRadius: 6,
-      fontSize: 16,
+      keyHeight: 40,
+      keyBorderRadius: 0,
+      fontSize: 12,
       keyMargin: 3,
       setKeyHeight: (keyHeight) => set({ keyHeight }),
       setKeyBorderRadius: (keyBorderRadius) => set({ keyBorderRadius }),
@@ -207,7 +207,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'kickkey-settings',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 4,
+      version: 5,
       migrate: (persisted) => {
         const state = persisted as Record<string, any> | undefined;
         if (!state) return persisted;
@@ -245,6 +245,11 @@ export const useSettingsStore = create<SettingsState>()(
         // normally.
         state.theme = 'system';
         state.language = 'en';
+
+        // v4 → v5: reset keyHeight, keyBorderRadius, and fontSize to lowest range defaults.
+        state.keyHeight = 40;
+        state.keyBorderRadius = 0;
+        state.fontSize = 12;
         return state;
       },
     }

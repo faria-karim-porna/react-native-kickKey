@@ -40,9 +40,9 @@ const LIGHT_COLORS: KeyboardThemeColors = {
   specialKeyBg: '#c8ccd0',
   specialKeyText: '#444444',
   themePrimary: '#8594aa',
-  keyHeight: 48,
-  keyBorderRadius: 6,
-  fontSize: 16,
+  keyHeight: 40,
+  keyBorderRadius: 0,
+  fontSize: 12,
 };
 
 // Keep in sync with NORD_PRESET in constants/Themes.ts.
@@ -53,9 +53,9 @@ const DARK_COLORS: KeyboardThemeColors = {
   specialKeyBg: '#434c5e',
   specialKeyText: '#88c0d0',
   themePrimary: '#81a1c1',
-  keyHeight: 48,
-  keyBorderRadius: 6,
-  fontSize: 16,
+  keyHeight: 40,
+  keyBorderRadius: 0,
+  fontSize: 12,
 };
 
 let _KickKey: any = null;
@@ -102,9 +102,9 @@ export function useKeyboardTheme(): KeyboardThemeColors {
       specialKeyBg:   useStored ? storeThemeColors.specialKeyBg   : fallback.specialKeyBg,
       specialKeyText: useStored ? storeThemeColors.specialKeyText : fallback.specialKeyText,
       themePrimary:   useStored ? storeThemeColors.themePrimary   : fallback.themePrimary,
-      keyHeight: storeKeyHeight || fallback.keyHeight,
-      keyBorderRadius: storeKeyBorderRadius || fallback.keyBorderRadius,
-      fontSize: storeFontSize || fallback.fontSize,
+      keyHeight: storeKeyHeight ?? fallback.keyHeight,
+      keyBorderRadius: storeKeyBorderRadius ?? fallback.keyBorderRadius,
+      fontSize: storeFontSize ?? fallback.fontSize,
     };
   });
 
@@ -125,9 +125,9 @@ export function useKeyboardTheme(): KeyboardThemeColors {
       specialKeyBg:   useStored ? storeThemeColors.specialKeyBg   : fallback.specialKeyBg,
       specialKeyText: useStored ? storeThemeColors.specialKeyText : fallback.specialKeyText,
       themePrimary:   useStored ? storeThemeColors.themePrimary   : fallback.themePrimary,
-      keyHeight: storeKeyHeight || fallback.keyHeight,
-      keyBorderRadius: storeKeyBorderRadius || fallback.keyBorderRadius,
-      fontSize: storeFontSize || fallback.fontSize,
+      keyHeight: storeKeyHeight ?? fallback.keyHeight,
+      keyBorderRadius: storeKeyBorderRadius ?? fallback.keyBorderRadius,
+      fontSize: storeFontSize ?? fallback.fontSize,
     });
   }, [storeTheme, storeThemeColors, storeKeyHeight, storeKeyBorderRadius, storeFontSize, systemIsDark]);
 
