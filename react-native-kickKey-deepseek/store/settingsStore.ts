@@ -207,7 +207,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'kickkey-settings',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 3,
+      version: 4,
       migrate: (persisted) => {
         const state = persisted as Record<string, any> | undefined;
         if (!state) return persisted;
@@ -238,6 +238,13 @@ export const useSettingsStore = create<SettingsState>()(
           state.customWordsBn = bn;
           delete state.customWords;
         }
+        // v3 → v4: reset theme and language to intended defaults.
+        // On Android, AsyncStorage data survives a reinstall, so old persisted
+        // values (e.g. 'nord' theme, 'bn' language) override the code defaults.
+        // This one-time migration corrects that; subsequent user changes persist
+        // normally.
+        state.theme = 'system';
+        state.language = 'en';
         return state;
       },
     }
