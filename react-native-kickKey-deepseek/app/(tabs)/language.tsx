@@ -17,6 +17,8 @@ export default function LanguageScreen() {
   const colors = useAppColors();
   const t = useTranslation();
 
+  const selectedLanguage = language || 'en';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.content}>
@@ -25,24 +27,30 @@ export default function LanguageScreen() {
           {t.languageDescription}
         </Text>
 
-        {LANGUAGES.map((lang) => (
-          <TouchableOpacity
-            key={lang.code}
-            style={[
-              styles.row,
-              { backgroundColor: colors.card, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow },
-              language === lang.code && { borderColor: colors.accent },
-            ]}
-            onPress={() => setLanguage(lang.code)}
-            activeOpacity={0.8}
-          >
-            <View>
-              <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{lang.label}</Text>
-              <Text style={[styles.rowNative, { color: colors.textMuted }]}>{lang.native}</Text>
-            </View>
-            <LanguageTag code={lang.code} active={language === lang.code} />
-          </TouchableOpacity>
-        ))}
+        {LANGUAGES.map((lang) => {
+          const isSelected = selectedLanguage === lang.code;
+          return (
+            <TouchableOpacity
+              key={lang.code}
+              style={[
+                styles.row,
+                { backgroundColor: colors.card, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow },
+                isSelected && { borderColor: colors.accent },
+              ]}
+              onPress={() => setLanguage(lang.code)}
+              activeOpacity={0.8}
+            >
+              <View>
+                <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{lang.label}</Text>
+                <Text style={[styles.rowNative, { color: colors.textMuted }]}>{lang.native}</Text>
+              </View>
+              <View style={styles.rightContainer}>
+                <LanguageTag code={lang.code} active={isSelected} />
+                {isSelected && <Text style={[styles.checkmark, { color: colors.accent }]}>✓</Text>}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </SafeAreaView>
   );
@@ -56,4 +64,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderRadius: 12, padding: 18, marginBottom: 12, borderWidth: 2, borderColor: 'transparent', borderTopWidth: 1.5, borderLeftWidth: 1.5, borderBottomWidth: 2, borderRightWidth: 2, shadowOffset: { width: -3, height: -3 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 6 },
   rowLabel: { fontSize: 16, fontWeight: '600' },
   rowNative: { fontSize: 13, marginTop: 2 },
+  rightContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  checkmark: { fontSize: 16, fontWeight: 'bold' },
 });

@@ -14,6 +14,8 @@ export default function ThemesScreen() {
   const colors = useAppColors();
   const t = useTranslation();
 
+  const selectedTheme = theme || 'system';
+
   const handleSelectPreset = (preset: typeof THEME_PRESETS[number]) => {
     setTheme(preset.name);
     // Store the preset palette too: the keyboard (IME process) reads these
@@ -35,12 +37,12 @@ export default function ThemesScreen() {
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.colorTheme}</Text>
 
         <SystemThemeCard
-          isSelected={theme === 'system'}
+          isSelected={selectedTheme === 'system'}
           onPress={handleSelectSystem}
         />
 
         {THEME_PRESETS.map((preset) => (
-          <ThemeCard key={preset.name} preset={preset} isSelected={theme === preset.name} onPress={() => handleSelectPreset(preset)} />
+          <ThemeCard key={preset.name} preset={preset} isSelected={selectedTheme === preset.name} onPress={() => handleSelectPreset(preset)} />
         ))}
       </ScrollView>
     </SafeAreaView>

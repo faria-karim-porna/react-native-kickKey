@@ -1,6 +1,6 @@
 Email: personalfkp@gmail.com
-Download Link: https://expo.dev/artifacts/eas/8V8ahso_Ou8M1BWWVJ0H87UI8QvI3C15pJsr5W-1ZC4.apk
-Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue
+Download Link: https://expo.dev/artifacts/eas/NWQiKCSR8rV7UvJQ739ZNhzNGZ25Lvu_ozh6eLavuVg.apk
+Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme
 
 
 Bangla to English Conversion: https://chatgpt.com/c/6a3d5c31-c684-83e8-8b51-eda4710b19c4
@@ -23,11 +23,11 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
 15. [Done] Fix Settings And Dictionary Issue
 16. Find and fix other issues
 17. Fix keyboard size and key gap (*)
-18. Fix Settings Tab Keyboard Should be functional (#)
+18. Fix Settings Tab Keyboard Should be functional (*)
 19. Fix Settings Tab Cursor Should be Functional
-20. Fix Touchpad overlay size
-21. Fix Touchpad click event
-22. Fix Touchpad button event
+20. Fix Touchpad overlay size (#)
+21. Fix Touchpad click event (#)
+22. Fix Touchpad button event (#)
 23. Fix Folder Structure
 24. Convert From KickKey to Qykey
 25. Refactor Code
