@@ -298,7 +298,7 @@ export default function SettingsScreen() {
         {/* ── Key Size ─────────────────────────────────────────── */}
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.keySize}</Text>
         <View style={[styles.card, cardStyle]}>
-          <SliderRow label={t.keyHeight} value={keyHeight} min={40} max={60} onChange={setKeyHeight} unit="dp" colors={colors} />
+          <SliderRow label={t.keyHeight} value={keyHeight} min={24} max={60} onChange={setKeyHeight} unit="dp" colors={colors} />
           <SliderRow label={t.cornerRadius} value={keyBorderRadius} min={0} max={16} onChange={setKeyBorderRadius} unit="dp" colors={colors} />
           <SliderRow label={t.fontSize} value={fontSize} min={12} max={22} onChange={setFontSize} unit="sp" colors={colors} />
         </View>

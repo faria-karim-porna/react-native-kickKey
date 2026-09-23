@@ -50,7 +50,7 @@ class KickKeyInputMethodService : InputMethodService() {
     internal val keyboardHeightPx: Int
         get() {
             val prefs = getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
-            val keyHeight = prefs.getInt("keyHeight", 40)
+            val keyHeight = prefs.getInt("keyHeight", 26)
             val dp = if (keyHeight > 0) {
                 maxOf(KEYBOARD_HEIGHT_DP, 7 * keyHeight + 36)
             } else {

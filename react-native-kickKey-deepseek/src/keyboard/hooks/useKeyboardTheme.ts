@@ -40,9 +40,9 @@ const LIGHT_COLORS: KeyboardThemeColors = {
   specialKeyBg: '#c8ccd0',
   specialKeyText: '#444444',
   themePrimary: '#8594aa',
-  keyHeight: 40,
-  keyBorderRadius: 0,
-  fontSize: 12,
+  keyHeight: 26,
+  keyBorderRadius: 8,
+  fontSize: 14,
 };
 
 // Keep in sync with NORD_PRESET in constants/Themes.ts.
@@ -53,9 +53,9 @@ const DARK_COLORS: KeyboardThemeColors = {
   specialKeyBg: '#434c5e',
   specialKeyText: '#88c0d0',
   themePrimary: '#81a1c1',
-  keyHeight: 40,
-  keyBorderRadius: 0,
-  fontSize: 12,
+  keyHeight: 26,
+  keyBorderRadius: 8,
+  fontSize: 14,
 };
 
 let _KickKey: any = null;
