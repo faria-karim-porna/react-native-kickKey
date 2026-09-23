@@ -66,12 +66,12 @@ src/keyboard/                 # Keyboard bundle code (loaded in :ime_process)
     KeyboardSlider.tsx        # Keyboard ⇄ touchpad toggle
     KeyboardTopKeys.tsx       # Emoji / suggestions / SYM / mic strip
     SymbolKeys.tsx, SymbolKeysMore.tsx  # Symbol + system-key pages (F-keys)
-    EmojiBoard.tsx            # Emoji picker (data re-exported from qykey/helper/data)
+    EmojiBoard.tsx            # Emoji picker
     Touchpad.tsx              # Mouse-mode surface (visual-only for now)
     FeatheredArrowKey.tsx     # Arrow glyphs
     speechRecognition.ts      # Mic bridge → real expo-speech-recognition module
     MicrophoneIcon.tsx        # FontAwesome5 "microphone" glyph (react-native-svg)
-    emojiData.ts              # Re-exports qykey/helper/data emojis
+    emojiData.ts              # Self-contained emoji categories and glyph data
     circuit/                  # Animated circuit board behind the keys (qykey port)
       Circuit.tsx             # Wire/dot generator → SVG layer behind the translucent shell
       PathWithAnimation.tsx   # Reanimated stroke-dash glow animation (UI thread)
