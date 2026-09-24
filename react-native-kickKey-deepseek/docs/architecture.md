@@ -56,6 +56,7 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
     useSetupStatus.ts        # Polls keyboard enable/default status
     useKeyboardState.ts      # State + native wiring for the keyboard bundle
     useKeyboardTheme.ts      # Keyboard theme colors from SharedPreferences
+    useSpeechRecognition.ts  # Mic bridge → real expo-speech-recognition module
 
     mainKeyboard/            # Keyboard bundle code (loaded in :ime_process)
                              # ⚠ imports only relative paths — built by plain Metro
@@ -72,7 +73,6 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
         SymbolKeys.tsx, SystemKeys.tsx  # Symbol + system-key pages (F-keys)
         EmojiBoard.tsx       # Emoji picker
         FeatheredArrowKey.tsx  # Arrow glyphs
-        speechRecognition.ts # Mic bridge → real expo-speech-recognition module
         MicrophoneIcon.tsx   # FontAwesome5 "microphone" glyph (react-native-svg)
       touchpad/              # Touchpad (mouse-mode surface) + PointerRoot (system pointer)
           config.ts          # Wire colors, cell size, glow speed

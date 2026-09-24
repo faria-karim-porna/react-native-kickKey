@@ -1,5 +1,5 @@
 // ============================================================
-// speechRecognition.ts — mic-button bridge for the keyboard bundle.
+// useSpeechRecognition.ts — mic-button bridge for the keyboard bundle.
 //
 // Uses the SAME native module as qykey (`expo-speech-recognition`),
 // but imports it from `expo-modules-core` directly instead of the

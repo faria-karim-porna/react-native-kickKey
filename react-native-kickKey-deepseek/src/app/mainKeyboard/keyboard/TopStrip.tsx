@@ -10,7 +10,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
 import { Key } from '../Key';
 import MicrophoneIcon from './MicrophoneIcon';
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from './speechRecognition';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from '../../../../src/hooks/useSpeechRecognition';
 import type { AppLanguage } from '../../../types/keyboard';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
