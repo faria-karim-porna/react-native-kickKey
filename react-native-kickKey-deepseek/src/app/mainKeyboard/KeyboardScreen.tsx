@@ -7,7 +7,7 @@
 
 import React from 'react';
 import ErrorBoundary from './ErrorBoundary';
-import QykeyKeyboard from './qykey/QykeyKeyboard';
+import QykeyKeyboard from './keyboard/QykeyKeyboard';
 
 export default function KeyboardScreen() {
   return (

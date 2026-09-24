@@ -5,9 +5,9 @@
 
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, PanResponder, Pressable, NativeSyntheticEvent, NativeTouchEvent, PixelRatio } from 'react-native';
-import { createKeyboardStyles } from './dynamicStyles';
-import { Key } from './Key';
-import { FA5Icon } from './icons';
+import { createKeyboardStyles } from '../keyboard/dynamicStyles';
+import { Key } from '../Key';
+import { FA5Icon } from '../keyboard/icons';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 export interface TouchpadProps {

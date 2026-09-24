@@ -9,7 +9,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text } from 'react-native';
 import { createKeyboardStyles } from './dynamicStyles';
-import { Key } from './Key';
+import { Key } from '../Key';
 import { MDIIcon } from './icons';
 import type { AppLanguage } from './QykeyKeyboard';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';

@@ -8,7 +8,7 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { createKeyboardStyles } from './dynamicStyles';
-import { Key } from './Key';
+import { Key } from '../Key';
 import MicrophoneIcon from './MicrophoneIcon';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from './speechRecognition';
 import type { AppLanguage } from './QykeyKeyboard';

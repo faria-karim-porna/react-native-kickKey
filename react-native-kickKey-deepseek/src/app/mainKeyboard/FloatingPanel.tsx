@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, NativeModules } from 'react-native';
-import QykeyKeyboard from '../qykey/QykeyKeyboard';
-import ErrorBoundary from '../ErrorBoundary';
+import QykeyKeyboard from './keyboard/QykeyKeyboard';
+import ErrorBoundary from './ErrorBoundary';
 
 export default function FloatingPanel() {
   // Same readiness signal the IME surface sends: lets native know the JS

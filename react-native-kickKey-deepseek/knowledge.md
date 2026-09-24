@@ -64,24 +64,21 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
                              #   (keyboard.index.js at repo root), no @/ alias support
       KeyboardScreen.tsx     # Root keyboard component (ErrorBoundary + QykeyKeyboard)
       ErrorBoundary.tsx      # Catches JS errors and shows them on-screen
-      overlay/, pointer/     # FloatingPanel (a11y surface), PointerRoot (system pointer)
-      qykey/                 # "Chocolate bar" UI ported from the qykey reference
+      FloatingPanel.tsx      # FloatingPanel (a11y surface)
+      Key.tsx                # Chocolate key component
+      keyboard/              # "Chocolate bar" UI ported from the qykey reference
         QykeyKeyboard.tsx    # Orchestrator (slider, top keys, arrows, main keys, emoji, touchpad)
         styles.ts            # Chocolate neumorphic styles (exact qykey look)
-        Key.tsx, MainKeys.tsx  # Chocolate keys + letter rows / bottom row
+        MainKeys.tsx         # Letter rows / bottom row
         KeyboardSlider.tsx   # Keyboard ⇄ touchpad toggle
         KeyboardTopKeys.tsx  # Emoji / suggestions / SYM / mic strip
         SymbolKeys.tsx, SymbolKeysMore.tsx  # Symbol + system-key pages (F-keys)
         EmojiBoard.tsx       # Emoji picker
-        Touchpad.tsx         # Mouse-mode surface (visual-only for now)
         FeatheredArrowKey.tsx  # Arrow glyphs
         speechRecognition.ts # Mic bridge → real expo-speech-recognition module
         MicrophoneIcon.tsx   # FontAwesome5 "microphone" glyph (react-native-svg)
         emojiData.ts         # Self-contained emoji categories and glyph data
-        circuit/             # Animated circuit board behind the keys (qykey port)
-          Circuit.tsx        # Wire/dot generator → SVG layer behind the translucent shell
-          PathWithAnimation.tsx  # Reanimated stroke-dash glow animation (UI thread)
-          Wire.ts, Cell.ts   # Grid-walk wire generation
+      touchpad/              # Touchpad (mouse-mode surface) + PointerRoot (system pointer)
           config.ts          # Wire colors, cell size, glow speed
 
   data/soundManager.ts       # Optional key-click sound (shared, no @/ imports inside)

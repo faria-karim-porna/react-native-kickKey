@@ -114,9 +114,11 @@ kickkey/
         ├── ErrorBoundary.tsx
         ├── hooks/            # useKeyboardState, useKeyboardTheme
         ├── data/             # soundManager
-        ├── overlay/          # FloatingPanel (accessibility surface)
-        ├── pointer/          # PointerRoot (system pointer)
-        └── qykey/            # keyboard UI + circuit/
+        ├── keyboard/         # keyboard UI (QykeyKeyboard + key components)
+        ├── touchpad/         # Touchpad (mouse-mode surface) + PointerRoot
+        ├── FloatingPanel.tsx # FloatingPanel (accessibility surface)
+        ├── Key.tsx           # "Chocolate bar" key component
+        └── ../circuit/       # Animated circuit board behind the keys
 ```
 
 ### Why `src/app` works

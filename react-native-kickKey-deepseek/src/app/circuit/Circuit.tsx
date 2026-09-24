@@ -12,12 +12,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Dimensions } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
-import { createKeyboardStyles } from '../dynamicStyles';
+import { createKeyboardStyles } from '../mainKeyboard/keyboard/dynamicStyles';
 import { config } from './config';
 import { Cell } from './Cell';
 import { Wire } from './Wire';
 import { PathWithAnimation } from './PathWithAnimation';
-import type { KeyboardThemeColors } from '../../../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
 
 const { floor, random } = Math;
 
