@@ -1,11 +1,11 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { KeyboardTabBar } from '@/app/mainApp/KeyboardTabBar';
+import { AppTabBar } from '@/app/mainApp/AppTabBar';
 
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={(props) => <KeyboardTabBar {...props} />}
+      tabBar={(props) => <AppTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: 'transparent' },

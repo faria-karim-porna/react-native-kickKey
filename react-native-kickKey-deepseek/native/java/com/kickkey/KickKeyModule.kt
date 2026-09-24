@@ -557,7 +557,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     }
 
     /**
-     * Called by JS (QykeyKeyboard via measureInWindow on mainKeysContainer) to
+     * Called by JS (KickKeyKeyboard via measureInWindow on mainKeysContainer) to
      * give the overlay the exact screen Y of the top of the main key area.
      * This ensures the red overlay height stops at the main keys, not the toggle row.
      * [yPx] is already in physical pixels (measureInWindow returns px on Android).

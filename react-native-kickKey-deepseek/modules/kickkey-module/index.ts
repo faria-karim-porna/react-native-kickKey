@@ -133,8 +133,7 @@ export default {
     KickKey.pointerMove(dx, dy),
 
   /**
-   * Tells the overlay the exact screen Y (in pixels) of the top of the main key
-   * area. Call this from QykeyKeyboard's mainKeysContainer onLayout/measureInWindow
+   * Tells the overlay the exact screen Y (in pixels) of the top of the main key    * area. Call this from KickKeyKeyboard's mainKeysContainer onLayout/measureInWindow
    * so the red overlay height stops at the main keys, not at the toggle row above.
    */
   pointerSetOverlayTopY: (yPx: number): Promise<void> =>

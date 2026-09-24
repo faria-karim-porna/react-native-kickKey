@@ -12,7 +12,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, Pressable, PanResponder } from 'react-native';
 import { createKeyboardStyles } from './keyboard/dynamicStyles';
 import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
-import type { AppLanguage } from './keyboard/QykeyKeyboard';
+import type { AppLanguage } from './keyboard/types';
 
 interface KeyProps {
   children?: React.ReactNode;

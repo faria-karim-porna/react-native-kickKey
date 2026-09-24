@@ -1,28 +1,28 @@
 // ============================================================
-// KeyboardSlider.tsx — ported from qykey (keyboard ⇄ touchpad).
+// ModeToggleBar.tsx — ported from qykey (keyboard ⇄ touchpad).
 // Now accepts themeColors for dynamic styling.
 // ============================================================
 
 import React, { useRef, useMemo } from 'react';
 import { View, Pressable, Animated, Easing } from 'react-native';
 import { createKeyboardStyles } from './dynamicStyles';
-import { FA5Icon } from './icons';
+import { FA5Icon } from './KeyIcons';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
-type KeyboardSliderProps = {
+type ModeToggleBarProps = {
   toggleMode?: boolean;
-  sliderHandler?: () => void;
+  onToggleMode?: () => void;
   themeColors: KeyboardThemeColors;
 };
 
-const KeyboardSliderComponent = (props: KeyboardSliderProps) => {
-  const { toggleMode, sliderHandler, themeColors } = props;
+const ModeToggleBarComponent = (props: ModeToggleBarProps) => {
+  const { toggleMode, onToggleMode, themeColors } = props;
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const knobAnim = useRef(new Animated.Value(0)).current;
 
   const handleToggle = () => {
     const toValue = toggleMode ? 0 : 1;
-    sliderHandler?.();
+    onToggleMode?.();
     Animated.timing(knobAnim, {
       toValue,
       duration: 350,
@@ -49,4 +49,4 @@ const KeyboardSliderComponent = (props: KeyboardSliderProps) => {
   );
 };
 
-export const KeyboardSlider = React.memo(KeyboardSliderComponent);
+export const ModeToggleBar = React.memo(ModeToggleBarComponent);

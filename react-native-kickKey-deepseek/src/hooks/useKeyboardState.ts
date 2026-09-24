@@ -12,7 +12,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { NativeModules, NativeEventEmitter } from 'react-native';
 import { playKeySound } from '../data/soundManager';
-import type { AppLanguage } from '../app/mainKeyboard/keyboard/QykeyKeyboard';
+import type { AppLanguage } from '../app/mainKeyboard/keyboard/types';
 
 // Lazy-init — avoids crash at module scope if KickKey is not yet available
 let _KickKey: any = null;
@@ -36,7 +36,7 @@ function getEmitter() {
   return _emitter;
 }
 
-export interface QykeyKeyboardState {
+export interface KeyboardState {
   language: AppLanguage;
   toggleMode: boolean;
   symbolModeStatus: 0 | 1 | 2;
@@ -80,7 +80,7 @@ function nativeLanguageFor(lang: AppLanguage): 'en' | 'bn' {
   return lang === 'banglish' ? 'bn' : 'en';
 }
 
-export function useKeyboardState(): QykeyKeyboardState {
+export function useKeyboardState(): KeyboardState {
   const [language, setLanguage]         = useState<AppLanguage>('en-US');
   const [toggleMode, setToggleMode]     = useState(false);
   const [symbolModeStatus, setSymbolModeStatus] = useState<0 | 1 | 2>(0);

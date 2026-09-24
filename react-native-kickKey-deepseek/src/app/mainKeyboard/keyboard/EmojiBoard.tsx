@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Key } from '../Key';
 import { emojis, emojiCategories } from './emojiData';
-import { FA5Icon, MDIIcon } from './icons';
+import { FA5Icon, MDIIcon } from './KeyIcons';
 import { createKeyboardStyles } from './dynamicStyles';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 

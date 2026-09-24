@@ -12,7 +12,7 @@ import type { Tabs } from 'expo-router';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';
 
-export type KeyboardTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
+export type AppTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 interface TabMeta {
   labelKey: string;
@@ -46,7 +46,7 @@ const TAB_META: Record<string, TabMeta> = {
   },
 };
 
-export function KeyboardTabBar({ state, descriptors, navigation }: KeyboardTabBarProps) {
+export function AppTabBar({ state, descriptors, navigation }: AppTabBarProps) {
   const insets = useSafeAreaInsets();
   const colors = useAppColors();
   const t = useTranslation();

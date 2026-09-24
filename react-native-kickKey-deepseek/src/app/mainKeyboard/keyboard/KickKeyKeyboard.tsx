@@ -1,5 +1,5 @@
 // ============================================================
-// QykeyKeyboard.tsx — ported from qykey/components/Keyboard/Keyboard.tsx.
+// KickKeyKeyboard.tsx — ported from qykey/components/Keyboard/Keyboard.tsx.
 //
 // Structure is identical to qykey (slider + top keys, arrows row,
 // main keys / symbol pages / emoji board, touchpad mode). The
@@ -19,20 +19,18 @@ import { useKeyboardTheme } from '../../../hooks/useKeyboardTheme';
 import { createKeyboardStyles } from './dynamicStyles';
 import Touchpad from '../touchpad/Touchpad';
 import SymbolKeys from './SymbolKeys';
-import SystemKeysMore from './SymbolKeysMore';
+import SystemKeys from './SystemKeys';
 import { FeatheredArrowKey } from './FeatheredArrowKey';
-import { KeyboardSlider } from './KeyboardSlider';
-import { MainKeys } from './MainKeys';
+import { ModeToggleBar } from './ModeToggleBar';
+import { LetterKeys } from './LetterKeys';
 import { Key } from '../Key';
-import { KeyboardTopKeys } from './KeyboardTopKeys';
+import { TopStrip } from './TopStrip';
 import { EmojiBoard } from './EmojiBoard';
 import { Circuit } from '../../circuit/Circuit';
 import { useKeyboardState } from '../../../hooks/useKeyboardState';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
-export type AppLanguage = 'en-US' | 'bn-BD' | 'banglish';
-
-export default function QykeyKeyboard() {
+export default function KickKeyKeyboard() {
   const themeColors = useKeyboardTheme();
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
 
@@ -74,7 +72,7 @@ export default function QykeyKeyboard() {
   } = useKeyboardState();
 
   const symHandler = () => handleSymbolToggle();
-  const sliderHandler = () => setToggleMode(!toggleMode);
+  const onToggleMode = () => setToggleMode(!toggleMode);
 
   const emojiModeHandler = () => handleEmojiToggle();
 
@@ -86,9 +84,9 @@ export default function QykeyKeyboard() {
       <View style={styles.base}>
         {/* Top Row */}
         <View style={[styles.line, { justifyContent: 'flex-start' }]}>
-          <KeyboardSlider toggleMode={toggleMode} sliderHandler={sliderHandler} themeColors={themeColors} />
+          <ModeToggleBar toggleMode={toggleMode} onToggleMode={onToggleMode} themeColors={themeColors} />
           {!toggleMode ? (
-            <KeyboardTopKeys
+            <TopStrip
               symHandler={symHandler}
               emojiModeHandler={emojiModeHandler}
               language={language}
@@ -134,7 +132,7 @@ export default function QykeyKeyboard() {
 
               {!isEmojiMode ? (
                 symbolModeStatus === 0 ? (
-                  <MainKeys
+                  <LetterKeys
                     onKeyPress={handleKeyPress}
                     onBackspace={handleBackspace}
                     onBackspaceRepeatStart={handleBackspaceRepeatStart}
@@ -155,7 +153,7 @@ export default function QykeyKeyboard() {
                     themeColors={themeColors}
                   />
                 ) : (
-                  <SystemKeysMore
+                  <SystemKeys
                     onPrev={handleSymbolPrev}
                     onBackspace={handleBackspace}
                     onEnter={handleEnter}

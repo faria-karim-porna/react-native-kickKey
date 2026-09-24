@@ -1,6 +1,6 @@
-# Project knowledge
+# KickKey Architecture
 
-This file gives Freebuff context about your project: goals, commands, conventions, and gotchas.
+This file describes the project: goals, commands, conventions, and gotchas.
 
 ## What this is
 
@@ -44,13 +44,13 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
         dictionary.tsx       # Custom word list editor
         _layout.tsx          # Tab navigator layout
       onboarding/            # 3-step wizard (enable → set default → done)
-      KeyboardTabBar.tsx, LanguageTag.tsx, OnboardingIcons.tsx,
+      AppTabBar.tsx, LanguageTag.tsx, OnboardingIcons.tsx,
       SetupProgress.tsx, ThemeCard.tsx, ToggleRow.tsx   # Shared UI components
       _layout.tsx            # mainApp segment layout (Stack)
     _layout.tsx              # Root layout (onboarding vs mainApp)
     index.tsx                # Root redirect → /mainApp
 
-  constants/Themes.ts        # Theme color definitions
+  constants/themePresets.ts  # Theme color presets
 
   hooks/
     useKickKeyBridge.ts      # Bridge calls to native module
@@ -62,17 +62,18 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
     mainKeyboard/            # Keyboard bundle code (loaded in :ime_process)
                              # ⚠ imports only relative paths — built by plain Metro
                              #   (keyboard.index.js at repo root), no @/ alias support
-      KeyboardScreen.tsx     # Root keyboard component (ErrorBoundary + QykeyKeyboard)
+      KeyboardScreen.tsx     # Root keyboard component (ErrorBoundary + KickKeyKeyboard)
       ErrorBoundary.tsx      # Catches JS errors and shows them on-screen
       FloatingPanel.tsx      # FloatingPanel (a11y surface)
       Key.tsx                # Chocolate key component
       keyboard/              # "Chocolate bar" UI ported from the qykey reference
-        QykeyKeyboard.tsx    # Orchestrator (slider, top keys, arrows, main keys, emoji, touchpad)
-        styles.ts            # Chocolate neumorphic styles (exact qykey look)
-        MainKeys.tsx         # Letter rows / bottom row
-        KeyboardSlider.tsx   # Keyboard ⇄ touchpad toggle
-        KeyboardTopKeys.tsx  # Emoji / suggestions / SYM / mic strip
-        SymbolKeys.tsx, SymbolKeysMore.tsx  # Symbol + system-key pages (F-keys)
+        KickKeyKeyboard.tsx  # Orchestrator (mode toggle, top strip, arrows, keys, emoji, touchpad)
+        dynamicStyles.ts     # Chocolate neumorphic styles (exact qykey look)
+        types.ts             # Shared types (AppLanguage)
+        LetterKeys.tsx       # Letter rows / bottom row
+        ModeToggleBar.tsx    # Keyboard ⇄ touchpad toggle
+        TopStrip.tsx         # Emoji / suggestions / SYM / mic strip
+        SymbolKeys.tsx, SystemKeys.tsx  # Symbol + system-key pages (F-keys)
         EmojiBoard.tsx       # Emoji picker
         FeatheredArrowKey.tsx  # Arrow glyphs
         speechRecognition.ts # Mic bridge → real expo-speech-recognition module

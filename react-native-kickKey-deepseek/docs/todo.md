@@ -1,6 +1,6 @@
 Email: personalfkp@gmail.com
-Download Link: https://expo.dev/artifacts/eas/x85ffmCI1WIssY0LWGJTfc_ISjYOSFothSgVmRGIfO0.apk
-Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme, Fix Customize Keyboard
+Download Link: https://expo.dev/artifacts/eas/q4yEZp7RKnP51rP2h6ihyZOdxSUljzc2XNJ5MsrdrNU.apk
+Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme, Fix Customize Keyboard, Partially Fixed Folder Structure
 
 
 Bangla to English Conversion: https://chatgpt.com/c/6a3d5c31-c684-83e8-8b51-eda4710b19c4

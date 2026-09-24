@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, TouchableOpacity, ScrollView, StyleSheet, View, Appearance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettingsStore } from '@/store/settingsStore';
-import { THEME_PRESETS, LIGHT_PRESET, NORD_PRESET } from '@/constants/Themes';
+import { THEME_PRESETS, LIGHT_PRESET, NORD_PRESET } from '@/constants/themePresets';
 import ThemeCard from '@/app/mainApp/ThemeCard';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';

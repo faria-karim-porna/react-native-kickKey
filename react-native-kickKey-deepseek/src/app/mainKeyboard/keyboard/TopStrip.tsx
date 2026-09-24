@@ -1,5 +1,5 @@
 // ============================================================
-// KeyboardTopKeys.tsx — ported from qykey.
+// TopStrip.tsx — ported from qykey.
 //   - Suggestion strip fed by the NATIVE suggestion engine.
 //   - Mic key uses the real expo-speech-recognition module.
 //   - Now accepts themeColors for dynamic styling.
@@ -11,10 +11,10 @@ import { createKeyboardStyles } from './dynamicStyles';
 import { Key } from '../Key';
 import MicrophoneIcon from './MicrophoneIcon';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from './speechRecognition';
-import type { AppLanguage } from './QykeyKeyboard';
+import type { AppLanguage } from './types';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
-type KeyboardTopKeysProps = {
+type TopStripProps = {
   emojiModeHandler?: () => void;
   symHandler?: () => void;
   language: AppLanguage;
@@ -24,7 +24,7 @@ type KeyboardTopKeysProps = {
   themeColors: KeyboardThemeColors;
 };
 
-const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
+const TopStripComponent = (props: TopStripProps) => {
   const {
     emojiModeHandler,
     symHandler,
@@ -210,4 +210,4 @@ const KeyboardTopKeysComponent = (props: KeyboardTopKeysProps) => {
   );
 };
 
-export const KeyboardTopKeys = React.memo(KeyboardTopKeysComponent);
+export const TopStrip = React.memo(TopStripComponent);

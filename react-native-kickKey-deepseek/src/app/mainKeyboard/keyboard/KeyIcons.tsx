@@ -1,5 +1,5 @@
 // ============================================================
-// icons.tsx — exact FontAwesome 5 / MaterialCommunityIcons glyphs
+// KeyIcons.tsx — exact FontAwesome 5 / MaterialCommunityIcons glyphs
 // rendered with react-native-svg.
 //
 // qykey renders its key/toggle icons through @expo/vector-icons

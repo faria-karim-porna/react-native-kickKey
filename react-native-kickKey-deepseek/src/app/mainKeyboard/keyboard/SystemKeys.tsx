@@ -1,5 +1,5 @@
 // ============================================================
-// SymbolKeysMore.tsx — ported from qykey (system keys page).
+// SystemKeys.tsx — ported from qykey (system keys page).
 // Now accepts themeColors for dynamic styling.
 // ============================================================
 
@@ -7,17 +7,17 @@ import React, { useMemo } from 'react';
 import { View } from 'react-native';
 import { createKeyboardStyles } from './dynamicStyles';
 import { Key } from '../Key';
-import { FA5Icon, MDIIcon } from './icons';
+import { FA5Icon, MDIIcon } from './KeyIcons';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
-type SystemKeysMoreProps = {
+type SystemKeysProps = {
   onPrev?: () => void;
   onBackspace?: () => void;
   onEnter?: () => void;
   themeColors: KeyboardThemeColors;
 };
 
-export default function SystemKeysMore({ onPrev, onBackspace, onEnter, themeColors }: SystemKeysMoreProps) {
+export default function SystemKeys({ onPrev, onBackspace, onEnter, themeColors }: SystemKeysProps) {
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
 
   return (

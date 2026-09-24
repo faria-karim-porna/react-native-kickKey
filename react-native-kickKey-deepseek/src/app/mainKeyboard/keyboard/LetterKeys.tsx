@@ -1,5 +1,5 @@
 // ============================================================
-// MainKeys.tsx — ported from qykey.
+// LetterKeys.tsx — ported from qykey.
 //   - Key presses commit through the native KickKey module.
 //   - Space-bar swipe cycles the language (en-US ⇄ banglish ⇄ bn-BD).
 //   - Backspace gained long-press repeat (invisible UI change).
@@ -10,11 +10,11 @@ import React, { useState, useMemo } from 'react';
 import { View, Text } from 'react-native';
 import { createKeyboardStyles } from './dynamicStyles';
 import { Key } from '../Key';
-import { MDIIcon } from './icons';
-import type { AppLanguage } from './QykeyKeyboard';
+import { MDIIcon } from './KeyIcons';
+import type { AppLanguage } from './types';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
-type MainKeysProps = {
+type LetterKeysProps = {
   onKeyPress?: (key: string) => void;
   onBackspace?: () => void;
   onBackspaceRepeatStart?: () => void;
@@ -27,7 +27,7 @@ type MainKeysProps = {
   themeColors: KeyboardThemeColors;
 };
 
-const MainKeysComponent = ({
+const LetterKeysComponent = ({
   onKeyPress,
   onBackspace,
   onBackspaceRepeatStart,
@@ -38,7 +38,7 @@ const MainKeysComponent = ({
   language = 'en-US',
   onLanguageChange,
   themeColors,
-}: MainKeysProps) => {
+}: LetterKeysProps) => {
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const [isCapsOn, setIsCapsOn] = useState(false);
   const cycleLeft: Record<AppLanguage, AppLanguage> = {
@@ -203,4 +203,4 @@ const MainKeysComponent = ({
   );
 };
 
-export const MainKeys = React.memo(MainKeysComponent);
+export const LetterKeys = React.memo(LetterKeysComponent);
