@@ -29,7 +29,7 @@ export const ExpoSpeechRecognitionModule: any =
 function getEventEmitter(): any {
   const expoGlobal = (globalThis as any).expo;
   if (!expoGlobal?.EventEmitter) {
-    throw new Error('[KickKey] expo-modules-core EventEmitter is not available');
+    throw new Error('[QyKey] expo-modules-core EventEmitter is not available');
   }
   return new expoGlobal.EventEmitter(ExpoSpeechRecognitionModule);
 }

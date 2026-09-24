@@ -35,7 +35,7 @@ export default function Step4Done() {
         style={({ pressed }) => [styles.button, { backgroundColor: colors.accent, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, pressed && styles.buttonPressed]}
         onPress={handleFinish}
       >
-        <Text style={[styles.buttonText, { color: colors.buttonText }]}>{t.startUsingKickKey}</Text>
+        <Text style={[styles.buttonText, { color: colors.buttonText }]}>{t.startUsingQyKey}</Text>
       </Pressable>
     </SafeAreaView>
   );

@@ -7,7 +7,7 @@ import { NativeModules } from 'react-native';
  */
 export function playKeySound(): void {
   try {
-    NativeModules.KickKey?.playKeySound();
+    NativeModules.QyKey?.playKeySound();
   } catch {
     // Ignore — sound is optional and should never crash the keyboard
   }

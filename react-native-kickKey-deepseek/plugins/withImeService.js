@@ -6,8 +6,8 @@ const path = require('path');
 /**
  * Expo config plugin that:
  * 1. Copies custom Kotlin source files and resources into android/ app directory during prebuild.
- * 2. Registers KickKeyInputMethodService as an Android IME.
- * 3. Sets KickKeyApplication as the Application class and adds VIBRATE permission.
+ * 2. Registers QyKeyInputMethodService as an Android IME.
+ * 3. Sets QyKeyApplication as the Application class and adds VIBRATE permission.
  * 4. Fixes any Groovy build.gradle syntax issues.
  */
 function withNativeSourceCopy(config) {
@@ -18,7 +18,7 @@ function withNativeSourceCopy(config) {
       const nativeFilesDir = path.join(projectRoot, 'native');
 
       // 1. Copy Kotlin files
-      const srcJavaDir = path.join(nativeFilesDir, 'java', 'com', 'kickkey');
+      const srcJavaDir = path.join(nativeFilesDir, 'java', 'com', 'qykey');
       const targetJavaDir = path.join(
         projectRoot,
         'android',
@@ -27,7 +27,7 @@ function withNativeSourceCopy(config) {
         'main',
         'java',
         'com',
-        'kickkey'
+        'qykey'
       );
 
       if (fs.existsSync(srcJavaDir)) {
@@ -167,7 +167,7 @@ module.exports = function withImeService(config) {
       [
         {
           $: { name: 'ime_name' },
-          _: 'KickKey Keyboard',
+          _: 'QyKey Keyboard',
         },
       ],
       config.modResults
@@ -185,7 +185,7 @@ module.exports = function withImeService(config) {
     }
 
     // 1. Set custom Application class
-    application.$['android:name'] = '.KickKeyApplication';
+    application.$['android:name'] = '.QyKeyApplication';
 
     // 2. Add IME service declaration
     if (!application.service) {
@@ -194,13 +194,13 @@ module.exports = function withImeService(config) {
 
     // Check if service already registered (avoid duplicates on repeated prebuild)
     const alreadyRegistered = application.service.some(
-      (s) => s.$?.['android:name'] === '.KickKeyInputMethodService'
+      (s) => s.$?.['android:name'] === '.QyKeyInputMethodService'
     );
 
     if (!alreadyRegistered) {
       application.service.push({
         $: {
-          'android:name': '.KickKeyInputMethodService',
+          'android:name': '.QyKeyInputMethodService',
           'android:label': '@string/ime_name',
           'android:permission': 'android.permission.BIND_INPUT_METHOD',
           'android:exported': 'true',

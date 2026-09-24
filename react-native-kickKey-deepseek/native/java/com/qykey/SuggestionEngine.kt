@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import android.content.Context
 import android.os.Handler
@@ -8,14 +8,14 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 /**
- * Suggestion engine for KickKey.
+ * Suggestion engine for QyKey.
  *
  * Triggered by every character typed or deleted.
  * Emits "onSuggestionsUpdated" to React Native via NativeEventEmitter.
  *
  * LIFECYCLE:
- *   - Created once in KickKeyInputMethodService.onCreate()
- *   - onCharacterTyped() / onBackspace()  called by KickKeyModule
+ *   - Created once in QyKeyInputMethodService.onCreate()
+ *   - onCharacterTyped() / onBackspace()  called by QyKeyModule
  *   - onWordCommitted() called when user taps a suggestion or commits a word
  *   - reset() called in onStartInputView() when a new text field gains focus
  */
@@ -49,7 +49,7 @@ class SuggestionEngine(private val context: Context) {
     private var customWordsLoaded = false
 
     private fun loadCustomWords() {
-        val prefs = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("qykey_dictionary", Context.MODE_PRIVATE)
         val rawEn = prefs.getString("custom_words_en", "") ?: ""
         val rawBn = prefs.getString("custom_words_bn", "") ?: ""
         customWordsEn = if (rawEn.isEmpty()) emptyList() else rawEn.split("\n").filter { it.isNotBlank() }
@@ -129,7 +129,7 @@ class SuggestionEngine(private val context: Context) {
      * Runs the heavy lookup on a background thread.
      */
     private fun computeAndEmit() {
-        val ic = KickKeyModule.activeInputConnection ?: return
+        val ic = QyKeyModule.activeInputConnection ?: return
         val textBefore = ic.getTextBeforeCursor(100, 0)?.toString() ?: return
 
         // If the user just typed whitespace, no active word is being typed
@@ -214,11 +214,11 @@ class SuggestionEngine(private val context: Context) {
 
     private fun emitSuggestions() {
         try {
-            val app = context.applicationContext as KickKeyApplication
+            val app = context.applicationContext as QyKeyApplication
             // Fallback: use stored ReactContext when host.currentReactContext is null
             var reactContext = app.keyboardReactHost.currentReactContext
             if (reactContext == null) {
-                reactContext = KickKeyModule.keyboardReactContext
+                reactContext = QyKeyModule.keyboardReactContext
             }
             if (reactContext == null) return
 

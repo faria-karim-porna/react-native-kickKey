@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import android.app.Application
 import android.content.res.Configuration
@@ -27,10 +27,10 @@ import com.facebook.react.runtime.hermes.HermesInstance
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ExpoReactHostFactory
 
-class KickKeyApplication : Application(), ReactApplication {
+class QyKeyApplication : Application(), ReactApplication {
 
     companion object {
-        private const val TAG = "KickKeyApplication"
+        private const val TAG = "QyKeyApplication"
     }
 
     // ── Main ReactHost (managed by Expo, uses main bundle) ──────────
@@ -38,7 +38,7 @@ class KickKeyApplication : Application(), ReactApplication {
         ExpoReactHostFactory.getDefaultReactHost(
             context = applicationContext,
             packageList = PackageList(this).packages.apply {
-                add(KickKeyPackage())
+                add(QyKeyPackage())
             }
         )
     }
@@ -59,7 +59,7 @@ class KickKeyApplication : Application(), ReactApplication {
     // Class-level lock for keyboard ReactHost initialization
     private val keyboardInitLock = Any()
 
-    // Whether this process is the dedicated IME process (KickKeyInputMethodService is
+    // Whether this process is the dedicated IME process (QyKeyInputMethodService is
     // declared with android:process=":ime_process"). Application.getProcessName() is
     // API 28+; older versions read /proc/self/cmdline.
     private val isImeProcess: Boolean by lazy {
@@ -123,7 +123,7 @@ class KickKeyApplication : Application(), ReactApplication {
         }
         if (oldHost == null) return
         try {
-            oldHost.destroy("KickKey watchdog: resetting keyboard host for next open", null)
+            oldHost.destroy("QyKey watchdog: resetting keyboard host for next open", null)
         } catch (e: Exception) {
             Log.w(TAG, "Keyboard host destroy during reset failed: ${e.message}")
         }
@@ -163,7 +163,7 @@ class KickKeyApplication : Application(), ReactApplication {
         // moves the expensive startup steps (ComponentFactory creation + the
         // ~911KB Hermes keyboard.bundle load) OUT of the critical path of the first
         // keyboard open. Without this the host was initialized lazily on the main
-        // thread inside KickKeyInputMethodService.onCreateInputView(), right as the
+        // thread inside QyKeyInputMethodService.onCreateInputView(), right as the
         // input window was appearing — the user saw a black keyboard area for
         // 1–3s before the keys mounted.
         //
@@ -203,7 +203,7 @@ class KickKeyApplication : Application(), ReactApplication {
 
                 override val jsBundleLoader: JSBundleLoader
                     get() = JSBundleLoader.createAssetLoader(
-                        this@KickKeyApplication,
+                        this@QyKeyApplication,
                         "assets://keyboard.bundle",
                         true
                     )
@@ -212,10 +212,10 @@ class KickKeyApplication : Application(), ReactApplication {
                     get() = HermesInstance()
 
                 // Includes MainReactPackage (via PackageList) for standard React Native core view managers
-                // (View, Text, TouchableOpacity, etc.) + KickKeyPackage for native IME bridge methods
+                // (View, Text, TouchableOpacity, etc.) + QyKeyPackage for native IME bridge methods
                 override val reactPackages: List<ReactPackage>
-                    get() = PackageList(this@KickKeyApplication).packages.apply {
-                        if (none { it is KickKeyPackage }) add(KickKeyPackage())
+                    get() = PackageList(this@QyKeyApplication).packages.apply {
+                        if (none { it is QyKeyPackage }) add(QyKeyPackage())
                     }
 
                 override val bindingsInstaller: BindingsInstaller? = null
@@ -254,7 +254,7 @@ class KickKeyApplication : Application(), ReactApplication {
 
             // NOTE: the keyboard ReactHost is deliberately NOT resumed here.
             // ReactHost.onHostResume(null) must only be called once the ReactInstance
-            // EXISTS — see KickKeyInputMethodService.scheduleHostResume(). Resuming
+            // EXISTS — see QyKeyInputMethodService.scheduleHostResume(). Resuming
             // before the instance was created (a previous iteration) moved the lifecycle
             // to RESUMED prematurely: the bootstrap resume path then dispatched
             // ReactContext.onHostResume() mid-initialization, and any listener failure

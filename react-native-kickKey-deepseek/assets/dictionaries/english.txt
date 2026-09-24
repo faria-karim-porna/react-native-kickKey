@@ -1,4 +1,4 @@
-﻿# KickKey English dictionary
+﻿# QyKey English dictionary
 # Format: word	frequency
 the	23135851162
 be	13650487260

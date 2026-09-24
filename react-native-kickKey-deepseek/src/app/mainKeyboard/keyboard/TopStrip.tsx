@@ -109,14 +109,14 @@ const TopStripComponent = (props: TopStripProps) => {
       const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
       granted = !!result?.granted;
     } catch (e) {
-      console.warn('[KickKey] Microphone permission request failed:', e);
+      console.warn('[QyKey] Microphone permission request failed:', e);
       granted = false;
     }
     if (!granted) {
       showNotice(
         language === 'bn-BD'
-          ? 'মাইক্রোফোন অনুমতি দিন — KickKey অ্যাপে'
-          : 'Allow microphone in the KickKey app',
+          ? 'মাইক্রোফোন অনুমতি দিন — QyKey অ্যাপে'
+          : 'Allow microphone in the QyKey app',
       );
       return;
     }

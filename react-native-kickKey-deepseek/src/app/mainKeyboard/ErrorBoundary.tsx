@@ -24,7 +24,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log to console for logcat debugging
-    console.error('[KickKey ErrorBoundary]', error.message, error.stack, errorInfo.componentStack);
+    console.error('[QyKey ErrorBoundary]', error.message, error.stack, errorInfo.componentStack);
   }
 
   render() {
@@ -36,7 +36,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
             {this.state.error?.message ?? 'Unknown error'}
           </Text>
           <Text style={styles.hint}>
-            Check logcat for details: adb logcat | grep KickKey
+            Check logcat for details: adb logcat | grep QyKey
           </Text>
         </View>
       );

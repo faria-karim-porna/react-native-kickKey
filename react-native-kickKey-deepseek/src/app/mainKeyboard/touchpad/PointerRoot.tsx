@@ -1,5 +1,5 @@
 // ============================================================
-// PointerRoot.tsx — the "KickKeyPointer" React surface.
+// PointerRoot.tsx — the "QyKeyPointer" React surface.
 //
 // A small static mouse arrow rendered in its own overlay window.
 // It NEVER re-renders while moving: native (PointerOverlay) owns
@@ -24,10 +24,10 @@ export default function PointerRoot() {
   // items (see PointerOverlay.resumeHostWhenReady).
   useEffect(() => {
     try {
-      const p = NativeModules.KickKey?.keyboardReady?.();
+      const p = NativeModules.QyKey?.keyboardReady?.();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (e) {
-      console.warn('[KickKey] PointerRoot keyboardReady failed:', e);
+      console.warn('[QyKey] PointerRoot keyboardReady failed:', e);
     }
   }, []);
 

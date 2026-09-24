@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useSettingsStore } from '@/store/settingsStore';
-import { useKickKeyBridge } from './useKickKeyBridge';
+import { useQyKeyBridge } from './useQyKeyBridge';
 
 /**
  * Call this once near the root of the app (in app/_layout.tsx).
@@ -11,7 +11,7 @@ import { useKickKeyBridge } from './useKickKeyBridge';
  * user is dragging a slider (e.g. font size).
  */
 export function useSettingsSync() {
-  const { savePreferences } = useKickKeyBridge();
+  const { savePreferences } = useQyKeyBridge();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const language        = useSettingsStore((s) => s.language);

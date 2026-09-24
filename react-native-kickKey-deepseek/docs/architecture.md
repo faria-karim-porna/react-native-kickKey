@@ -1,13 +1,13 @@
-# KickKey Architecture
+# QyKey Architecture
 
 This file describes the project: goals, commands, conventions, and gotchas.
 
 ## What this is
 
-**KickKey** — An Android custom keyboard app built with React Native + Expo SDK 57. Written in TypeScript (frontend/companion app) and Kotlin (IME service, native modules). Android-only (Expo config sets `"platforms": ["android"]`).
+**QyKey** — An Android custom keyboard app built with React Native + Expo SDK 57. Written in TypeScript (frontend/companion app) and Kotlin (IME service, native modules). Android-only (Expo config sets `"platforms": ["android"]`).
 
 The app has **two separate React Native bundles** loaded into the same process:
-1. **Keyboard bundle** — Entry: `keyboard.index.js`. Registers `KickKeyKeyboard` component. Runs inside `:ime_process` via `KickKeyInputMethodService.kt`. Must NOT import from the companion app.
+1. **Keyboard bundle** — Entry: `keyboard.index.js`. Registers `QyKeyKeyboard` component. Runs inside `:ime_process` via `QyKeyInputMethodService.kt`. Must NOT import from the companion app.
 2. **Companion app** — Entry: `expo-router/entry` (`src/app` directory). Runs 5-tab layout + 3-step onboarding wizard under the `mainApp` route segment. Uses Expo Router.
 
 ## Quickstart
@@ -51,7 +51,7 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
     index.tsx                # Root redirect → /mainApp
 
   hooks/
-    useKickKeyBridge.ts      # Bridge calls to native module
+    useQyKeyBridge.ts      # Bridge calls to native module
     useSettingsSync.ts       # Zustand → SharedPreferences sync
     useSetupStatus.ts        # Polls keyboard enable/default status
     useKeyboardState.ts      # State + native wiring for the keyboard bundle
@@ -87,12 +87,12 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
 
   store/settingsStore.ts     # Zustand store with AsyncStorage persistence
 
-modules/kickkey-module/      # Native module bridge (TypeScript side)
+modules/qykey-module/      # Native module bridge (TypeScript side)
   index.ts                   # All native functions exposed to JS
-                             # (Kotlin impl lives in native/java/com/kickkey/)
+                             # (Kotlin impl lives in native/java/com/qykey/)
 
 native/                      # Kotlin sources + res copied into android/ by config plugins
-  java/com/kickkey/*.kt      # IME service, a11y service, module, engines
+  java/com/qykey/*.kt      # IME service, a11y service, module, engines
   res/xml/*.xml              # method.xml, accessibility_service_config.xml
   proguard-rules.pro
 
@@ -111,7 +111,7 @@ assets/dictionaries/         # Word list files and compiled binary Tries
 
 ## Native module functions
 
-Defined in `modules/kickkey-module/index.ts` — calls through to `KickKey` NativeModule (Kotlin):
+Defined in `modules/qykey-module/index.ts` — calls through to `QyKey` NativeModule (Kotlin):
 
 | Category | Functions |
 |---|---|
@@ -150,7 +150,7 @@ Defined in `modules/kickkey-module/index.ts` — calls through to `KickKey` Nati
 ## Architecture
 
 - Companion app (Expo Router/RCT) and keyboard UI (`:ime_process`) run in the **same APK** but **separate React hosts**.
-- **Native source of truth** — Kotlin lives in `native/java/com/kickkey/` and is copied into `android/` by `plugins/withImeService.js` on prebuild; `android/` itself is generated and gitignored.
+- **Native source of truth** — Kotlin lives in `native/java/com/qykey/` and is copied into `android/` by `plugins/withImeService.js` on prebuild; `android/` itself is generated and gitignored.
 - `useSettingsSync` hook writes Zustand state → SharedPreferences with 300ms debounce.
 - The keyboard bundle's `KeyboardScreen` reads preferences from SharedPreferences directly.
 - Suggestion engine uses binary Trie (prefix + Levenshtein fuzzy search) with 50ms debounce on background thread.

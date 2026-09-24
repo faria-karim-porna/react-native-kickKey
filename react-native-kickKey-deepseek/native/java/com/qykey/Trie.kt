@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import java.io.InputStream
 import java.nio.ByteBuffer

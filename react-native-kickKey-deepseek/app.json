@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "KickKey",
-    "slug": "kickkey",
+    "name": "QyKey",
+    "slug": "qykey",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,7 +10,7 @@
       "android"
     ],
     "android": {
-      "package": "com.kickkey",
+      "package": "com.qykey",
       "permissions": [
         "android.permission.VIBRATE",
         "android.permission.RECORD_AUDIO"
@@ -27,7 +27,7 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "scheme": "kickkey",
+    "scheme": "qykey",
     "plugins": [
       "expo-router",
       "./plugins/withImeService",

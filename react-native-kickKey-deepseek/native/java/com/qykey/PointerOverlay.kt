@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
@@ -27,18 +27,18 @@ import android.view.accessibility.AccessibilityManager
  * Movement is pure WindowManager.updateViewLayout() — no re-renders.
  *
  * Window type priority:
- *   1. TYPE_ACCESSIBILITY_OVERLAY — KickKeyAccessibilityService enabled (no
+ *   1. TYPE_ACCESSIBILITY_OVERLAY — QyKeyAccessibilityService enabled (no
  *      SYSTEM_ALERT_WINDOW permission needed).
  *   2. TYPE_APPLICATION_OVERLAY (API 26+) or TYPE_PHONE — "Display over other
  *      apps" granted.
  *   3. Neither → show() returns false; JS shows the permission banner.
  *
- * All public methods are MAIN-THREAD ONLY. KickKeyModule posts to the main
+ * All public methods are MAIN-THREAD ONLY. QyKeyModule posts to the main
  * looper before calling.
  */
 object PointerOverlay {
 
-    private const val TAG = "KickKeyPointer"
+    private const val TAG = "QyKeyPointer"
 
     /** Modern cursor arrow size in dp. */
     private const val CURSOR_SIZE_DP = 28
@@ -67,7 +67,7 @@ object PointerOverlay {
 
     private fun getWindowManager(type: Int? = currentWindowType): WindowManager? {
         if (type == WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY) {
-            KickKeyAccessibilityService.instance?.let { a11y ->
+            QyKeyAccessibilityService.instance?.let { a11y ->
                 return a11y.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
             }
         }
@@ -77,7 +77,7 @@ object PointerOverlay {
 
     private fun getOverlayContext(type: Int): Context? {
         if (type == WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY) {
-            val a11y = KickKeyAccessibilityService.instance
+            val a11y = QyKeyAccessibilityService.instance
             if (a11y != null) return a11y
         }
         return appContext
@@ -129,7 +129,7 @@ object PointerOverlay {
      * Retrieves the current height (in pixels) of the active keyboard or floating panel.
      */
     fun getKeyboardHeight(): Int {
-        KickKeyInputMethodService.instance?.let { ime ->
+        QyKeyInputMethodService.instance?.let { ime ->
             val container = ime.keyboardContainer
             if (container != null && container.height > 0) {
                 return container.height
@@ -138,7 +138,7 @@ object PointerOverlay {
                 return ime.currentKeyboardHeightPx
             }
         }
-        KickKeyAccessibilityService.instance?.panelContainer?.let { container ->
+        QyKeyAccessibilityService.instance?.panelContainer?.let { container ->
             if (container.height > 0) return container.height
         }
         return keyboardHeightPx
@@ -195,7 +195,7 @@ object PointerOverlay {
     // ── Window type resolution ─────────────────────────────────────────────
 
     private fun resolveWindowType(ctx: Context): Int? {
-        if (KickKeyAccessibilityService.instance != null)
+        if (QyKeyAccessibilityService.instance != null)
             return WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
         return when {
             Settings.canDrawOverlays(ctx) -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)

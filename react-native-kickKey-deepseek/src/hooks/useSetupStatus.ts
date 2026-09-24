@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { useKickKeyBridge } from './useKickKeyBridge';
+import { useQyKeyBridge } from './useQyKeyBridge';
 
 interface SetupStatus {
   isEnabled: boolean;
@@ -15,7 +15,7 @@ interface SetupStatus {
 const POLL_INTERVAL_MS = 2000;
 
 export function useSetupStatus(): SetupStatus {
-  const { isKeyboardEnabled, isDefaultKeyboard, isOverlayGranted: checkOverlay } = useKickKeyBridge();
+  const { isKeyboardEnabled, isDefaultKeyboard, isOverlayGranted: checkOverlay } = useQyKeyBridge();
   const [isEnabled, setIsEnabled] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
   const [isOverlayGranted, setIsOverlayGranted] = useState(false);

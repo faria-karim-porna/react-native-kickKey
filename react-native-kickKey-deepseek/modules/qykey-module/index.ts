@@ -1,28 +1,28 @@
 import { NativeModules } from 'react-native';
 
-const { KickKey } = NativeModules;
+const { QyKey } = NativeModules;
 
 export default {
   // ── Phase 1 ───────────────────────────────────────────────────────────────
-  isDefaultKeyboard:    (): Promise<boolean>            => KickKey.isDefaultKeyboard(),
-  isKeyboardEnabled:    (): Promise<boolean>            => KickKey.isKeyboardEnabled(),
-  openKeyboardSettings: (): void                        => KickKey.openKeyboardSettings(),
+  isDefaultKeyboard:    (): Promise<boolean>            => QyKey.isDefaultKeyboard(),
+  isKeyboardEnabled:    (): Promise<boolean>            => QyKey.isKeyboardEnabled(),
+  openKeyboardSettings: (): void                        => QyKey.openKeyboardSettings(),
 
   /** Shows the system "Choose input method" picker to set the current keyboard. */
-  showInputMethodPicker: (): void                       => KickKey.showInputMethodPicker(),
+  showInputMethodPicker: (): void                       => QyKey.showInputMethodPicker(),
 
   // ── Phase 2 ───────────────────────────────────────────────────────────────
-  commitKey:       (code: string, language: string): Promise<void> => KickKey.commitKey(code, language),
-  sendBackspace:   (): Promise<void>                               => KickKey.sendBackspace(),
-  commitSpace:     (): Promise<void>                               => KickKey.commitSpace(),
-  sendEnter:       (): Promise<void>                               => KickKey.sendEnter(),
-  sendSpecialKey:  (key: string): Promise<void>                    => KickKey.sendSpecialKey(key),
-  getPreferences:  (): Promise<Record<string, any>>               => KickKey.getPreferences(),
-  savePreferences: (p: Record<string, any>): Promise<void>        => KickKey.savePreferences(p),
+  commitKey:       (code: string, language: string): Promise<void> => QyKey.commitKey(code, language),
+  sendBackspace:   (): Promise<void>                               => QyKey.sendBackspace(),
+  commitSpace:     (): Promise<void>                               => QyKey.commitSpace(),
+  sendEnter:       (): Promise<void>                               => QyKey.sendEnter(),
+  sendSpecialKey:  (key: string): Promise<void>                    => QyKey.sendSpecialKey(key),
+  getPreferences:  (): Promise<Record<string, any>>               => QyKey.getPreferences(),
+  savePreferences: (p: Record<string, any>): Promise<void>        => QyKey.savePreferences(p),
 
   // ── Phase 3 ───────────────────────────────────────────────────────────────
-  flushBanglaBuffer: (): Promise<void>              => KickKey.flushBanglaBuffer(),
-  setBanglaEnabled:  (e: boolean): Promise<void>    => KickKey.setBanglaEnabled(e),
+  flushBanglaBuffer: (): Promise<void>              => QyKey.flushBanglaBuffer(),
+  setBanglaEnabled:  (e: boolean): Promise<void>    => QyKey.setBanglaEnabled(e),
 
   // ── Phase 4 ───────────────────────────────────────────────────────────────
 
@@ -32,51 +32,51 @@ export default {
    * Called when the user taps a suggestion chip in SuggestionBar.
    */
   commitSuggestion: (word: string): Promise<void> =>
-    KickKey.commitSuggestion(word),
+    QyKey.commitSuggestion(word),
 
   // ── Phase 5: Custom dictionary ─────────────────────────────────────────────
 
   /** Replaces the entire custom dictionary with [words]. */
   setDictionaryWords: (words: string[]): Promise<void> =>
-    KickKey.setDictionaryWords(words),
+    QyKey.setDictionaryWords(words),
 
   /** Returns the current custom dictionary word list. */
   getDictionaryWords: (): Promise<string[]> =>
-    KickKey.getDictionaryWords(),
+    QyKey.getDictionaryWords(),
 
   /** Removes a single word from the custom dictionary. */
   removeDictionaryWord: (word: string): Promise<void> =>
-    KickKey.removeDictionaryWord(word),
+    QyKey.removeDictionaryWord(word),
 
   /** Stores per-language custom dictionaries. */
   setCustomDictionary: (enWords: string[], bnWords: string[]): Promise<void> =>
-    KickKey.setCustomDictionary(enWords, bnWords),
+    QyKey.setCustomDictionary(enWords, bnWords),
 
   /** Returns custom dictionary words for a specific language ('en' or 'bn'). */
   getCustomDictionary: (lang: string): Promise<string[]> =>
-    KickKey.getCustomDictionary(lang),
+    QyKey.getCustomDictionary(lang),
 
   // ── Phase 6: Clipboard & Emoji history ───────────────────────────────────────
 
   /** Returns clipboard history, most recent first. */
   getClipboardHistory: (): Promise<string[]> =>
-    KickKey.getClipboardHistory(),
+    QyKey.getClipboardHistory(),
 
   /** Clears the entire clipboard history. */
   clearClipboardHistory: (): Promise<void> =>
-    KickKey.clearClipboardHistory(),
+    QyKey.clearClipboardHistory(),
 
   /** Removes a single clipboard history entry. */
   removeClipboardItem: (text: string): Promise<void> =>
-    KickKey.removeClipboardItem(text),
+    QyKey.removeClipboardItem(text),
 
   /** Returns the recently used emoji list, most recent first. */
   getRecentEmojis: (): Promise<string[]> =>
-    KickKey.getRecentEmojis(),
+    QyKey.getRecentEmojis(),
 
   /** Records that the user selected an emoji, for recent-tray ordering. */
   recordEmojiUsed: (emoji: string): Promise<void> =>
-    KickKey.recordEmojiUsed(emoji),
+    QyKey.recordEmojiUsed(emoji),
 
   // ── Touchpad ──────────────────────────────────────────────────────────────
 
@@ -86,14 +86,14 @@ export default {
    * direction: "left" | "right" | "up" | "down"
    */
   moveCursor: (direction: 'left' | 'right' | 'up' | 'down'): Promise<void> =>
-    KickKey.moveCursor(direction),
+    QyKey.moveCursor(direction),
 
   /**
    * Sends a PAGE_UP or PAGE_DOWN key event to scroll the focused view.
    * direction: "up" | "down"
    */
   scrollPage: (direction: 'up' | 'down'): Promise<void> =>
-    KickKey.scrollPage(direction),
+    QyKey.scrollPage(direction),
 
   /**
    * Back/Forward navigation.
@@ -102,7 +102,7 @@ export default {
    *   false when unsupported (no a11y API for Forward — pro mode in M4).
    */
   navigateHistory: (direction: 'backward' | 'forward'): Promise<boolean> =>
-    KickKey.navigateHistory(direction),
+    QyKey.navigateHistory(direction),
 
   /**
    * Mouse button click at the current cursor position.
@@ -111,7 +111,7 @@ export default {
    * "right" → long-press at the cursor (context-menu equivalent).
    */
   mouseClick: (button: 'left' | 'right'): Promise<void> =>
-    KickKey.mouseClick(button),
+    QyKey.mouseClick(button),
 
   // ── Touchpad: on-screen mouse pointer overlay ────────────────────────────────
 
@@ -120,53 +120,53 @@ export default {
    * Resolves true when the pointer is visible. Requires "Display over other apps"
    * (SYSTEM_ALERT_WINDOW) — resolves false when the permission is not granted.
    */
-  pointerShow: (): Promise<boolean> => KickKey.pointerShow(),
+  pointerShow: (): Promise<boolean> => QyKey.pointerShow(),
 
   /** Hides the on-screen mouse pointer overlay. */
-  pointerHide: (): Promise<void> => KickKey.pointerHide(),
+  pointerHide: (): Promise<void> => QyKey.pointerHide(),
 
   /**
    * Moves the on-screen pointer by a RELATIVE (dx, dy) delta, clamped to the
    * visible app area. Called repeatedly while the user drags on the touchpad.
    */
   pointerMove: (dx: number, dy: number): Promise<void> =>
-    KickKey.pointerMove(dx, dy),
+    QyKey.pointerMove(dx, dy),
 
   /**
-   * Tells the overlay the exact screen Y (in pixels) of the top of the main key    * area. Call this from KickKeyKeyboard's mainKeysContainer onLayout/measureInWindow
+   * Tells the overlay the exact screen Y (in pixels) of the top of the main key    * area. Call this from QyKeyKeyboard's mainKeysContainer onLayout/measureInWindow
    * so the red overlay height stops at the main keys, not at the toggle row above.
    */
   pointerSetOverlayTopY: (yPx: number): Promise<void> =>
-    KickKey.pointerSetOverlayTopY(yPx),
+    QyKey.pointerSetOverlayTopY(yPx),
 
   /** Returns true when "Display over other apps" (SYSTEM_ALERT_WINDOW) is granted. */
-  isOverlayGranted: (): Promise<boolean> => KickKey.isOverlayGranted(),
+  isOverlayGranted: (): Promise<boolean> => QyKey.isOverlayGranted(),
 
   /** Opens the system "Display over other apps" settings for this app. */
-  openOverlaySettings: (): Promise<void> => KickKey.openOverlaySettings(),
+  openOverlaySettings: (): Promise<void> => QyKey.openOverlaySettings(),
 
   // ── Touchpad: IME strip mode + drag (M3) ────────────────────────────────
 
   /** Shrinks the IME window to a thin strip while touchpad mode is active. */
-  setTouchpadMode: (on: boolean): Promise<void> => KickKey.setTouchpadMode(on),
+  setTouchpadMode: (on: boolean): Promise<void> => QyKey.setTouchpadMode(on),
 
   /** L button pressed — arm a drag at the cursor. */
-  dragStart: (): Promise<void> => KickKey.dragStart(),
+  dragStart: (): Promise<void> => QyKey.dragStart(),
 
   /** L button released — dispatch a drag stroke (or a tap if nothing moved). */
-  dragEnd: (): Promise<void> => KickKey.dragEnd(),
+  dragEnd: (): Promise<void> => QyKey.dragEnd(),
 
   // ── Accessibility service (M1) ──────────────────────────────────────────
 
-  /** True when KickKeyAccessibilityService is enabled in system accessibility settings. */
-  isAccessibilityEnabled: (): Promise<boolean> => KickKey.isAccessibilityEnabled(),
+  /** True when QyKeyAccessibilityService is enabled in system accessibility settings. */
+  isAccessibilityEnabled: (): Promise<boolean> => QyKey.isAccessibilityEnabled(),
 
   /** Deep-links to the system accessibility settings screen. */
-  openAccessibilitySettings: (): Promise<void> => KickKey.openAccessibilitySettings(),
+  openAccessibilitySettings: (): Promise<void> => QyKey.openAccessibilitySettings(),
 
-  /** Shows the floating KickKey panel (a11y service process only). */
-  showFloatingPanel: (): Promise<void> => KickKey.showFloatingPanel(),
+  /** Shows the floating QyKey panel (a11y service process only). */
+  showFloatingPanel: (): Promise<void> => QyKey.showFloatingPanel(),
 
-  /** Hides the floating KickKey panel (used by the panel's close button). */
-  hideFloatingPanel: (): Promise<void> => KickKey.hideFloatingPanel(),
+  /** Hides the floating QyKey panel (used by the panel's close button). */
+  hideFloatingPanel: (): Promise<void> => QyKey.hideFloatingPanel(),
 };

@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useSettingsStore } from "@/store/settingsStore";
-import { useKickKeyBridge } from "@/hooks/useKickKeyBridge";
+import { useQyKeyBridge } from "@/hooks/useQyKeyBridge";
 import { useAppColors } from "@/hooks/useAppColors";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -24,7 +24,7 @@ export default function DictionaryScreen() {
   const customWordsBn = useSettingsStore((s) => s.customWordsBn) || [];
   const addCustomWord = useSettingsStore((s) => s.addCustomWord);
   const removeCustomWord = useSettingsStore((s) => s.removeCustomWord);
-  const { setCustomDictionary } = useKickKeyBridge();
+  const { setCustomDictionary } = useQyKeyBridge();
   const colors = useAppColors();
   const t = useTranslation();
 

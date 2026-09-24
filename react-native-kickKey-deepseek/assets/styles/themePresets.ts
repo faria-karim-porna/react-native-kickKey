@@ -8,7 +8,7 @@ export interface ThemePreset {
 
 export const LIGHT_PRESET: ThemePreset = {
   name: 'light',
-  label: 'Qykey Light',
+  label: 'QyKey Light',
   colors: {
     keyboardBg:     '#e0e5ec',
     keyBg:          '#f2f2f2',

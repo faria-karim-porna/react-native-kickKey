@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import SetupProgress from '@/app/mainApp/SetupProgress';
 import { useSetupStatus } from '@/hooks/useSetupStatus';
-import { useKickKeyBridge } from '@/hooks/useKickKeyBridge';
+import { useQyKeyBridge } from '@/hooks/useQyKeyBridge';
 import { CheckCircleIcon, StepCircle } from '@/app/mainApp/OnboardingIcons';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -12,7 +12,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 export default function Step2Default() {
   const router = useRouter();
   const { isDefault } = useSetupStatus();
-  const { showInputMethodPicker } = useKickKeyBridge();
+  const { showInputMethodPicker } = useQyKeyBridge();
   const colors = useAppColors();
   const t = useTranslation();
 

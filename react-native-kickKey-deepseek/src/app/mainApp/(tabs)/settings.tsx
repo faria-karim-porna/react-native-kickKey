@@ -6,7 +6,7 @@ import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { CursorType } from '@/store/settingsStore';
 import ToggleRow from '@/app/mainApp/ToggleRow';
-import KickKey from '@modules/kickkey-module';
+import QyKey from '@modules/qykey-module';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -220,13 +220,13 @@ export default function SettingsScreen() {
   const [overlayGranted, setOverlayGranted] = useState<boolean | null>(null);
 
   const checkA11yStatus = () => {
-    KickKey.isAccessibilityEnabled()
+    QyKey.isAccessibilityEnabled()
       .then((ok) => setA11yEnabled(ok))
       .catch(() => {});
   };
 
   const checkOverlayStatus = () => {
-    KickKey.isOverlayGranted()
+    QyKey.isOverlayGranted()
       .then((ok) => setOverlayGranted(ok))
       .catch(() => {});
   };
@@ -348,7 +348,7 @@ export default function SettingsScreen() {
               {overlayGranted === null ? t.checking : overlayGranted ? t.granted : t.notGranted}
             </Text>
           </View>
-          <Pressable style={({ pressed }) => [styles.a11yButton, { backgroundColor: colors.accent, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, pressed && styles.a11yButtonPressed]} onPress={() => KickKey.openOverlaySettings()}>
+          <Pressable style={({ pressed }) => [styles.a11yButton, { backgroundColor: colors.accent, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, pressed && styles.a11yButtonPressed]} onPress={() => QyKey.openOverlaySettings()}>
             <Text style={[styles.a11yButtonText, { color: colors.buttonText }]}>{t.openOverlaySettings}</Text>
           </Pressable>
           {overlayGranted === false && <Text style={[styles.a11yHint, { color: colors.textMuted }]}>{t.overlayHint}</Text>}
@@ -363,7 +363,7 @@ export default function SettingsScreen() {
               {a11yEnabled === null ? t.checking : a11yEnabled ? t.enabled : t.disabled}
             </Text>
           </View>
-          <Pressable style={({ pressed }) => [styles.a11yButton, { backgroundColor: colors.accent, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, pressed && styles.a11yButtonPressed]} onPress={() => KickKey.openAccessibilitySettings()}>
+          <Pressable style={({ pressed }) => [styles.a11yButton, { backgroundColor: colors.accent, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, pressed && styles.a11yButtonPressed]} onPress={() => QyKey.openAccessibilitySettings()}>
             <Text style={[styles.a11yButtonText, { color: colors.buttonText }]}>{t.openAccessibilitySettings}</Text>
           </Pressable>
           {a11yEnabled === false && <Text style={[styles.a11yHint, { color: colors.textMuted }]}>{t.accessibilityHint}</Text>}

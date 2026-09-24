@@ -112,9 +112,9 @@ function isHermesBytecode(filePath) {
 // Markers used to find and remove a previously-injected snippet, so a stale
 // (or broken) version never survives a re-run or cached prebuild.
 const KEYBOARD_BUNDLE_GRADLE_TASK_START_MARKER =
-  '// ── KickKey: keyboard bundle Gradle task (injected by plugins/withKeyboardBundle.js) ──';
+  '// ── QyKey: keyboard bundle Gradle task (injected by plugins/withKeyboardBundle.js) ──';
 const KEYBOARD_BUNDLE_GRADLE_TASK_END_MARKER =
-  '// ── END KickKey: keyboard bundle Gradle task ──';
+  '// ── END QyKey: keyboard bundle Gradle task ──';
 // Legacy v2 snippet ended with this line (no END comment marker).
 const KEYBOARD_BUNDLE_GRADLE_TASK_LEGACY_END =
   'tasks.matching { it.name == "mergeReleaseAssets" || it.name == "mergeDebugAssets" }.configureEach {';
@@ -133,7 +133,7 @@ const KEYBOARD_BUNDLE_GRADLE_TASK_LEGACY_END =
 //   * mergeReleaseAssets / mergeDebugAssets  (ships the bundle in the APK)
 //   * every *lint* task (e.g. generateReleaseLintVitalReportModel, lintVital*)
 const KEYBOARD_BUNDLE_GRADLE_TASK = `
-// ── KickKey: keyboard bundle Gradle task (injected by plugins/withKeyboardBundle.js) ──
+// ── QyKey: keyboard bundle Gradle task (injected by plugins/withKeyboardBundle.js) ──
 // Rebuilds keyboard.bundle (Hermes bytecode) inside the Gradle build so the
 // IME always ships with a valid bundle, even when EAS reuses a cached prebuild
 // that skipped the config plugin. Previously a missing bundle shipped a
@@ -142,12 +142,12 @@ const KEYBOARD_BUNDLE_GRADLE_TASK = `
 // v2: Uses the built-in Exec task type. The previous version called
 // project.exec {} which was REMOVED in Gradle 9 and broke the build with
 // "Could not find method exec() ... on project ':app'" on Gradle 9.3.1.
-def kickkeyKeyboardBundleScript = new File(projectRoot, "scripts/build-keyboard-bundle.js")
-def kickkeyKeyboardBundleOut  = new File(projectRoot, "android/app/src/main/assets/keyboard.bundle")
-def kickkeyKeyboardBundleTask = tasks.register("createKeyboardBundleReleaseJsAndAssets", Exec) {
+def qykeyKeyboardBundleScript = new File(projectRoot, "scripts/build-keyboard-bundle.js")
+def qykeyKeyboardBundleOut  = new File(projectRoot, "android/app/src/main/assets/keyboard.bundle")
+def qykeyKeyboardBundleTask = tasks.register("createKeyboardBundleReleaseJsAndAssets", Exec) {
     group = "react"
-    description = "Builds keyboard.bundle (Hermes bytecode) for the KickKey IME"
-    inputs.file(kickkeyKeyboardBundleScript)
+    description = "Builds keyboard.bundle (Hermes bytecode) for the QyKey IME"
+    inputs.file(qykeyKeyboardBundleScript)
     inputs.file(new File(projectRoot, "keyboard.index.js"))
     inputs.dir(new File(projectRoot, "src/app/mainKeyboard"))
     // The keyboard bundle graph also pulls in the app-side hooks (useKeyboardTheme,
@@ -162,19 +162,19 @@ def kickkeyKeyboardBundleTask = tasks.register("createKeyboardBundleReleaseJsAnd
     // must be an INPUT so an up-to-date check can never skip the font copy
     // on an incremental build.
     inputs.file(new File(projectRoot, "assets/fonts/NotoColorEmoji.ttf"))
-    outputs.file(kickkeyKeyboardBundleOut)
+    outputs.file(qykeyKeyboardBundleOut)
     workingDir projectRoot
-    commandLine "node", kickkeyKeyboardBundleScript.absolutePath
+    commandLine "node", qykeyKeyboardBundleScript.absolutePath
     doFirst {
-        if (!kickkeyKeyboardBundleScript.exists()) {
+        if (!qykeyKeyboardBundleScript.exists()) {
             throw new GradleException("[withKeyboardBundle] FATAL: scripts/build-keyboard-bundle.js not found")
         }
     }
     doLast {
-        if (!kickkeyKeyboardBundleOut.exists() || kickkeyKeyboardBundleOut.length() < 100) {
+        if (!qykeyKeyboardBundleOut.exists() || qykeyKeyboardBundleOut.length() < 100) {
             throw new GradleException("[withKeyboardBundle] FATAL: keyboard.bundle was not produced — the keyboard will show BLANK")
         }
-        println "[withKeyboardBundle] OK keyboard.bundle size = " + (kickkeyKeyboardBundleOut.length() / 1024) + " KB"
+        println "[withKeyboardBundle] OK keyboard.bundle size = " + (qykeyKeyboardBundleOut.length() / 1024) + " KB"
     }
 }
 // Merge tasks ship the bundle in the APK; lint tasks read src/main/assets, so
@@ -182,9 +182,9 @@ def kickkeyKeyboardBundleTask = tasks.register("createKeyboardBundleReleaseJsAnd
 tasks.matching {
     it.name == "mergeReleaseAssets" || it.name == "mergeDebugAssets" || it.name.toLowerCase().contains("lint")
 }.configureEach {
-    dependsOn kickkeyKeyboardBundleTask
+    dependsOn qykeyKeyboardBundleTask
 }
-// ── END KickKey: keyboard bundle Gradle task ──
+// ── END QyKey: keyboard bundle Gradle task ──
 `;
 
 /**

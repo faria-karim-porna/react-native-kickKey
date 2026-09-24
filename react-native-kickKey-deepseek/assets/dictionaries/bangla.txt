@@ -1,4 +1,4 @@
-# KickKey Bangla dictionary
+# QyKey Bangla dictionary
 # Format: word<TAB>frequency
 # Higher frequency = more common = ranked higher in suggestions
 আমি	5000000

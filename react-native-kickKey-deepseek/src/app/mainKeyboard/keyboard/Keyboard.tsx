@@ -3,7 +3,7 @@
 //
 // Structure is identical to qykey (slider + top keys, arrows row,
 // main keys / symbol pages / emoji board, touchpad mode). The
-// difference: every key press goes through the NATIVE KickKey
+// difference: every key press goes through the NATIVE QyKey
 // module (InputConnection) instead of qykey's local input state.
 //
 // Language modes:

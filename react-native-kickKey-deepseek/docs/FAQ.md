@@ -1,4 +1,4 @@
-# KickKey Keyboard — FAQ
+# QyKey Keyboard — FAQ
 
 ---
 
@@ -13,7 +13,7 @@
 **One caveat specific to Xiaomi/MIUI devices:** You'll need to manually enable the keyboard in system settings after installing. Xiaomi's MIUI can be a bit more restrictive about third-party IMEs:
 
 1. Go to **Settings → Additional Settings → Languages & input → Current keyboard → Choose keyboard**
-2. Toggle **KickKey** on
+2. Toggle **QyKey** on
 
 ---
 
@@ -46,8 +46,8 @@ This launches the companion app on your phone where you can:
 
 After the companion app is installed, you need to **enable the keyboard** in Android settings:
 1. Open the app → Complete onboarding → It guides you to enable the keyboard.
-2. Or manually: **Settings → System → Languages & input → On-screen keyboard → KickKey**.
-3. Then open any messaging app, tap a text field, and use the keyboard switcher icon (globe / keyboard icon in the bottom nav bar) to select **KickKey**.
+2. Or manually: **Settings → System → Languages & input → On-screen keyboard → QyKey**.
+3. Then open any messaging app, tap a text field, and use the keyboard switcher icon (globe / keyboard icon in the bottom nav bar) to select **QyKey**.
 
 ### C. Building for Distribution
 

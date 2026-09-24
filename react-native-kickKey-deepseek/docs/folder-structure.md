@@ -1,4 +1,4 @@
-# KickKey — Recommended Folder Structure
+# QyKey — Recommended Folder Structure
 
 An analysis of the current layout, what's messy about it, and a concrete target
 structure with a step-by-step migration plan.
@@ -16,7 +16,7 @@ structure with a step-by-step migration plan.
 ├── store/                # 1 Zustand store
 ├── src/                  # Contains ONLY src/keyboard/ ← inconsistent!
 │   └── keyboard/
-├── modules/kickkey-module/
+├── modules/qykey-module/
 ├── native-files/         # Kotlin IME sources copied by config plugins
 ├── plugins/              # Expo config plugins
 ├── scripts/              # Build + dictionary tooling
@@ -32,8 +32,8 @@ structure with a step-by-step migration plan.
 | 1 | **Half the app code is outside `src/`** | `app/`, `components/`, `constants/`, `hooks/`, `store/` sit at the root while `src/` holds only the keyboard. Two "roots" for source code — nobody can tell at a glance what is app code vs. config. |
 | 2 | **Root directory clutter** | 8 markdown files + `keyboard.index.js` + 6 config files + 10 source dirs at the root. |
 | 3 | **Junk is committed to git** | `bash.exe.stackdump`, `eas_full_log.jsonl`, `scripts/__pycache__/*.pyc` are tracked (166 tracked files). |
-| 4 | **`native-files/` is a vague name** | It holds Kotlin sources, res XML, and proguard rules that config plugins copy into `android/` — the name doesn't say that, and it collides conceptually with the Kotlin inside `modules/kickkey-module/android/`. |
-| 5 | **Duplicate native code** | `KickKeyModule.kt` and `KickKeyPackage.kt` exist in **both** `native-files/java/com/kickkey/` and `modules/kickkey-module/android/src/main/java/com/kickkey/`. `withImeService.js` copies only from `native-files/`, so the `modules/` copies look like dead duplicates. Keep one source of truth. |
+| 4 | **`native-files/` is a vague name** | It holds Kotlin sources, res XML, and proguard rules that config plugins copy into `android/` — the name doesn't say that, and it collides conceptually with the Kotlin inside `modules/qykey-module/android/`. |
+| 5 | **Duplicate native code** | `QyKeyModule.kt` and `QyKeyPackage.kt` exist in **both** `native-files/java/com/qykey/` and `modules/qykey-module/android/src/main/java/com/qykey/`. `withImeService.js` copies only from `native-files/`, so the `modules/` copies look like dead duplicates. Keep one source of truth. |
 | 6 | **Deep relative imports everywhere** | `../../store/settingsStore`, `../../components/ToggleRow`, `../../assets/svg/...` — every file move breaks dozens of imports. |
 | 7 | **Duplicated hermesc logic (bonus)** | `resolveHermesc()` is implemented twice: `scripts/build-keyboard-bundle.js` (which already exports it) and `plugins/withKeyboardBundle.js` (which re-implements it). |
 
@@ -42,7 +42,7 @@ structure with a step-by-step migration plan.
 ## 2. Target structure
 
 ```
-kickkey/
+qykey/
 ├── app.json                  # Expo config (stays — referenced by CLI/EAS)
 ├── eas.json
 ├── package.json
@@ -70,12 +70,12 @@ kickkey/
 │   └── todo.md
 │
 ├── modules/                  # STAYS at root (Expo local-module convention)
-│   └── kickkey-module/
+│   └── qykey-module/
 │       ├── index.ts          # TS bridge (only copy of the Kotlin — see §3.5)
-│       └── android/…         # ← DELETE duplicated KickKeyModule/Package here
+│       └── android/…         # ← DELETE duplicated QyKeyModule/Package here
 │
 ├── native/                   # ✨ RENAMED from native-files/ (Kotlin + res for plugins to copy)
-│   ├── java/com/kickkey/*.kt
+│   ├── java/com/qykey/*.kt
 │   ├── res/xml/*.xml
 │   └── proguard-rules.pro
 │
@@ -176,9 +176,9 @@ Two references to update:
 - plus the path mentions in `docs/architecture.md` / `README.md`.
 
 ### 3.5 Delete the duplicate Kotlin files
-`KickKeyModule.kt` / `KickKeyPackage.kt` exist in both `native-files/java/com/kickkey/`
-and `modules/kickkey-module/android/src/main/java/com/kickkey/`. The config plugin
-copies from `native-files/` only, so the `modules/kickkey-module/android/` copies
+`QyKeyModule.kt` / `QyKeyPackage.kt` exist in both `native-files/java/com/qykey/`
+and `modules/qykey-module/android/src/main/java/com/qykey/`. The config plugin
+copies from `native-files/` only, so the `modules/qykey-module/android/` copies
 appear to be dead. Verify, then keep **one** location as the single source of truth
 and delete the other.
 
@@ -250,7 +250,7 @@ git mv native-files native
 
 # 4. Update the 2 config-plugin path constants (§3.4)
 # 5. Add tsconfig paths (§3.2) and codemod imports ../../x → @/x
-# 6. Delete duplicate KickKeyModule/KickKeyPackage (§3.5)
+# 6. Delete duplicate QyKeyModule/QyKeyPackage (§3.5)
 # 7. Update .gitignore + untrack junk (§3.6)
 # 8. Update the structure section in docs/architecture.md
 ```

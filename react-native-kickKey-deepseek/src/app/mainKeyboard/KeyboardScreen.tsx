@@ -1,8 +1,8 @@
 // ============================================================
-// KeyboardScreen.tsx — root of the KickKey keyboard bundle.
+// KeyboardScreen.tsx — root of the QyKey keyboard bundle.
 //
 // Renders the qykey-style "chocolate bar" keyboard (fixed light
-// look, compact keys) wired to the native KickKey IME module.
+// look, compact keys) wired to the native QyKey IME module.
 // ============================================================
 
 import React from 'react';

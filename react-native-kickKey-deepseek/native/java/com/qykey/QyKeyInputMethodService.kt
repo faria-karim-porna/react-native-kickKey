@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import android.content.Context
 import android.content.Intent
@@ -22,10 +22,10 @@ import com.facebook.react.interfaces.fabric.ReactSurface
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.facebook.react.modules.core.ReactChoreographer
 
-class KickKeyInputMethodService : InputMethodService() {
+class QyKeyInputMethodService : InputMethodService() {
 
     companion object {
-        private const val TAG = "KickKeyIME"
+        private const val TAG = "QyKeyIME"
         private const val KEYBOARD_HEIGHT_DP = 250
         // First watchdog check after this delay, then re-check periodically. The
         // FIRST cold start after install is slow (RN init + 911KB Hermes bundle +
@@ -40,16 +40,16 @@ class KickKeyInputMethodService : InputMethodService() {
         private val TOTAL_WATCHDOG_MS: Long =
             STARTUP_WATCHDOG_MS + WATCHDOG_RETRY_MS * (MAX_WATCHDOG_ATTEMPTS - 1)
 
-        // M3: singleton so KickKeyModule (same :ime_process) can reach the IME.
+        // M3: singleton so QyKeyModule (same :ime_process) can reach the IME.
         @Volatile
-        var instance: KickKeyInputMethodService? = null
+        var instance: QyKeyInputMethodService? = null
             private set
     }
 
     /** Keyboard height in pixels, derived from dp × device density. */
     internal val keyboardHeightPx: Int
         get() {
-            val prefs = getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+            val prefs = getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
             val keyHeight = prefs.getInt("keyHeight", 26)
             val dp = if (keyHeight > 0) {
                 maxOf(KEYBOARD_HEIGHT_DP, 7 * keyHeight + 36)
@@ -84,7 +84,7 @@ class KickKeyInputMethodService : InputMethodService() {
         }
     }
 
-    /** Main-thread only. Called from KickKeyModule.setTouchpadMode. */
+    /** Main-thread only. Called from QyKeyModule.setTouchpadMode. */
     fun setTouchpadStripMode(on: Boolean) {
         // Keep keyboard at full height so the touchpad area and its controls
         // remain fully visible without moving the keyboard down.
@@ -122,11 +122,11 @@ class KickKeyInputMethodService : InputMethodService() {
 
     private val preferencesReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == KickKeyModule.ACTION_PREFERENCES_CHANGED) {
+            if (intent?.action == QyKeyModule.ACTION_PREFERENCES_CHANGED) {
                 val extras = intent.extras
                 if (context != null && extras != null) {
                     try {
-                        val prefs = context.getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+                        val prefs = context.getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
                         val editor = prefs.edit()
                         for (key in extras.keySet()) {
                             when (val v = extras.get(key)) {
@@ -141,13 +141,13 @@ class KickKeyInputMethodService : InputMethodService() {
                         Log.w(TAG, "Failed to update local prefs in preferencesReceiver: ${e.message}")
                     }
                 }
-                val app = application as? KickKeyApplication
+                val app = application as? QyKeyApplication
                 val ctx = (app?.keyboardReactHost?.currentReactContext as? com.facebook.react.bridge.ReactApplicationContext)
-                    ?: KickKeyModule.keyboardReactContext
+                    ?: QyKeyModule.keyboardReactContext
                 if (ctx != null && extras != null) {
-                    KickKeyModule.emitPreferencesFromBundle(ctx, extras)
+                    QyKeyModule.emitPreferencesFromBundle(ctx, extras)
                 } else if (ctx != null && context != null) {
-                    KickKeyModule.emitCurrentPreferences(ctx, context)
+                    QyKeyModule.emitCurrentPreferences(ctx, context)
                 }
                 updateKeyboardHeight()
             }
@@ -157,14 +157,14 @@ class KickKeyInputMethodService : InputMethodService() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        KickKeyModule.hapticManager     = HapticManager(this)
-        KickKeyModule.banglaEngine      = BanglaInputEngine()
-        KickKeyModule.suggestionEngine  = SuggestionEngine(this)
-        KickKeyModule.clipboardHandler  = ClipboardHandler(this)
+        QyKeyModule.hapticManager     = HapticManager(this)
+        QyKeyModule.banglaEngine      = BanglaInputEngine()
+        QyKeyModule.suggestionEngine  = SuggestionEngine(this)
+        QyKeyModule.clipboardHandler  = ClipboardHandler(this)
         Log.i(TAG, "IME created — all handlers ready (keyboardHeightPx=${keyboardHeightPx})")
 
         try {
-            val filter = android.content.IntentFilter(KickKeyModule.ACTION_PREFERENCES_CHANGED)
+            val filter = android.content.IntentFilter(QyKeyModule.ACTION_PREFERENCES_CHANGED)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(preferencesReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
             } else {
@@ -200,15 +200,15 @@ class KickKeyInputMethodService : InputMethodService() {
         }
 
         try {
-            val app = application as? KickKeyApplication ?: run {
-                Log.e(TAG, "KickKeyApplication not found")
+            val app = application as? QyKeyApplication ?: run {
+                Log.e(TAG, "QyKeyApplication not found")
                 return null
             }
             Log.i(TAG, "Accessing keyboardReactHost...")
             val host = app.keyboardReactHost
 
             Log.i(TAG, "Creating React surface...")
-            val surface = host.createSurface(this, "KickKeyKeyboard", null)
+            val surface = host.createSurface(this, "QyKeyKeyboard", null)
             Log.i(TAG, "Starting React surface...")
             surfaceStartTask = surface.start()
             reactSurface = surface
@@ -305,7 +305,7 @@ class KickKeyInputMethodService : InputMethodService() {
      * with a visible error message.
      *
      * Success requires ALL THREE:
-     *   1. [KickKeyModule.keyboardJsReady] — the keyboard JS signalled readiness
+     *   1. [QyKeyModule.keyboardJsReady] — the keyboard JS signalled readiness
      *      from useEffect, which only happens after its React root mounted and
      *      committed a frame.
      *   2. The surface view has a real laid-out size (>0 × >0). A 0×0 view means
@@ -318,7 +318,7 @@ class KickKeyInputMethodService : InputMethodService() {
      * Checks run a few times (cold start is slow) and give up only if none of
      * the success conditions can be met or a fault can be surfaced.
      */
-    private fun scheduleStartupWatchdog(app: KickKeyApplication) {
+    private fun scheduleStartupWatchdog(app: QyKeyApplication) {
         cancelWatchdog()
         val r = object : Runnable {
             var attempts = 0
@@ -347,7 +347,7 @@ class KickKeyInputMethodService : InputMethodService() {
                     // WORKING keyboard has long since had both a real size AND ≥1
                     // child. Requiring both for the full 17s window can only mean
                     // the keyboard genuinely rendered nothing visible.
-                    if (KickKeyModule.keyboardJsReady && laidOutSize && hasContent) {
+                    if (QyKeyModule.keyboardJsReady && laidOutSize && hasContent) {
                         Log.i(
                             TAG,
                             "Watchdog: keyboard JS mounted & rendering — keyboard OK " +
@@ -361,7 +361,7 @@ class KickKeyInputMethodService : InputMethodService() {
                     // The keyboard JS committed a frame (keyboardReady fired) yet
                     // the view is 0×0 or empty. This is the black-keyboard case.
                     // Do not leave it undiagnosable forever — surface it.
-                    if (KickKeyModule.keyboardJsReady) {
+                    if (QyKeyModule.keyboardJsReady) {
                         verifyFramePump()
                         val host = app.keyboardReactHost
                         // Fallback: In RN 0.86 headless/IME contexts, host.currentReactContext
@@ -369,7 +369,7 @@ class KickKeyInputMethodService : InputMethodService() {
                         // keyboardReady, proving the bridge is live). Use the stored reference.
                         var ctx: ReactContext? = host.currentReactContext
                         if (ctx == null) {
-                            ctx = KickKeyModule.keyboardReactContext
+                            ctx = QyKeyModule.keyboardReactContext
                         }
                         val ctxLifecycle = ctx?.lifecycleState
                         hostLifecycleHistory.add("host=${host.lifecycleState}/ctx=$ctxLifecycle")
@@ -398,7 +398,7 @@ class KickKeyInputMethodService : InputMethodService() {
                                     "resumeAttempts=$resumeAttempts " +
                                     "resumeError=${resumeLastError ?: "none"} — the next keyboard " +
                                     "open will start a completely fresh React pipeline; " +
-                                    "check logcat: adb logcat | grep -E 'KickKey|ReactHost|ReactNative'"
+                                    "check logcat: adb logcat | grep -E 'QyKey|ReactHost|ReactNative'"
                             )
                             return
                         }
@@ -435,10 +435,10 @@ class KickKeyInputMethodService : InputMethodService() {
                         if (ctx != null && view != null && view.childCount == 0) {
                             try {
                                 ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                                    ?.emit("kickkey_forceRerender", null)
-                                Log.i(TAG, "Watchdog: emitted kickkey_forceRerender (attempt $attempts)")
+                                    ?.emit("qykey_forceRerender", null)
+                                Log.i(TAG, "Watchdog: emitted qykey_forceRerender (attempt $attempts)")
                             } catch (e: Exception) {
-                                Log.w(TAG, "Watchdog kickkey_forceRerender failed: ${e.message}")
+                                Log.w(TAG, "Watchdog qykey_forceRerender failed: ${e.message}")
                             }
                         }
                         try { view?.requestLayout() } catch (e: Exception) { /* ignore */ }
@@ -452,11 +452,11 @@ class KickKeyInputMethodService : InputMethodService() {
                                     "(ReactHost lifecycle=${host.lifecycleState} " +
                                     "reactContextLifecycle=$ctxLifecycle " +
                                     "framePump=${if (framePumpAlive) "alive" else "stalled/unknown"} " +
-                                    "jsPump=${if (KickKeyModule.keyboardPumpActive) "active" else "inactive"} " +
+                                    "jsPump=${if (QyKeyModule.keyboardPumpActive) "active" else "inactive"} " +
                                     "lifecycleHistory=${hostLifecycleHistory.joinToString("→")} " +
                                     "resumeAttempts=$resumeAttempts " +
                                     "resumeError=${resumeLastError ?: "none"}); " +
-                                    "check logcat: adb logcat | grep -E 'KickKey|ReactHost|ReactNative'"
+                                    "check logcat: adb logcat | grep -E 'QyKey|ReactHost|ReactNative'"
                             )
                         } else {
                             Log.w(
@@ -478,7 +478,7 @@ class KickKeyInputMethodService : InputMethodService() {
                             showErrorFallback(
                                 "Keyboard JS did not mount",
                                 "surface.isRunning=true jsReady=false after ~${TOTAL_WATCHDOG_MS / 1000}s " +
-                                    "— check logcat: adb logcat | grep -E 'KickKey|ReactHost|ReactNative'"
+                                    "— check logcat: adb logcat | grep -E 'QyKey|ReactHost|ReactNative'"
                             )
                         } else {
                             Log.w(TAG, "Watchdog: surface running but JS mount signal not received yet (attempt $attempts)")
@@ -519,15 +519,15 @@ class KickKeyInputMethodService : InputMethodService() {
                     }
                     showErrorFallback(
                         "Keyboard did not start within ${TOTAL_WATCHDOG_MS / 1000}s",
-                        "isRunning=${safeIsRunning(surface)} jsReady=${KickKeyModule.keyboardJsReady} " +
+                        "isRunning=${safeIsRunning(surface)} jsReady=${QyKeyModule.keyboardJsReady} " +
                             "hostLifecycle=${app.keyboardReactHost.lifecycleState} " +
-                            "ctxLifecycle=${app.keyboardReactHost.currentReactContext?.lifecycleState ?: KickKeyModule.keyboardReactContext?.lifecycleState} " +
+                            "ctxLifecycle=${app.keyboardReactHost.currentReactContext?.lifecycleState ?: QyKeyModule.keyboardReactContext?.lifecycleState} " +
                             "startTask=$startState surfaceTask=$surfaceState " +
                             "view=${view?.width}×${view?.height} children=${view?.childCount ?: -1} " +
                             "framePump=${if (framePumpAlive) "alive" else "stalled/unknown"} " +
-                            "jsPump=${if (KickKeyModule.keyboardPumpActive) "active" else "inactive"} " +
+                            "jsPump=${if (QyKeyModule.keyboardPumpActive) "active" else "inactive"} " +
                             "resumeAttempts=$resumeAttempts resumeError=${resumeLastError ?: "none"} " +
-                            "— check logcat: adb logcat | grep -E 'KickKey|ReactHost|ReactNative'"
+                            "— check logcat: adb logcat | grep -E 'QyKey|ReactHost|ReactNative'"
                     )
                     } else {
                         Log.w(TAG, "Watchdog: surface not running yet (attempt $attempts) — retrying")
@@ -556,14 +556,14 @@ class KickKeyInputMethodService : InputMethodService() {
     // ── Fast mount-retry loop ─────────────────────────────────────────────────────
     // The JS-side mount pump (keyboard.index.js) fixes the children=0 black keyboard by
     // keeping the JS event loop alive so the C++ RuntimeScheduler's updateRendering()
-    // drains pending Fabric mount transactions. `kickkey_forceRerender` now forces a
+    // drains pending Fabric mount transactions. `qykey_forceRerender` now forces a
     // REAL remount (fresh CREATE/INSERT mutations) as a safety net for a lost initial
     // transaction. This loop drives both while jsReady=true and children=0, so the
     // keyboard recovers in ~1s instead of waiting for the 8s startup watchdog. Stops on
     // success, on teardown, or once the startup watchdog takes over (showErrorFallback).
     private var mountRetryGeneration = 0L
 
-    private fun scheduleMountRetry(app: KickKeyApplication) {
+    private fun scheduleMountRetry(app: QyKeyApplication) {
         val generation = ++mountRetryGeneration
         mainHandler.postDelayed(
             object : Runnable {
@@ -579,7 +579,7 @@ class KickKeyInputMethodService : InputMethodService() {
                     // the watchdog owns the final error view.
                     if (attempts >= 17) return
                     attempts++
-                    if (KickKeyModule.keyboardJsReady) {
+                    if (QyKeyModule.keyboardJsReady) {
                         try {
                             val host = app.keyboardReactHost
                             // Belt & suspenders: keep the host resumed and the constraints
@@ -588,11 +588,11 @@ class KickKeyInputMethodService : InputMethodService() {
                                 resumeKeyboardHost(host)
                             }
                             try { view?.requestLayout() } catch (e: Exception) { /* ignore */ }
-                            val ctx = host.currentReactContext ?: KickKeyModule.keyboardReactContext
+                            val ctx = host.currentReactContext ?: QyKeyModule.keyboardReactContext
                             if (ctx != null && view != null && view.childCount == 0) {
                                 ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                                    ?.emit("kickkey_forceRerender", null)
-                                Log.i(TAG, "Mount retry: emitted kickkey_forceRerender (attempt $attempts)")
+                                    ?.emit("qykey_forceRerender", null)
+                                Log.i(TAG, "Mount retry: emitted qykey_forceRerender (attempt $attempts)")
                                 // A remount re-creates the JS keyboard subtree and resets its
                                 // input-type state — re-emit it shortly after so number / phone /
                                 // password fields restore their correct layout.
@@ -614,10 +614,10 @@ class KickKeyInputMethodService : InputMethodService() {
 
     /** Re-emits the most recent onInputStarted payload (used after a forceRerender remount). */
     private fun reemitInputStarted() {
-        val params = KickKeyModule.lastInputStartedParams ?: return
+        val params = QyKeyModule.lastInputStartedParams ?: return
         try {
-            val app = application as? KickKeyApplication ?: return
-            val ctx = app.keyboardReactHost.currentReactContext ?: KickKeyModule.keyboardReactContext
+            val app = application as? QyKeyApplication ?: return
+            val ctx = app.keyboardReactHost.currentReactContext ?: QyKeyModule.keyboardReactContext
                 ?: return
             ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                 ?.emit("onInputStarted", params)
@@ -636,7 +636,7 @@ class KickKeyInputMethodService : InputMethodService() {
      * onHostResume() in onResume(). An InputMethodService has no Activity, so the keyboard
      * host must be resumed explicitly — but ONLY after the JS is fully mounted.
      *
-     * Why gate on [KickKeyModule.keyboardJsReady] instead of the instance/start task (a
+     * Why gate on [QyKeyModule.keyboardJsReady] instead of the instance/start task (a
      * previous iteration)?
      *  - Resuming before the instance existed moved the lifecycle to RESUMED prematurely
      *    and broke JS startup in release builds (silent host destroy → jsReady=false after
@@ -653,14 +653,14 @@ class KickKeyInputMethodService : InputMethodService() {
      * The poll is idempotent (moveToOnHostResume() early-returns once RESUMED) and retries
      * a failed resume until it sticks or the 30s window expires.
      */
-    private fun scheduleJsReadyResume(app: KickKeyApplication) {
+    private fun scheduleJsReadyResume(app: QyKeyApplication) {
         resumeAttempts = 0
         resumeLastError = null
         val generation = ++resumeGeneration
         pollJsReadyResume(app, 0, generation)
     }
 
-    private fun pollJsReadyResume(app: KickKeyApplication, attempt: Int, generation: Long) {
+    private fun pollJsReadyResume(app: QyKeyApplication, attempt: Int, generation: Long) {
         // A newer open (or a teardown / watchdog give-up) bumped the generation — stop this
         // stale chain so it can never resume the wrong lifecycle or leak for 30s.
         if (generation != resumeGeneration) return
@@ -678,7 +678,7 @@ class KickKeyInputMethodService : InputMethodService() {
                 if (generation != resumeGeneration) return@postDelayed
                 val host = app.keyboardReactHost
                 if (host.lifecycleState == LifecycleState.RESUMED) return@postDelayed // idempotent — done
-                if (KickKeyModule.keyboardJsReady) {
+                if (QyKeyModule.keyboardJsReady) {
                     resumeKeyboardHost(host)
                     // If the resume didn't take (it threw, or the lifecycle didn't move), retry
                     // — the watchdog's periodic checks will also retry while the keyboard is up.
@@ -713,10 +713,10 @@ class KickKeyInputMethodService : InputMethodService() {
             // Fallback: In RN 0.86's new architecture, host.currentReactContext can return null
             // even after the host is RESUMED (a known issue in headless/IME contexts). Since
             // keyboardReady() is a @ReactMethod, the ReactContext must exist when it runs —
-            // KickKeyModule.keyboardReactContext gives us a reliable fallback.
+            // QyKeyModule.keyboardReactContext gives us a reliable fallback.
             var ctx: ReactContext? = host.currentReactContext
             if (ctx == null) {
-                ctx = KickKeyModule.keyboardReactContext
+                ctx = QyKeyModule.keyboardReactContext
                 if (ctx != null) {
                     Log.i(TAG, "Using stored ReactContext for resume (host.currentReactContext is null)")
                 }
@@ -747,7 +747,7 @@ class KickKeyInputMethodService : InputMethodService() {
             // flush. Gated on the view still being empty (childCount==0) so a WORKING
             // keyboard is never remounted — a remount would reset keyboard state (language,
             // shift, and the number/phone/password flags from onInputStarted).
-            val rerenderCtx = ctx ?: KickKeyModule.keyboardReactContext
+            val rerenderCtx = ctx ?: QyKeyModule.keyboardReactContext
             val surfaceStillEmpty = try {
                 reactSurface?.view?.childCount == 0
             } catch (e: Exception) {
@@ -760,10 +760,10 @@ class KickKeyInputMethodService : InputMethodService() {
                     try {
                         rerenderCtx
                             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                            ?.emit("kickkey_forceRerender", null)
-                        Log.i(TAG, "Emitted kickkey_forceRerender event immediately (ctx=${rerenderCtx.lifecycleState})")
+                            ?.emit("qykey_forceRerender", null)
+                        Log.i(TAG, "Emitted qykey_forceRerender event immediately (ctx=${rerenderCtx.lifecycleState})")
                     } catch (e: Exception) {
-                        Log.w(TAG, "kickkey_forceRerender emit failed: ${e.message}")
+                        Log.w(TAG, "qykey_forceRerender emit failed: ${e.message}")
                     }
                 }
             }
@@ -823,10 +823,10 @@ class KickKeyInputMethodService : InputMethodService() {
         // one. Only done when jsReady was true — if JS never mounted, the host itself is healthy
         // and the next open should reuse it.
         try {
-            if (KickKeyModule.keyboardJsReady) {
+            if (QyKeyModule.keyboardJsReady) {
                 // Clear the stored ReactContext so the next open captures a fresh one.
-                KickKeyModule.keyboardReactContext = null
-                val app = application as? KickKeyApplication
+                QyKeyModule.keyboardReactContext = null
+                val app = application as? QyKeyApplication
                 app?.resetKeyboardHostForRetry()
             }
         } catch (e: Exception) {
@@ -872,7 +872,7 @@ class KickKeyInputMethodService : InputMethodService() {
     private fun createFallbackView(message: String): View {
         Log.e(TAG, "FALLBACK VIEW SHOWN: $message")
         val tv = android.widget.TextView(this).apply {
-            text = "KickKey Error: $message\n\nCheck logcat: adb logcat | grep KickKey"
+            text = "QyKey Error: $message\n\nCheck logcat: adb logcat | grep QyKey"
             setTextColor(0xFFFFFFFF.toInt())
             textSize = 12f
             setPadding(24, 24, 24, 24)
@@ -905,10 +905,10 @@ class KickKeyInputMethodService : InputMethodService() {
             // Reset the JS mount flag whenever the surface is torn down so a stale
             // "ready" from a previous surface/session can never mask a genuinely
             // dead keyboard in the next open cycle.
-            KickKeyModule.keyboardJsReady = false
+            QyKeyModule.keyboardJsReady = false
             // Clear the stored ReactContext — the next open will capture a fresh one
             // when keyboardReady() is called.
-            KickKeyModule.keyboardReactContext = null
+            QyKeyModule.keyboardReactContext = null
         } catch (e: Exception) {
             Log.w(TAG, "disposeSurface error: ${e.message}")
         }
@@ -921,17 +921,17 @@ class KickKeyInputMethodService : InputMethodService() {
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        KickKeyModule.activeInputConnection = currentInputConnection
-        KickKeyModule.banglaEngine?.reset()
-        KickKeyModule.suggestionEngine?.reset()
+        QyKeyModule.activeInputConnection = currentInputConnection
+        QyKeyModule.banglaEngine?.reset()
+        QyKeyModule.suggestionEngine?.reset()
 
         // Sync latest preferences to keyboard JS every time keyboard appears
         try {
-            val app = application as? KickKeyApplication
+            val app = application as? QyKeyApplication
             val ctx = (app?.keyboardReactHost?.currentReactContext as? com.facebook.react.bridge.ReactApplicationContext)
-                ?: KickKeyModule.keyboardReactContext
+                ?: QyKeyModule.keyboardReactContext
             if (ctx != null) {
-                KickKeyModule.emitCurrentPreferences(ctx, this)
+                QyKeyModule.emitCurrentPreferences(ctx, this)
             }
             updateKeyboardHeight()
         } catch (e: Exception) {
@@ -945,10 +945,10 @@ class KickKeyInputMethodService : InputMethodService() {
         val isUrl      = (info.inputType and 0x000000F0) == 0x00000020
         val isEmail    = (info.inputType and 0x000000F0) == 0x00000050
 
-        KickKeyModule.suggestionEngine?.setEnabled(!isPassword)
+        QyKeyModule.suggestionEngine?.setEnabled(!isPassword)
 
         if (!isPassword && !restarting) {
-            KickKeyModule.clipboardHandler?.captureCurrentClipboard()
+            QyKeyModule.clipboardHandler?.captureCurrentClipboard()
         }
 
         emitInputStarted(info, isPassword, isNumber, isPhone, isUrl, isEmail)
@@ -963,11 +963,11 @@ class KickKeyInputMethodService : InputMethodService() {
         attempt: Int = 0,
     ) {
         try {
-            val app = application as? KickKeyApplication ?: return
+            val app = application as? QyKeyApplication ?: return
             // Fallback: use stored ReactContext when host.currentReactContext is null
             var reactContext = app.keyboardReactHost.currentReactContext
             if (reactContext == null) {
-                reactContext = KickKeyModule.keyboardReactContext
+                reactContext = QyKeyModule.keyboardReactContext
             }
             if (reactContext == null) {
                 // The keyboard ReactHost starts asynchronously — if the JS context
@@ -1000,7 +1000,7 @@ class KickKeyInputMethodService : InputMethodService() {
             }
             // Store the payload so the mount-retry loop can re-emit it after a
             // forceRerender remount (which resets the JS input-type state).
-            KickKeyModule.lastInputStartedParams = params
+            QyKeyModule.lastInputStartedParams = params
             reactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                 ?.emit("onInputStarted", params)
@@ -1016,17 +1016,17 @@ class KickKeyInputMethodService : InputMethodService() {
 
     override fun onFinishInput() {
         super.onFinishInput()
-        val pending = KickKeyModule.banglaEngine?.flush() ?: ""
-        if (pending.isNotEmpty()) KickKeyModule.activeInputConnection?.commitText(pending, 1)
-        KickKeyModule.activeInputConnection = null
+        val pending = QyKeyModule.banglaEngine?.flush() ?: ""
+        if (pending.isNotEmpty()) QyKeyModule.activeInputConnection?.commitText(pending, 1)
+        QyKeyModule.activeInputConnection = null
         PointerOverlay.hide()
     }
 
     override fun onWindowHidden() {
         super.onWindowHidden()
-        KickKeyModule.activeInputConnection = null
-        KickKeyModule.banglaEngine?.reset()
-        KickKeyModule.suggestionEngine?.reset()
+        QyKeyModule.activeInputConnection = null
+        QyKeyModule.banglaEngine?.reset()
+        QyKeyModule.suggestionEngine?.reset()
         PointerOverlay.hide()
     }
 
@@ -1039,10 +1039,10 @@ class KickKeyInputMethodService : InputMethodService() {
         }
         PointerOverlay.hide()
         disposeSurface()
-        KickKeyModule.hapticManager    = null
-        KickKeyModule.banglaEngine     = null
-        KickKeyModule.suggestionEngine = null
-        KickKeyModule.clipboardHandler = null
+        QyKeyModule.hapticManager    = null
+        QyKeyModule.banglaEngine     = null
+        QyKeyModule.suggestionEngine = null
+        QyKeyModule.clipboardHandler = null
         super.onDestroy()
         Log.i(TAG, "IME destroyed")
     }

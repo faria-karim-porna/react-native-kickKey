@@ -7,4 +7,4 @@
     android:canPerformGestures="true"
     android:canRetrieveWindowContent="true"
     android:accessibilityFlags="flagRequestAccessibilityButton|flagDefault"
-    android:settingsActivity="com.kickkey.MainActivity" />
+    android:settingsActivity="com.qykey.MainActivity" />

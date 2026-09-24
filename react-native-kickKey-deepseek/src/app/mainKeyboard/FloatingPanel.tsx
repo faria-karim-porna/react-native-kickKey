@@ -8,10 +8,10 @@ export default function FloatingPanel() {
   // mounted so the ReactHost can be resumed (Fabric mount pipeline).
   useEffect(() => {
     try {
-      const p = NativeModules.KickKey?.keyboardReady?.();
+      const p = NativeModules.QyKey?.keyboardReady?.();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (e) {
-      console.warn('[KickKey] FloatingPanel keyboardReady failed:', e);
+      console.warn('[QyKey] FloatingPanel keyboardReady failed:', e);
     }
   }, []);
 

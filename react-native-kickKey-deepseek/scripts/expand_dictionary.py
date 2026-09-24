@@ -151,7 +151,7 @@ def main():
 
     # Write expanded english.txt
     with open(ENGLISH_TXT, 'w', encoding='utf-8') as f:
-        f.write("# KickKey English dictionary\n# Format: word<TAB>frequency\n")
+        f.write("# QyKey English dictionary\n# Format: word<TAB>frequency\n")
         for word, freq in sorted(existing_words.items(), key=lambda x: -x[1]):
             f.write(f"{word}\t{freq}\n")
 

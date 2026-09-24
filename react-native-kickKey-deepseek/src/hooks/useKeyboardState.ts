@@ -2,7 +2,7 @@
 // useKeyboardState.ts — state + native wiring for the qykey-style
 // keyboard (en-US / bn-BD / banglish).
 //
-// Every key press commits through the native KickKey module:
+// Every key press commits through the native QyKey module:
 //   - commitKey(code, 'en')  → direct commit (en-US, bn-BD glyphs)
 //   - commitKey(code, 'bn')  → native Avro-style phonetic engine
 //                              (banglish mode)
@@ -14,21 +14,21 @@ import { NativeModules, NativeEventEmitter } from 'react-native';
 import { playKeySound } from '../data/soundManager';
 import type { AppLanguage } from '../types/keyboard';
 
-// Lazy-init — avoids crash at module scope if KickKey is not yet available
-let _KickKey: any = null;
+// Lazy-init — avoids crash at module scope if QyKey is not yet available
+let _QyKey: any = null;
 let _emitter: any = null;
 
-function getKickKey() {
-  if (!_KickKey) _KickKey = NativeModules.KickKey;
-  return _KickKey;
+function getQyKey() {
+  if (!_QyKey) _QyKey = NativeModules.QyKey;
+  return _QyKey;
 }
 
 function getEmitter() {
   if (!_emitter) {
     try {
-      _emitter = new NativeEventEmitter(getKickKey());
+      _emitter = new NativeEventEmitter(getQyKey());
     } catch (e) {
-      console.warn('[KickKey] NativeEventEmitter init failed:', e);
+      console.warn('[QyKey] NativeEventEmitter init failed:', e);
       // Return a stub emitter that does nothing
       _emitter = { addListener: () => ({ remove: () => {} }), removeListeners: () => {} };
     }
@@ -95,7 +95,7 @@ export function useKeyboardState(): KeyboardState {
   const [tapToClick, setTapToClick] = useState(true);
 
   useEffect(() => {
-    getKickKey()
+    getQyKey()
       ?.getPreferences()
       ?.then((prefs: any) => {
         if (prefs && typeof prefs.tapToClick === 'boolean') {
@@ -112,28 +112,28 @@ export function useKeyboardState(): KeyboardState {
    * visible, false when "Display over other apps" is not granted.
    */
   const handlePointerShow = useCallback((): Promise<boolean> => {
-    const res = getKickKey()?.pointerShow?.();
+    const res = getQyKey()?.pointerShow?.();
     return res && typeof res.then === 'function' ? res : Promise.resolve(false);
   }, []);
 
   /** Hides the on-screen mouse pointer overlay. */
   const handlePointerHide = useCallback(() => {
-    getKickKey()?.pointerHide?.();
+    getQyKey()?.pointerHide?.();
   }, []);
 
   /** Moves the pointer by a relative (dx, dy) delta while the user drags. */
   const handlePointerMove = useCallback((dx: number, dy: number) => {
-    getKickKey()?.pointerMove?.(dx, dy);
+    getQyKey()?.pointerMove?.(dx, dy);
   }, []);
 
   /** Opens the system "Display over other apps" settings for this app. */
   const handleRequestPointerPermission = useCallback(() => {
-    getKickKey()?.openOverlaySettings?.();
+    getQyKey()?.openOverlaySettings?.();
   }, []);
 
   // ── Touchpad: IME strip mode & pointer overlay ───────────────────────────
   useEffect(() => {
-    getKickKey()?.setTouchpadMode?.(toggleMode);
+    getQyKey()?.setTouchpadMode?.(toggleMode);
     if (toggleMode) {
       handlePointerShow();
     } else {
@@ -156,7 +156,7 @@ export function useKeyboardState(): KeyboardState {
       setIsEmojiMode(false);
       setSuggestions([]);
       setToggleMode(false);
-      getKickKey()?.pointerHide?.();
+      getQyKey()?.pointerHide?.();
     });
 
     return () => {
@@ -178,12 +178,12 @@ export function useKeyboardState(): KeyboardState {
 
   const handleKeyPress = useCallback((code: string) => {
     if (!code) return;
-    getKickKey()?.commitKey(code, nativeLanguageFor(language));
+    getQyKey()?.commitKey(code, nativeLanguageFor(language));
     playKeySound();
   }, [language]);
 
   const handleBackspace = useCallback(() => {
-    getKickKey()?.sendBackspace();
+    getQyKey()?.sendBackspace();
     playKeySound();
   }, []);
 
@@ -193,7 +193,7 @@ export function useKeyboardState(): KeyboardState {
     backspaceDelayRef.current = setTimeout(() => {
       backspaceDelayRef.current = null;
       backspaceRepeatRef.current = setInterval(async () => {
-        const result = getKickKey()?.sendBackspace();
+        const result = getQyKey()?.sendBackspace();
         // If sendBackspace returns a Promise, await it and check the result.
         // If it returns nothing (undefined / non-thenable), we can't tell —
         // but we still fire the sound. Either way, if the native side signals
@@ -220,23 +220,23 @@ export function useKeyboardState(): KeyboardState {
   }, []);
 
   const handleSpace = useCallback(() => {
-    getKickKey()?.commitSpace();
+    getQyKey()?.commitSpace();
     playKeySound();
   }, []);
 
   const handleEnter = useCallback(() => {
-    getKickKey()?.sendEnter();
+    getQyKey()?.sendEnter();
     playKeySound();
   }, []);
 
   const handleSpecialKey = useCallback((key: string) => {
     if (!key) return;
-    getKickKey()?.sendSpecialKey(key);
+    getQyKey()?.sendSpecialKey(key);
     playKeySound();
   }, []);
 
   const handleMoveCursor = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
-    getKickKey()?.moveCursor(direction);
+    getQyKey()?.moveCursor(direction);
     playKeySound();
   }, []);
 
@@ -245,13 +245,13 @@ export function useKeyboardState(): KeyboardState {
   const handleLanguageChange = useCallback((lang: AppLanguage) => {
     if (lang === language) return;
     // Flush any pending phonetic buffer before leaving banglish
-    getKickKey()?.flushBanglaBuffer().catch(() => {});
+    getQyKey()?.flushBanglaBuffer().catch(() => {});
     setLanguage(lang);
     setSuggestions([]);
   }, [language]);
 
   const handleSymbolToggle = useCallback(() => {
-    if (language === 'banglish') getKickKey()?.flushBanglaBuffer().catch(() => {});
+    if (language === 'banglish') getQyKey()?.flushBanglaBuffer().catch(() => {});
     setSymbolModeStatus((s) => (s === 0 ? 1 : 0));
     setIsEmojiMode(false);
     setSuggestions([]);
@@ -266,20 +266,20 @@ export function useKeyboardState(): KeyboardState {
   }, []);
 
   const handleEmojiToggle = useCallback(() => {
-    if (language === 'banglish') getKickKey()?.flushBanglaBuffer().catch(() => {});
+    if (language === 'banglish') getQyKey()?.flushBanglaBuffer().catch(() => {});
     setIsEmojiMode((e) => !e);
     setSymbolModeStatus(0);
     setSuggestions([]);
   }, [language]);
 
   const handleEmojiSelect = useCallback((emoji: string) => {
-    getKickKey()?.commitKey(emoji, 'en');
-    getKickKey()?.recordEmojiUsed(emoji);
+    getQyKey()?.commitKey(emoji, 'en');
+    getQyKey()?.recordEmojiUsed(emoji);
     playKeySound();
   }, []);
 
   const handleSuggestionSelect = useCallback((word: string) => {
-    getKickKey()?.commitSuggestion(word);
+    getQyKey()?.commitSuggestion(word);
     playKeySound();
     setSuggestions([]);
   }, []);
@@ -287,7 +287,7 @@ export function useKeyboardState(): KeyboardState {
   /** Voice dictation: commit the recognized transcript through the native IME. */
   const handleTranscriptComplete = useCallback((text: string) => {
     if (!text) return;
-    getKickKey()?.commitText(text);
+    getQyKey()?.commitText(text);
     playKeySound();
   }, []);
 
@@ -295,7 +295,7 @@ export function useKeyboardState(): KeyboardState {
 
   /** Scroll the focused view / app one step up or down. */
   const handleScrollPage = useCallback((direction: 'up' | 'down') => {
-    getKickKey()?.scrollPage(direction);
+    getQyKey()?.scrollPage(direction);
   }, []);
 
   /** Held scroll caret → auto-repeat (mirrors backspace repeat: 350ms delay, 150ms tick). */
@@ -304,7 +304,7 @@ export function useKeyboardState(): KeyboardState {
     scrollRepeatDelayRef.current = setTimeout(() => {
       scrollRepeatDelayRef.current = null;
       scrollRepeatRef.current = setInterval(() => {
-        getKickKey()?.scrollPage(direction);
+        getQyKey()?.scrollPage(direction);
       }, 150);
     }, 350);
   }, []);
@@ -322,23 +322,23 @@ export function useKeyboardState(): KeyboardState {
 
   /** Back/Forward. Resolves false when Forward is unsupported. */
   const handleNavigateHistory = useCallback((direction: 'backward' | 'forward') => {
-    const res = getKickKey()?.navigateHistory(direction);
+    const res = getQyKey()?.navigateHistory(direction);
     return res && typeof res.then === 'function' ? res : Promise.resolve(true);
   }, []);
 
   /** Mouse L/R button action (native: tap / long-press under the cursor). */
   const handleMouseClick = useCallback((button: 'left' | 'right') => {
-    getKickKey()?.mouseClick(button);
+    getQyKey()?.mouseClick(button);
   }, []);
 
   /** L button press-in — arm a native drag at the cursor. */
   const handleDragStart = useCallback(() => {
-    getKickKey()?.dragStart();
+    getQyKey()?.dragStart();
   }, []);
 
   /** L button press-out — dispatch the drag stroke (or a tap). */
   const handleDragEnd = useCallback(() => {
-    getKickKey()?.dragEnd();
+    getQyKey()?.dragEnd();
   }, []);
 
 

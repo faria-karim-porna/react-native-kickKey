@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import android.content.ClipboardManager
 import android.content.Context
@@ -9,7 +9,7 @@ import android.util.Log
  *
  * Android only grants IMEs clipboard read access during onStartInputView()
  * (Android 10+). This class is therefore designed to be called from that
- * lifecycle point — see KickKeyInputMethodService.onStartInputView().
+ * lifecycle point — see QyKeyInputMethodService.onStartInputView().
  *
  * History format: items separated by a Unit Separator character (\u001F)
  * to safely allow newlines and tabs within the clipboard text itself.
@@ -18,7 +18,7 @@ class ClipboardHandler(private val context: Context) {
 
     companion object {
         private const val TAG = "ClipboardHandler"
-        private const val PREFS_NAME = "kickkey_clipboard"
+        private const val PREFS_NAME = "qykey_clipboard"
         private const val KEY_HISTORY = "history"
         private const val MAX_HISTORY = 20
         private const val MAX_ITEM_LENGTH = 5000

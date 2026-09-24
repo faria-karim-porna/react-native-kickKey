@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import SetupProgress from '@/app/mainApp/SetupProgress';
 import { useSetupStatus } from '@/hooks/useSetupStatus';
-import { useKickKeyBridge } from '@/hooks/useKickKeyBridge';
+import { useQyKeyBridge } from '@/hooks/useQyKeyBridge';
 import { KeyboardIcon, StepCircle } from '@/app/mainApp/OnboardingIcons';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -12,7 +12,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 export default function Step1Enable() {
   const router = useRouter();
   const { isEnabled } = useSetupStatus();
-  const { openKeyboardSettings } = useKickKeyBridge();
+  const { openKeyboardSettings } = useQyKeyBridge();
   const colors = useAppColors();
   const t = useTranslation();
 
@@ -29,7 +29,7 @@ export default function Step1Enable() {
       <View style={styles.iconContainer}>
         <KeyboardIcon size={56} />
       </View>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{t.enableKickKey}</Text>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{t.enableQyKey}</Text>
       <Text style={[styles.description, { color: colors.textMuted }]}>
         {t.step1Description}
       </Text>

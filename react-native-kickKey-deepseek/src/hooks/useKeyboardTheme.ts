@@ -58,10 +58,10 @@ const DARK_COLORS: KeyboardThemeColors = {
   fontSize: 14,
 };
 
-let _KickKey: any = null;
-function getKickKey() {
-  if (!_KickKey) _KickKey = NativeModules.KickKey;
-  return _KickKey;
+let _QyKey: any = null;
+function getQyKey() {
+  if (!_QyKey) _QyKey = NativeModules.QyKey;
+  return _QyKey;
 }
 
 /** Device dark/light at this instant. */
@@ -179,7 +179,7 @@ export function useKeyboardTheme(): KeyboardThemeColors {
     };
 
     const fetchNativePrefs = () => {
-      getKickKey()
+      getQyKey()
         ?.getPreferences()
         ?.then((prefs: any) => applyPrefs(prefs))
         .catch(() => {});
@@ -187,9 +187,9 @@ export function useKeyboardTheme(): KeyboardThemeColors {
 
     fetchNativePrefs();
 
-    if (NativeModules.KickKey) {
-      const emitter = new NativeEventEmitter(NativeModules.KickKey);
-      const sub = emitter.addListener('kickkey_preferencesChanged', (prefMap: any) => {
+    if (NativeModules.QyKey) {
+      const emitter = new NativeEventEmitter(NativeModules.QyKey);
+      const sub = emitter.addListener('qykey_preferencesChanged', (prefMap: any) => {
         if (prefMap) {
           applyPrefs(prefMap);
         } else {

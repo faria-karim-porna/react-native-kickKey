@@ -7,9 +7,9 @@ const path = require('path');
  * Expo config plugin that:
  * 1. Copies res/xml/accessibility_service_config.xml into android/ during prebuild.
  * 2. Adds the @string/a11y_service_name label.
- * 3. Registers KickKeyAccessibilityService in the manifest (same :ime_process as the IME).
+ * 3. Registers QyKeyAccessibilityService in the manifest (same :ime_process as the IME).
  *
- * NOTE: KickKeyAccessibilityService.kt is copied by withImeService.js (it copies the   * whole native/java/com/kickkey/ directory), so this plugin only handles the
+ * NOTE: QyKeyAccessibilityService.kt is copied by withImeService.js (it copies the   * whole native/java/com/qykey/ directory), so this plugin only handles the
  * XML resource + manifest entry. Keep it listed AFTER withImeService in app.json.
  */
 function withAccessibilityXmlCopy(config) {
@@ -40,7 +40,7 @@ module.exports = function withAccessibilityService(config) {
 
   config = withStringsXml(config, (config) => {
     config.modResults = AndroidConfig.Strings.setStringItem(
-      [{ $: { name: 'a11y_service_name' }, _: 'KickKey Accessibility' }],
+      [{ $: { name: 'a11y_service_name' }, _: 'QyKey Accessibility' }],
       config.modResults
     );
     return config;
@@ -56,13 +56,13 @@ module.exports = function withAccessibilityService(config) {
 
     // Avoid duplicates on repeated prebuild
     const alreadyRegistered = application.service.some(
-      (s) => s.$?.['android:name'] === '.KickKeyAccessibilityService'
+      (s) => s.$?.['android:name'] === '.QyKeyAccessibilityService'
     );
 
     if (!alreadyRegistered) {
       application.service.push({
         $: {
-          'android:name': '.KickKeyAccessibilityService',
+          'android:name': '.QyKeyAccessibilityService',
           'android:label': '@string/a11y_service_name',
           'android:permission': 'android.permission.BIND_ACCESSIBILITY_SERVICE',
           'android:exported': 'true',
@@ -84,7 +84,7 @@ module.exports = function withAccessibilityService(config) {
           },
         ],
       });
-      console.log('[withAccessibilityService] Registered KickKeyAccessibilityService');
+      console.log('[withAccessibilityService] Registered QyKeyAccessibilityService');
     }
 
     return config;

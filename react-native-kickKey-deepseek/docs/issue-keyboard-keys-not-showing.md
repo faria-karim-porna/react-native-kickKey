@@ -10,7 +10,7 @@
 ## 1. Summary
 
 After installing the **production** APK built with EAS, the companion app opens
-fine and the user **can** enable KickKey as the default keyboard. However, when
+fine and the user **can** enable QyKey as the default keyboard. However, when
 focusing any text input field, the keyboard takes up the expected on-screen
 area, but **no keys are rendered** — the keyboard is blank.
 
@@ -42,7 +42,7 @@ produce exactly this symptom.
 ## 3. Reproduction steps
 
 1. `eas build --platform android --profile production` → install APK.
-2. Open KickKey companion app → onboarding → enable KickKey as IME → set as default.
+2. Open QyKey companion app → onboarding → enable QyKey as IME → set as default.
 3. Open any app with a text field (Messenger, Notes, browser, etc.).
 4. Tap the input field → the keyboard area appears with correct height but is **blank (no keys)**.
 
@@ -106,15 +106,15 @@ Two separate React Native bundles ship in the same APK:
    `expo prebuild`**, written to `android/app/src/main/assets/keyboard.bundle`,
    then packaged into the APK as an asset.
 
-At runtime the IME process (`KickKeyApplication`, `:ime_process`) lazily builds
+At runtime the IME process (`QyKeyApplication`, `:ime_process`) lazily builds
 a second `ReactHostImpl` whose delegate loads:
 
 ```kotlin
 JSBundleLoader.createAssetLoader(this, "assets://keyboard.bundle", true)
 ```
 
-`KickKeyInputMethodService.onCreateInputView()` then creates a Fabric
-`ReactSurface` for the component `KickKeyKeyboard`. The surface's host is
+`QyKeyInputMethodService.onCreateInputView()` then creates a Fabric
+`ReactSurface` for the component `QyKeyKeyboard`. The surface's host is
 `ReactHostImpl(..., useDevSupport = ReactBuildConfig.DEBUG /* false in release */)`.
 
 **Failure of any step in that chain produces a blank keyboard area**, because
@@ -155,7 +155,7 @@ The bundle is packaged but Hermes can't load it, e.g.:
   `JSBundleLoader`/Hermes can't run it.
 
 **Confirm:** check bytecode version of the bundle inside the APK (§7) and
-logcat for `KickKeyApplication` "Failed to init keyboard ReactHost" /
+logcat for `QyKeyApplication` "Failed to init keyboard ReactHost" /
 "bytecode version" errors.
 
 ### H3 — Bundle loads, but the keyboard JS crashes during startup
@@ -166,11 +166,11 @@ but errors thrown *before* React mounts, or a failed `ReactHostImpl.start()`,
 only log to logcat and leave the surface blank.
 
 **Confirm:** `adb logcat` while opening the keyboard — look for
-`KickKey JS FATAL`, `KickKey ErrorBoundary`, `KickKeyIME`,
-`KickKeyApplication`, `ReactNativeJS` lines (§7 step 2).
+`QyKey JS FATAL`, `QyKey ErrorBoundary`, `QyKeyIME`,
+`QyKeyApplication`, `ReactNativeJS` lines (§7 step 2).
 
 ### H4 — Surface/view wiring issue in release Fabric
-`host.createSurface(this, "KickKeyKeyboard", null)` + `surface.start()` +
+`host.createSurface(this, "QyKeyKeyboard", null)` + `surface.start()` +
 immediate `surface.view` — if the surface view is created but never attaches or
 renders content in the release build, the container shows empty area. Lower
 likelihood (the same code path is used in debug), but worth ruling out via the
@@ -207,14 +207,14 @@ Run these against the failing production APK / device:
 
 3. **Logcat while opening the keyboard** (IME process)
    ```sh
-   adb logcat -s KickKeyIME KickKeyApplication KickKeyModule ReactNativeJS AndroidRuntime
+   adb logcat -s QyKeyIME QyKeyApplication QyKeyModule ReactNativeJS AndroidRuntime
    # or filter broadly:
-   adb logcat | grep -E "KickKey|ReactNative|ReactNativeJS|AndroidRuntime"
+   adb logcat | grep -E "QyKey|ReactNative|ReactNativeJS|AndroidRuntime"
    ```
    Look for:
    - `Keyboard ReactHost initialized successfully — JS bundle loaded...` (host OK)
    - `Failed to init keyboard ReactHost synchronously` / `keyboard.bundle ... corrupt` (H1/H2)
-   - `KickKey JS FATAL ...` / `KickKey ErrorBoundary ...` (H3)
+   - `QyKey JS FATAL ...` / `QyKey ErrorBoundary ...` (H3)
    - `FALLBACK VIEW SHOWN: ...` (means `onCreateInputView` fell back to error UI)
 
 4. **Re-check the EAS prebuild step logs** (not the gradle step) for
@@ -256,9 +256,9 @@ Run these against the failing production APK / device:
   keyboard.
 - **If H3 (JS crash):** Wrap `keyboard.index.js` startup in try/catch, log
   module-scope errors to logcat, and add a visible fallback if
-  `ReactHostImpl.start()` fails; verify `NativeModules.KickKey` is available in
+  `ReactHostImpl.start()` fails; verify `NativeModules.QyKey` is available in
   `:ime_process` before `KeyboardScreen` mounts.
-- **All cases:** Add a runtime self-check in `KickKeyInputMethodService` that
+- **All cases:** Add a runtime self-check in `QyKeyInputMethodService` that
   verifies `assets://keyboard.bundle` is readable before creating the surface,
   and show a clear error string instead of a silent blank area.
 
@@ -270,9 +270,9 @@ Run these against the failing production APK / device:
 |---|---|
 | `plugins/withKeyboardBundle.js` | Builds `keyboard.bundle` (Metro + hermesc) during prebuild |
 | `scripts/build-keyboard-bundle.js` | Manual fallback script (`npm run build:keyboard`) |
-| `keyboard.index.js` | Keyboard bundle entry (`KickKeyKeyboard` component) |
-| `native-files/java/com/kickkey/KickKeyApplication.kt` | Creates 2nd `ReactHostImpl`, loads `assets://keyboard.bundle` |
-| `native-files/java/com/kickkey/KickKeyInputMethodService.kt` | IME service, creates the ReactSurface + container |
+| `keyboard.index.js` | Keyboard bundle entry (`QyKeyKeyboard` component) |
+| `native-files/java/com/qykey/QyKeyApplication.kt` | Creates 2nd `ReactHostImpl`, loads `assets://keyboard.bundle` |
+| `native-files/java/com/qykey/QyKeyInputMethodService.kt` | IME service, creates the ReactSurface + container |
 | `android/app/src/main/assets/keyboard.bundle` | Generated Hermes bytecode (locally valid v98) |
 | `eas.json` | `production` profile → `assembleRelease` APK |
 
@@ -312,7 +312,7 @@ Metro/Hermes toolchain as the main bundle.
 
 ### 11.2 Runtime self-check — visible error instead of blank area
 
-**`native-files/java/com/kickkey/KickKeyInputMethodService.kt`** now calls
+**`native-files/java/com/qykey/QyKeyInputMethodService.kt`** now calls
 `verifyKeyboardBundle()` at the top of `onCreateInputView()`:
 
 - Verifies `assets://keyboard.bundle` exists,
@@ -365,7 +365,7 @@ at 0×0. The window still took the expected 770px, but every key (and even the
 keyboard background) rendered into an invisible zero-sized view → *blank
 keyboard with correct height*, exactly the reported symptom.
 
-### 12.2 The fix (`KickKeyInputMethodService.kt`)
+### 12.2 The fix (`QyKeyInputMethodService.kt`)
 
 - Container is now a **fixed size** `MATCH_PARENT × 770` (was `WRAP_CONTENT` +
   `minimumHeight`).
@@ -382,13 +382,13 @@ Previously every failure in the async host/surface startup chain was silent
 (Bolts `Task`s fault without throwing to the caller), so any error produced an
 undiagnosable blank area. Now:
 
-- `KickKeyApplication` keeps the `TaskInterface` from `keyboardHost.start()` in
+- `QyKeyApplication` keeps the `TaskInterface` from `keyboardHost.start()` in
   `keyboardStartTask` so failures can be inspected.
 - The IME service keeps the `surface.start()` task and runs a **watchdog**
   (8 s): if the surface isn't running, it swaps the keyboard for a **visible
   error view** with the actual exception message / status.
-- The keyboard JS calls `NativeModules.KickKey.keyboardReady()` after mounting
-  (`keyboard.index.js` + new `KickKeyModule.keyboardReady()`), giving the
+- The keyboard JS calls `NativeModules.QyKey.keyboardReady()` after mounting
+  (`keyboard.index.js` + new `QyKeyModule.keyboardReady()`), giving the
   watchdog a positive “JS is rendering” signal and a logcat confirmation.
 
 ### 12.4 How to verify
@@ -401,7 +401,7 @@ npx expo run:android
 
 # 3. If anything is still wrong, the keyboard now shows a VISIBLE error
 #    message instead of a blank area, and logcat pinpoints the stage:
-adb logcat | grep -E 'KickKey|ReactHost|ReactNative'
+adb logcat | grep -E 'QyKey|ReactHost|ReactNative'
 #    Expect: 'Keyboard ReactHost start() invoked...' →
 #            'Watchdog: surface running, jsReady=true — keyboard OK'
 ```
@@ -412,11 +412,11 @@ adb logcat | grep -E 'KickKey|ReactHost|ReactNative'
 
 ### 13.1 The symptom
 
-User report: after installing and setting KickKey as default, opening a text
+User report: after installing and setting QyKey as default, opening a text
 field showed the fallback error instead of the keyboard:
 
 ```
-KickKey Error: Keyboard did not start within 8s — isRunning=false jsReady=true
+QyKey Error: Keyboard did not start within 8s — isRunning=false jsReady=true
 ```
 
 ### 13.2 The contradiction that gave it away
@@ -436,7 +436,7 @@ tore the surface out of the container and showed the error because
   `false`;
 - the first cold start after install can exceed the old fixed 8 s timeout.
 
-### 13.3 The fix (`KickKeyInputMethodService.kt`)
+### 13.3 The fix (`QyKeyInputMethodService.kt`)
 
 - **`keyboardJsReady` is now the authoritative success signal.** The watchdog
   checks it FIRST — if the JS mounted **and** the surface is alive (running or
@@ -489,7 +489,7 @@ public void setInputView(View view) {
 
 The view returned by `onCreateInputView()` is **removed from our tree and
 re-added with `MATCH_PARENT × WRAP_CONTENT` params**, silently discarding the
-fixed `770px` height set in `KickKeyInputMethodService.kt`. In practice the
+fixed `770px` height set in `QyKeyInputMethodService.kt`. In practice the
 fixed height on the *child* `ReactSurfaceView` still propagates through a
 WRAP_CONTENT parent, but only while the measure chain is fully exercised. If
 any link in that chain measures `AT_MOST`/`UNSPECIFIED` while React hasn't
@@ -520,10 +520,10 @@ own `ErrorBoundary`, so no failure mode becomes silent.
 
 ### 14.3 Diagnostics added
 
-`KickKeyInputMethodService.kt` now logs the actual laid-out surface size:
+`QyKeyInputMethodService.kt` now logs the actual laid-out surface size:
 
 ```
-KickKeyIME: Surface view laid out: 1080×770 attached=true isRunning=...
+QyKeyIME: Surface view laid out: 1080×770 attached=true isRunning=...
 ```
 
 `0×0` here = sizing regression; full size = sizing is healthy and the
@@ -536,9 +536,9 @@ problem (if any) is elsewhere.
 npx expo run:android   # or a fresh EAS production build
 
 # Open any text field → keys must appear immediately.
-# Logcat (adb logcat | grep -E 'KickKey|ReactHost|ReactNative'):
-#   KickKeyIME: Surface view laid out: <W>×770 attached=true
-#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+# Logcat (adb logcat | grep -E 'QyKey|ReactHost|ReactNative'):
+#   QyKeyIME: Surface view laid out: <W>×770 attached=true
+#   QyKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
 ```
 
 ---
@@ -568,7 +568,7 @@ rendered into a 0×0 view reports `jsReady=true`, the watchdog (since §14) trea
 that as SUCCESS and never touches the container → **black keyboard, no error,
 forever**. `isRunning`/`isAttachedToWindow` cannot detect this either.
 
-### 15.3 The fix (`KickKeyInputMethodService.kt`)
+### 15.3 The fix (`QyKeyInputMethodService.kt`)
 
 **A. Deterministic EXACT measure specs.**
 
@@ -615,7 +615,7 @@ If JS mounted but the view is still 0×0/empty after the full retry window, the
 watchdog shows a visible error:
 
 ```
-KickKey Error: Keyboard mounted but not visible — jsReady=true view=0×0 children=0 ...
+QyKey Error: Keyboard mounted but not visible — jsReady=true view=0×0 children=0 ...
 ```
 
 so a sizing regression can never again manifest as an un-diagnosable black area.
@@ -628,12 +628,12 @@ npx expo run:android    # or: eas build --platform android --profile production
 
 # Open any text field → keys appear immediately, full height.
 # Logcat:
-#   KickKeyIME: Keyboard view created (keyboardHeightPx=1100)   ← 400dp × density
-#   KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
-#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+#   QyKeyIME: Keyboard view created (keyboardHeightPx=1100)   ← 400dp × density
+#   QyKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+#   QyKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
 #
 # If sizing ever regresses again, the user sees an error TEXT, never a black area:
-#   KickKey Error: Keyboard mounted but not visible — ...
+#   QyKey Error: Keyboard mounted but not visible — ...
 ```
 
 ---
@@ -643,7 +643,7 @@ npx expo run:android    # or: eas build --platform android --profile production
 Still reported after §15: **black keyboard area, no keys, then the §15 watchdog error:**
 
 ```
-KickKey Error: Keyboard mounted but not visible — jsReady=true view=1080×1100 children=0 after ~17s — measure-spec regression; ...
+QyKey Error: Keyboard mounted but not visible — jsReady=true view=1080×1100 children=0 after ~17s — measure-spec regression; ...
 ```
 
 The **critical new datum** in this error: `view=1080×1100 children=0`.
@@ -692,7 +692,7 @@ A normal RN app reaches `LifecycleState.RESUMED` because its **Activity** calls
 **InputMethodService — which is NOT an Activity and never calls it.**
 
 - `ReactLifecycleStateManager` initialises `state = BEFORE_CREATE`.
-- `KickKeyApplication.initKeyboardRuntime()` calls `keyboardHost.start()` only.
+- `QyKeyApplication.initKeyboardRuntime()` calls `keyboardHost.start()` only.
 - `ReactHostImpl.getOrCreateReactInstanceTask()` resumes the ReactContext only
   if the manager is already RESUMED (`resumeReactContextIfHostResumed`) or on a
   reload (`isReloading`) — neither ever happens here.
@@ -708,7 +708,7 @@ This also explains every previous round:
 - §13 “watchdog tearing down a working keyboard”: `jsReady=true` was a real
   mount signal, but the *pipeline* still stalled for a different reason there.
 
-### 16.3 The fix (`KickKeyApplication.kt`)
+### 16.3 The fix (`QyKeyApplication.kt`)
 
 Resume the keyboard ReactHost right after `start()`:
 
@@ -727,7 +727,7 @@ keyboardHost.onHostResume(null)   // ← THE FIX: lifecycle BEFORE_CREATE → RE
 No timing/retry/`post` tricks — the mechanism is now driven exactly the way RN
 intends for a foreground host.
 
-### 16.3b Idempotent safety net (`KickKeyInputMethodService.kt`)
+### 16.3b Idempotent safety net (`QyKeyInputMethodService.kt`)
 
 `onCreateInputView()` also calls `host.onHostResume(null)` right after obtaining
 the keyboard ReactHost (before `createSurface`). This covers the edge case where
@@ -743,7 +743,7 @@ The “Keyboard mounted but not visible” error now reports the true failure
 mode (mount stall) and includes the host lifecycle state:
 
 ```
-KickKey Error: Keyboard mounted but not visible — jsReady=true view=... children=... — Fabric mount dispatcher stalled (ReactHost lifecycle=BEFORE_CREATE); ...
+QyKey Error: Keyboard mounted but not visible — jsReady=true view=... children=... — Fabric mount dispatcher stalled (ReactHost lifecycle=BEFORE_CREATE); ...
 ```
 
 ### 16.5 How to verify
@@ -753,10 +753,10 @@ KickKey Error: Keyboard mounted but not visible — jsReady=true view=... childr
 npx expo run:android    # or: eas build --platform android --profile production
 
 # Open any text field → keys appear immediately.
-# Logcat (adb logcat | grep -E 'KickKey|ReactHost|ReactNative'):
-#   KickKeyApplication: Keyboard ReactHost resumed (lifecycleState=RESUMED)
-#   KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
-#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK (lifecycle=RESUMED children=1)
+# Logcat (adb logcat | grep -E 'QyKey|ReactHost|ReactNative'):
+#   QyKeyApplication: Keyboard ReactHost resumed (lifecycleState=RESUMED)
+#   QyKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+#   QyKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK (lifecycle=RESUMED children=1)
 ```
 
 ---
@@ -766,7 +766,7 @@ npx expo run:android    # or: eas build --platform android --profile production
 §16 was tested on an **EAS release APK** and the failure mode CHANGED again:
 
 ```
-KickKey Error: Keyboard did not start within 17s — isRunning=false jsReady=false
+QyKey Error: Keyboard did not start within 17s — isRunning=false jsReady=false
 ```
 
 ### 17.1 The critical regression: §16 resumed the host BEFORE the ReactInstance existed
@@ -795,11 +795,11 @@ RN 0.86.2 source (`ReactHostImpl.kt`, `ReactLifecycleStateManager.kt`,
 
 ### 17.2 The fix — resume at the correct lifecycle point
 
-**A. `KickKeyApplication.kt` — no longer resumes the host in `initKeyboardRuntime()`.**
+**A. `QyKeyApplication.kt` — no longer resumes the host in `initKeyboardRuntime()`.**
 The premature `onHostResume(null)` (and its claim that it was the real fix) is
 removed; `start()` alone is called, exactly as §15-era code did.
 
-**B. `KickKeyInputMethodService.kt` — `scheduleHostResume()` resumes only once the
+**B. `QyKeyInputMethodService.kt` — `scheduleHostResume()` resumes only once the
 ReactInstance has FULLY initialized.** Right after `surface.start()`, poll
 `app.keyboardStartTask.isCompleted()` (the exact "instance fully created" signal —
 `currentReactContext` alone is too early because it becomes non-null mid-
@@ -822,10 +822,10 @@ text will pinpoint the stall stage directly.
 eas build --platform android --profile production   # or npx expo run:android
 
 # Open any text field → keys appear immediately.
-# Logcat (adb logcat | grep -E 'KickKey|ReactHost|ReactNative'):
-#   KickKeyIME: Keyboard ReactHost resumed (lifecycle=RESUMED, context ready)
-#   KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
-#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+# Logcat (adb logcat | grep -E 'QyKey|ReactHost|ReactNative'):
+#   QyKeyIME: Keyboard ReactHost resumed (lifecycle=RESUMED, context ready)
+#   QyKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+#   QyKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
 ```
 
 ---
@@ -836,7 +836,7 @@ eas build --platform android --profile production   # or npx expo run:android
 carrying the new §17 diagnostics:
 
 ```
-KickKey Error: Keyboard did not start within 17s — isRunning=false jsReady=false
+QyKey Error: Keyboard did not start within 17s — isRunning=false jsReady=false
 hostLifecycle=BEFORE_CREATE startTask=completed surfaceTask=completed
 view=1080×1100 children=0 — check logcat: ...
 ```
@@ -869,17 +869,17 @@ the task even completed, leaving the host permanently BEFORE_CREATE.
 
 ### 18.3 The fix — resume ONLY when the JS is fully mounted (`keyboardJsReady`)
 
-`KickKeyModule.keyboardJsReady` only becomes `true` after the React root **committed a
+`QyKeyModule.keyboardJsReady` only becomes `true` after the React root **committed a
 frame** (set by `keyboardReady()` from `useEffect`). At that moment the instance, the
 bundle, the surface and every native module are fully initialized and the bootstrap is
 over — resuming then is exactly what a normal Activity's `onResume()` does after
 startup, with zero in-flight initialization.
 
-`KickKeyInputMethodService.kt` changes:
+`QyKeyInputMethodService.kt` changes:
 
 - **Replaced `scheduleHostResume()`/`retryHostResume()`/`isHostStartFinished()`
   (startTask-gated, 8s cap) with `scheduleJsReadyResume()`/`pollJsReadyResume()`** —
-  polls `KickKeyModule.keyboardJsReady` every 250ms for up to **30s** (120 × 250ms,
+  polls `QyKeyModule.keyboardJsReady` every 250ms for up to **30s** (120 × 250ms,
   comfortably past the watchdog's 17s window) and calls `host.onHostResume(null)`
   only when the JS has mounted.
 - **`resumeKeyboardHost()` now retries a failed resume** (attempt counter + last-error
@@ -894,10 +894,10 @@ startup, with zero in-flight initialization.
 ### 18.4 Expected logcat on a working build
 
 ```
-KickKeyIME: scheduleJsReadyResume: polling jsReady (host lifecycle=BEFORE_CREATE)
-KickKeyIME: Keyboard ReactHost resumed (lifecycle=RESUMED)
-KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
-KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+QyKeyIME: scheduleJsReadyResume: polling jsReady (host lifecycle=BEFORE_CREATE)
+QyKeyIME: Keyboard ReactHost resumed (lifecycle=RESUMED)
+QyKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+QyKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
 ```
 
 ### 18.5 How to verify
@@ -917,7 +917,7 @@ eas build --platform android --profile production   # or npx expo run:android
 Still reported after §18 with the new §18 diagnostics:
 
 ```
-KickKey Error: Keyboard mounted but not visible — jsReady=true view=1080×1100 children=0 after ~17s
+QyKey Error: Keyboard mounted but not visible — jsReady=true view=1080×1100 children=0 after ~17s
 — Fabric mount dispatcher stalled (ReactHost lifecycle=RESUMED resumeAttempts=1 resumeError=none); ...
 ```
 
@@ -967,7 +967,7 @@ TEXT do it instead.)
 - `ReactContext.getLifecycleState()` (public) vs `ReactHost.lifecycleState` can diverge — the
   former proves whether the resume actually reached the listeners. ✓
 
-### 19.3 The fix (KickKeyInputMethodService.kt + KickKeyApplication.kt)
+### 19.3 The fix (QyKeyInputMethodService.kt + QyKeyApplication.kt)
 
 **A. Self-diagnosing watchdog — the error text now names the exact failure stage.**
 
@@ -992,9 +992,9 @@ TEXT do it instead.)
 - The watchdog calls `view.requestLayout()` per check — pushes the current EXACT constraints into
   C++ again, producing a fresh commit + mount transaction if the first one was ever lost.
 
-**C. Fresh-host recovery (KickKeyApplication.resetKeyboardHostForRetry()).**
+**C. Fresh-host recovery (QyKeyApplication.resetKeyboardHostForRetry()).**
 
-- New public method on `KickKeyApplication`: nulls the cached keyboard ReactHost (under the same
+- New public method on `QyKeyApplication`: nulls the cached keyboard ReactHost (under the same
   lock as init) and fires `destroy()` on the old one. The next keyboard open lazily creates a
   brand-new `ReactHostImpl` → new `ReactInstance` → new `FabricUIManager` / `MountItemDispatcher`.
 - Called when the watchdog gives up with `jsReady=true` (the mount pipeline wedged or the host
@@ -1005,10 +1005,10 @@ TEXT do it instead.)
 ### 19.4 Expected logcat on a working build (unchanged)
 
 ```
-KickKeyIME: Keyboard ReactHost resumed (lifecycle=RESUMED, ctx=RESUMED)
-KickKeyIME: Frame pump ALIVE — Choreographer ticks in the IME process
-KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
-KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+QyKeyIME: Keyboard ReactHost resumed (lifecycle=RESUMED, ctx=RESUMED)
+QyKeyIME: Frame pump ALIVE — Choreographer ticks in the IME process
+QyKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+QyKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
 ```
 
 ### 19.5 How to verify / what to paste back if it still fails
@@ -1042,13 +1042,13 @@ If it still fails, the error text now disambiguates the three modes:
 Still reported after §19 with the full §19 diagnostics:
 
 ```
-KickKey Error: Keyboard mounted but not visible — jsReady=true view=1080×1100 children=0
+QyKey Error: Keyboard mounted but not visible — jsReady=true view=1080×1100 children=0
 — Fabric mount dispatcher stalled (ReactHost lifecycle=RESUMED reactContextLifecycle=RESUMED
 framePump=alive host=RESUMED/ctx=RESUMED ... resumeAttempts=1 resumeError=none); ...
 ```
 
 `jsReady=true` + `host/ctx=RESUMED` + `framePump=alive` + `children=0` **forever** — even after
-§19's direct-context resume, `kickkey_forceRerender` re-renders and `requestLayout` nudges — was
+§19's direct-context resume, `qykey_forceRerender` re-renders and `requestLayout` nudges — was
 impossible to explain with any Java-side lifecycle issue. Every link of the mount pipeline was
 re-verified line-by-line against the ACTUAL RN 0.86.2 sources installed in `node_modules` and the
 real culprit is on the **C++ side**, in the **Modern RuntimeScheduler**:
@@ -1076,7 +1076,7 @@ This also explains why every previous fix failed:
   dispatch side has nothing to apply.
 - `requestLayout()` — `SurfaceHandler::constraintLayout()` early-returns when the constraints are
   UNCHANGED, so it produces no new commit.
-- `kickkey_forceRerender` re-render (`setTick`) — re-rendering an IDENTICAL tree produces an
+- `qykey_forceRerender` re-render (`setTick`) — re-rendering an IDENTICAL tree produces an
   EMPTY diff → no new mount transaction → nothing new to flush.
 
 ### 20.2 The fix (keyboard.index.js — the JS bundle, no native pipeline surgery)
@@ -1087,19 +1087,19 @@ as long as the keyboard is mounted. Every tick is an event-loop task; at its end
 mount transaction (the initial one, and every later commit from key presses / layout switches /
 suggestions) is executed → delivered to Java → applied by the resumed `DispatchUIFrameCallback`.
 
-**B. Real remount instead of a no-op re-render.** `kickkey_forceRerender` (emitted by the IME
+**B. Real remount instead of a no-op re-render.** `qykey_forceRerender` (emitted by the IME
 service's resume path and a new fast mount-retry loop) now bumps the `key` of the `KeyboardScreen`
 subtree, so React UNMOUNTS and REMOUNTS the whole keyboard — generating a complete, guaranteed-
 fresh set of CREATE/INSERT mount mutations. This is the safety net for the case where the very
 first commit's transaction was lost before the pump was running.
 
-**C. Fast mount-retry loop (KickKeyInputMethodService).** While `jsReady=true` and `children=0`,
-the service now re-emits `kickkey_forceRerender` every 1s (plus a delayed `onInputStarted` re-emit
+**C. Fast mount-retry loop (QyKeyInputMethodService).** While `jsReady=true` and `children=0`,
+the service now re-emits `qykey_forceRerender` every 1s (plus a delayed `onInputStarted` re-emit
 so a remounted JS subtree restores its number/phone/password/imeAction state), so the keyboard
 recovers in ~1–2s instead of waiting for the 8s startup watchdog. The watchdog still owns the
 final error view if it never recovers.
 
-**D. New diagnostic `jsPump=active|inactive`** in the watchdog error text (`KickKeyModule.
+**D. New diagnostic `jsPump=active|inactive`** in the watchdog error text (`QyKeyModule.
 notifyPumpActive()` is called once by the pump) — a residual failure now says whether the JS fix
 is actually running on the device.
 
@@ -1117,9 +1117,9 @@ depends on this behaviour; the keyboard bundle simply had no recurring work.
 eas build --platform android --profile production   # or npx expo run:android
 
 # Open any text field → keys appear immediately (and stay live when typing).
-# Logcat (adb logcat | grep -E 'KickKey|ReactHost|ReactNative'):
-#   KickKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
-#   KickKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
+# Logcat (adb logcat | grep -E 'QyKey|ReactHost|ReactNative'):
+#   QyKeyIME: Surface view laid out: 1080×1100 children=1 attached=true
+#   QyKeyIME: Watchdog: keyboard JS mounted & rendering — keyboard OK
 ```
 
 If it STILL fails, the error text now includes `jsPump=active|inactive`:

@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
@@ -24,7 +24,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 
-class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
     companion object {
         var activeInputConnection: InputConnection? = null
@@ -62,23 +62,23 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         var keyboardPumpActive: Boolean = false
 
         // The most recent onInputStarted parameters. Re-emitted by the IME service after
-        // a kickkey_forceRerender remount, because a remount re-creates the JS keyboard
+        // a qykey_forceRerender remount, because a remount re-creates the JS keyboard
         // subtree and its input-type state (number/phone/password/imeAction) is reset —
         // without this a number field would show the default QWERTY layout after a remount.
         // @Volatile: written/read on the main thread (IME service).
         @Volatile
         var lastInputStartedParams: ReadableMap? = null
 
-        const val ACTION_PREFERENCES_CHANGED = "com.kickkey.PREFERENCES_CHANGED"
+        const val ACTION_PREFERENCES_CHANGED = "com.qykey.PREFERENCES_CHANGED"
 
         fun emitPreferences(reactContext: ReactApplicationContext?, prefMap: ReadableMap?) {
             if (reactContext == null || prefMap == null) return
             try {
                 reactContext
                     .getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit("kickkey_preferencesChanged", prefMap)
+                    ?.emit("qykey_preferencesChanged", prefMap)
             } catch (e: Exception) {
-                Log.w("KickKeyModule", "Failed to emit kickkey_preferencesChanged: ${e.message}")
+                Log.w("QyKeyModule", "Failed to emit qykey_preferencesChanged: ${e.message}")
             }
         }
 
@@ -96,16 +96,16 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
                 }
                 reactContext
                     .getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit("kickkey_preferencesChanged", map)
+                    ?.emit("qykey_preferencesChanged", map)
             } catch (e: Exception) {
-                Log.w("KickKeyModule", "Failed to emit preferences from bundle: ${e.message}")
+                Log.w("QyKeyModule", "Failed to emit preferences from bundle: ${e.message}")
             }
         }
 
         fun emitCurrentPreferences(reactContext: ReactApplicationContext?, context: Context) {
             if (reactContext == null) return
             try {
-                val prefs = context.getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+                val prefs = context.getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
                 val map = Arguments.createMap().apply {
                     putString("language",        prefs.getString("language",        "en")      ?: "en")
                     putString("theme",           prefs.getString("theme",           "system")  ?: "system")
@@ -126,24 +126,24 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
                 }
                 reactContext
                     .getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit("kickkey_preferencesChanged", map)
+                    ?.emit("qykey_preferencesChanged", map)
             } catch (e: Exception) {
-                Log.w("KickKeyModule", "Failed to emit current preferences: ${e.message}")
+                Log.w("QyKeyModule", "Failed to emit current preferences: ${e.message}")
             }
         }
     }
 
-    override fun getName(): String = "KickKey"
+    override fun getName(): String = "QyKey"
 
     // Required by NativeEventEmitter in React Native
     @ReactMethod
     fun addListener(eventType: String) {
-        Log.d("KickKeyModule", "addListener: $eventType")
+        Log.d("QyKeyModule", "addListener: $eventType")
     }
 
     @ReactMethod
     fun removeListeners(count: Int) {
-        Log.d("KickKeyModule", "removeListeners: $count")
+        Log.d("QyKeyModule", "removeListeners: $count")
     }
 
     @ReactMethod
@@ -154,7 +154,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         // fallback when host.currentReactContext returns null (RN 0.86 headless bug).
         keyboardReactContext = reactApplicationContext
         emitCurrentPreferences(reactApplicationContext, reactApplicationContext)
-        Log.i("KickKeyModule", "JS keyboard mounted and ready — React surface is rendering")
+        Log.i("QyKeyModule", "JS keyboard mounted and ready — React surface is rendering")
         promise.resolve(null)
     }
 
@@ -433,7 +433,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
 
     @ReactMethod
     fun scrollPage(direction: String, promise: Promise) {
-        val svc = KickKeyAccessibilityService.instance
+        val svc = QyKeyAccessibilityService.instance
         Handler(Looper.getMainLooper()).post {
             if (svc != null) {
                 svc.scrollAt(direction, PointerOverlay.cursorX, PointerOverlay.cursorY)
@@ -459,7 +459,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
 
     @ReactMethod
     fun navigateHistory(direction: String, promise: Promise) {
-        val svc = KickKeyAccessibilityService.instance
+        val svc = QyKeyAccessibilityService.instance
         Handler(Looper.getMainLooper()).post {
             if (direction == "backward") {
                 val handled = if (svc != null) {
@@ -494,7 +494,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
 
     @ReactMethod
     fun mouseClick(button: String, promise: Promise) {
-        val svc = KickKeyAccessibilityService.instance
+        val svc = QyKeyAccessibilityService.instance
         Handler(Looper.getMainLooper()).post {
             if (svc != null) {
                 // Cross-app path: inject a real tap / long-press under the cursor.
@@ -524,7 +524,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
 
     // ── Touchpad: on-screen mouse pointer overlay (M2 — RN cursor) ──────────
     //
-    // The cursor is now a React Native surface ("KickKeyPointer") managed by
+    // The cursor is now a React Native surface ("QyKeyPointer") managed by
     // the PointerOverlay singleton in its own overlay window (a11y overlay
     // first, app-overlay fallback). Native owns the position; the RN arrow
     // never re-renders while moving.
@@ -543,7 +543,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     fun pointerMove(dx: Double, dy: Double, promise: Promise) {
         Handler(Looper.getMainLooper()).post {
             PointerOverlay.move(dx.toFloat(), dy.toFloat())
-            KickKeyAccessibilityService.instance?.onDragDelta(dx.toFloat(), dy.toFloat())
+            QyKeyAccessibilityService.instance?.onDragDelta(dx.toFloat(), dy.toFloat())
             promise.resolve(null)
         }
     }
@@ -557,7 +557,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     }
 
     /**
-     * Called by JS (KickKeyKeyboard via measureInWindow on mainKeysContainer) to
+     * Called by JS (QyKeyKeyboard via measureInWindow on mainKeysContainer) to
      * give the overlay the exact screen Y of the top of the main key area.
      * This ensures the red overlay height stops at the main keys, not the toggle row.
      * [yPx] is already in physical pixels (measureInWindow returns px on Android).
@@ -576,7 +576,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun setTouchpadMode(on: Boolean, promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            KickKeyInputMethodService.instance?.setTouchpadStripMode(on)
+            QyKeyInputMethodService.instance?.setTouchpadStripMode(on)
             promise.resolve(null)
         }
     }
@@ -585,7 +585,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun dragStart(promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            KickKeyAccessibilityService.instance?.beginDrag()
+            QyKeyAccessibilityService.instance?.beginDrag()
             promise.resolve(null)
         }
     }
@@ -594,7 +594,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun dragEnd(promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            KickKeyAccessibilityService.instance?.endDrag()
+            QyKeyAccessibilityService.instance?.endDrag()
             promise.resolve(null)
         }
     }
@@ -615,7 +615,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
             ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
         } catch (e: Exception) {
-            Log.w("KickKeyModule", "openOverlaySettings failed: ${e.message}")
+            Log.w("QyKeyModule", "openOverlaySettings failed: ${e.message}")
         }
         promise.resolve(null)
     }
@@ -658,14 +658,14 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     fun playKeySound(promise: Promise) {
         val context = reactApplicationContext
         val soundEnabled = context
-            .getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+            .getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
             .getBoolean("soundEnabled", false)
         if (soundEnabled) {
             try {
                 val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                 am.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, -1f)
             } catch (e: Exception) {
-                Log.w("KickKeyModule", "Sound effect failed: ${e.message}")
+                Log.w("QyKeyModule", "Sound effect failed: ${e.message}")
             }
         }
         promise.resolve(null)
@@ -679,7 +679,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
             words.getString(i)?.let { list.add(it) }
         }
         val serialized = list.joinToString("\n")
-        context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+        context.getSharedPreferences("qykey_dictionary", Context.MODE_PRIVATE)
             .edit()
             .putString("custom_words", serialized)
             .apply()
@@ -689,7 +689,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun getDictionaryWords(promise: Promise) {
         val context = reactApplicationContext
-        val raw = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+        val raw = context.getSharedPreferences("qykey_dictionary", Context.MODE_PRIVATE)
             .getString("custom_words", "") ?: ""
         val array = Arguments.createArray()
         if (raw.isNotEmpty()) {
@@ -701,7 +701,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun removeDictionaryWord(word: String, promise: Promise) {
         val context = reactApplicationContext
-        val prefs = context.getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("qykey_dictionary", Context.MODE_PRIVATE)
         val raw = prefs.getString("custom_words", "") ?: ""
         val updated = raw.split("\n").filter { it != word && it.isNotBlank() }
         prefs.edit().putString("custom_words", updated.joinToString("\n")).apply()
@@ -716,7 +716,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun setCustomDictionary(enWords: ReadableArray?, bnWords: ReadableArray?, promise: Promise) {
         reactApplicationContext
-            .getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+            .getSharedPreferences("qykey_dictionary", Context.MODE_PRIVATE)
             .edit()
             .putString("custom_words_en", readableArrayToList(enWords).joinToString("\n"))
             .putString("custom_words_bn", readableArrayToList(bnWords).joinToString("\n"))
@@ -730,7 +730,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     fun getCustomDictionary(lang: String, promise: Promise) {
         val key = if (lang == "bn") "custom_words_bn" else "custom_words_en"
         val raw = reactApplicationContext
-            .getSharedPreferences("kickkey_dictionary", Context.MODE_PRIVATE)
+            .getSharedPreferences("qykey_dictionary", Context.MODE_PRIVATE)
             .getString(key, "") ?: ""
         val array = Arguments.createArray()
         if (raw.isNotEmpty()) {
@@ -751,7 +751,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun getPreferences(promise: Promise) {
         val context = reactApplicationContext
-        val prefs = context.getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
         val map = Arguments.createMap().apply {
             putString("language",        prefs.getString("language",        "en")      ?: "en")
             putString("theme",           prefs.getString("theme",           "system")  ?: "system")
@@ -777,7 +777,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     fun savePreferences(prefMap: ReadableMap, promise: Promise) {
         val context = reactApplicationContext
         val editor = context
-            .getSharedPreferences("kickkey_prefs", Context.MODE_PRIVATE)
+            .getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
             .edit()
 
         val bundle = android.os.Bundle()
@@ -817,7 +817,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
             }
             context.sendBroadcast(intent)
         } catch (e: Exception) {
-            Log.w("KickKeyModule", "Failed to broadcast preference change: ${e.message}")
+            Log.w("QyKeyModule", "Failed to broadcast preference change: ${e.message}")
         }
 
         promise.resolve(null)
@@ -856,7 +856,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     @ReactMethod
     fun showInputMethodPicker(promise: Promise) {
         // Show the system "Choose input method" picker so the user can select
-        // KickKey as the current (default) keyboard. This is the standard
+        // QyKey as the current (default) keyboard. This is the standard
         // "set as default" flow (used by Gboard) and works on every Android
         // version/device, unlike Settings.ACTION_INPUT_METHOD_SETTINGS which
         // on Android 12+ only opens the "Available on-screen keyboards" list.
@@ -870,7 +870,7 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
     // ── Accessibility service (M1) ──────────────────────────────────────────
 
     /**
-     * Resolves true when KickKeyAccessibilityService is enabled in the system
+     * Resolves true when QyKeyAccessibilityService is enabled in the system
      * accessibility settings. Works from any process (reads AccessibilityManager +
      * Settings.Secure fallback; the a11y service singleton itself only exists in :ime_process).
      */
@@ -883,9 +883,9 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
             ?.any { info ->
                 val sInfo = info.resolveInfo?.serviceInfo
                 (sInfo?.packageName == context.packageName &&
-                    (sInfo.name == "com.kickkey.KickKeyAccessibilityService" ||
-                     sInfo.name?.endsWith("KickKeyAccessibilityService") == true)) ||
-                info.id?.contains("KickKeyAccessibilityService") == true
+                    (sInfo.name == "com.qykey.QyKeyAccessibilityService" ||
+                     sInfo.name?.endsWith("QyKeyAccessibilityService") == true)) ||
+                info.id?.contains("QyKeyAccessibilityService") == true
             }
             ?: false
 
@@ -895,13 +895,13 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
                 context.contentResolver,
                 Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
             ) ?: ""
-            raw.contains("KickKeyAccessibilityService")
+            raw.contains("QyKeyAccessibilityService")
         } else false
 
         promise.resolve(enabledViaManager || enabledViaSecure)
     }
 
-    /** Deep-links to the system accessibility settings so the user can enable KickKey. */
+    /** Deep-links to the system accessibility settings so the user can enable QyKey. */
     @ReactMethod
     fun openAccessibilitySettings(promise: Promise) {
         try {
@@ -909,28 +909,28 @@ class KickKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             reactApplicationContext.startActivity(intent)
         } catch (e: Exception) {
-            Log.w("KickKeyModule", "openAccessibilitySettings failed: ${e.message}")
+            Log.w("QyKeyModule", "openAccessibilitySettings failed: ${e.message}")
         }
         promise.resolve(null)
     }
 
     /**
-     * Shows the floating KickKey panel. Only meaningful in :ime_process (where the
+     * Shows the floating QyKey panel. Only meaningful in :ime_process (where the
      * a11y service singleton lives); resolves without error elsewhere.
      */
     @ReactMethod
     fun showFloatingPanel(promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            KickKeyAccessibilityService.instance?.showFloatingPanel()
+            QyKeyAccessibilityService.instance?.showFloatingPanel()
         }
         promise.resolve(null)
     }
 
-    /** Hides the floating KickKey panel (used by the panel's own close button). */
+    /** Hides the floating QyKey panel (used by the panel's own close button). */
     @ReactMethod
     fun hideFloatingPanel(promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            KickKeyAccessibilityService.instance?.hideFloatingPanel()
+            QyKeyAccessibilityService.instance?.hideFloatingPanel()
         }
         promise.resolve(null)
     }

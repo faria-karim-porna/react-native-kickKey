@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import android.content.Context
 import android.util.Log
@@ -9,7 +9,7 @@ import android.util.Log
  * Stores word -> count in SharedPreferences as a CSV-like string.
  * Words selected by the user are boosted in suggestion ranking.
  *
- * Storage key: "kickkey_user_words" in SharedPreferences "kickkey_usermodel"
+ * Storage key: "qykey_user_words" in SharedPreferences "qykey_usermodel"
  *
  * Format: "word1:42,word2:18,word3:7,..."
  * Max 500 words stored; least-frequent pruned when limit is reached.
@@ -18,8 +18,8 @@ class UserWordModel(private val context: Context) {
 
     companion object {
         private const val TAG = "UserWordModel"
-        private const val PREFS_NAME = "kickkey_usermodel"
-        private const val KEY_WORDS   = "kickkey_user_words"
+        private const val PREFS_NAME = "qykey_usermodel"
+        private const val KEY_WORDS   = "qykey_user_words"
         private const val MAX_WORDS   = 500
         private const val BOOST_SCORE = 10_000   // added to frequency for user words
     }

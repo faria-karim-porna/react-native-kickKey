@@ -1,6 +1,6 @@
 // ============================================================
 // LetterKeys.tsx — ported from qykey.
-//   - Key presses commit through the native KickKey module.
+//   - Key presses commit through the native QyKey module.
 //   - Space-bar swipe cycles the language (en-US ⇄ banglish ⇄ bn-BD).
 //   - Backspace gained long-press repeat (invisible UI change).
 //   - Now accepts themeColors for dynamic styling.

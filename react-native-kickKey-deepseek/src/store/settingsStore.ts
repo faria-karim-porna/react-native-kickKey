@@ -205,7 +205,7 @@ export const useSettingsStore = create<SettingsState>()(
         }),
     }),
     {
-      name: 'kickkey-settings',
+      name: 'qykey-settings',
       storage: createJSONStorage(() => AsyncStorage),
       version: 6,
       migrate: (persisted) => {

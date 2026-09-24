@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
@@ -21,18 +21,18 @@ import com.facebook.react.interfaces.TaskInterface
 import com.facebook.react.interfaces.fabric.ReactSurface
 
 /**
- * KickKey's accessibility service (M1).
+ * QyKey's accessibility service (M1).
  *
  * Entry points:
- *  - The user assigns KickKey to the Accessibility button / shortcut
+ *  - The user assigns QyKey to the Accessibility button / shortcut
  *    (flagRequestAccessibilityButton in accessibility_service_config.xml).
  *    Tapping it fires [onAccessibilityButtonClicked] and toggles the
  *    floating panel — no input field is required.
- *  - The touchpad JS can also open/close the panel via KickKeyModule
+ *  - The touchpad JS can also open/close the panel via QyKeyModule
  *    (same :ime_process, so the singleton is reachable without IPC).
  *
  * The floating panel is a TYPE_ACCESSIBILITY_OVERLAY window hosting the
- * "KickKeyOverlay" React surface from the pre-warmed keyboard ReactHost
+ * "QyKeyOverlay" React surface from the pre-warmed keyboard ReactHost
  * (same Hermes bundle as the IME keyboard).
  *
  * Security/design rules (plan §18): the service performs NO data
@@ -40,12 +40,12 @@ import com.facebook.react.interfaces.fabric.ReactSurface
  * panel. It does not read window content, filter key events, or request
  * touch exploration. onAccessibilityEvent stays a required no-op.
  */
-class KickKeyAccessibilityService : AccessibilityService() {
+class QyKeyAccessibilityService : AccessibilityService() {
 
     companion object {
-        private const val TAG = "KickKeyA11y"
+        private const val TAG = "QyKeyA11y"
 
-        // Same keyboard height constant as the IME (KEYBOARD_HEIGHT_DP in KickKeyInputMethodService).
+        // Same keyboard height constant as the IME (KEYBOARD_HEIGHT_DP in QyKeyInputMethodService).
         private const val KEYBOARD_HEIGHT_DP = 250
 
         // ── Gesture timing (M3) ──
@@ -56,11 +56,11 @@ class KickKeyAccessibilityService : AccessibilityService() {
         private const val DRAG_MIN_DISTANCE_PX = 24        // below this = tap, not drag
         private const val SCROLL_THROTTLE_MS = 150L        // repeat-scroll cap
 
-        // Singleton so KickKeyModule (same :ime_process) reaches the service
+        // Singleton so QyKeyModule (same :ime_process) reaches the service
         // without any IPC. @Volatile: written on the system binder thread
         // (onServiceConnected), read on the main thread.
         @Volatile
-        var instance: KickKeyAccessibilityService? = null
+        var instance: QyKeyAccessibilityService? = null
             private set
     }
 
@@ -155,8 +155,8 @@ class KickKeyAccessibilityService : AccessibilityService() {
 
     fun showFloatingPanel() {
         if (isPanelShowing) return
-        val app = application as? KickKeyApplication ?: run {
-            Log.e(TAG, "KickKeyApplication not found — cannot create panel")
+        val app = application as? QyKeyApplication ?: run {
+            Log.e(TAG, "QyKeyApplication not found — cannot create panel")
             return
         }
 
@@ -165,7 +165,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
 
             // Second surface from the SAME host + bundle as the IME keyboard.
             // The name must match the AppRegistry registration in keyboard.index.js.
-            val surface = host.createSurface(this, "KickKeyOverlay", null)
+            val surface = host.createSurface(this, "QyKeyOverlay", null)
             panelSurfaceTask = surface.start()
             panelSurface = surface
 
@@ -243,7 +243,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
      * Polls (50ms × up to 600 ≈ 30s) for the keyboard JS mount signal, then
      * resumes the keyboard ReactHost so Fabric's DispatchUIFrameCallback starts
      * applying mount items to the panel surface. Mirrors the IME's
-     * scheduleJsReadyResume() in KickKeyInputMethodService, simplified for M1.
+     * scheduleJsReadyResume() in QyKeyInputMethodService, simplified for M1.
      */
     private fun resumeHostWhenReady(host: ReactHost, attempt: Int) {
         if (!isPanelShowing) return
@@ -255,7 +255,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
             if (!isPanelShowing) return@postDelayed
             // Idempotent: if the IME already resumed the host, we're done.
             if (host.lifecycleState == LifecycleState.RESUMED) return@postDelayed
-            if (KickKeyModule.keyboardJsReady) {
+            if (QyKeyModule.keyboardJsReady) {
                 try {
                     host.onHostResume(null)
                     Log.i(TAG, "Panel: host resumed (lifecycle=${host.lifecycleState})")
@@ -270,7 +270,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // M3 — Cross-app input injection (main-thread only; KickKeyModule posts)
+    // M3 — Cross-app input injection (main-thread only; QyKeyModule posts)
     // ════════════════════════════════════════════════════════════════════════
 
     // Serialized gesture queue: dispatchGesture only accepts one gesture at a
@@ -333,7 +333,7 @@ class KickKeyAccessibilityService : AccessibilityService() {
         isDragging = true
     }
 
-    /** Fed from KickKeyModule.pointerMove while the L button is held. */
+    /** Fed from QyKeyModule.pointerMove while the L button is held. */
     fun onDragDelta(dx: Float, dy: Float) {
         if (!isDragging) return
         dragEndX = PointerOverlay.cursorX

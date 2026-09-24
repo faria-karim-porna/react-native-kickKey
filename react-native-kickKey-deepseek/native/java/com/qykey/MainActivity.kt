@@ -1,4 +1,4 @@
-package com.kickkey
+package com.qykey
 
 import android.os.Build
 import android.os.Bundle

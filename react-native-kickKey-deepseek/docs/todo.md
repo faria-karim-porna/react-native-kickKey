@@ -33,7 +33,7 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
 21. Fix Touchpad click event (#)
 22. Fix Touchpad button event (#)
 23. Fix Folder Structure
-24. Convert From KickKey to Qykey
+24. [Done] Convert From KickKey to QyKey
 25. Refactor Code
 26. Write Documentation
 27. Understand Code

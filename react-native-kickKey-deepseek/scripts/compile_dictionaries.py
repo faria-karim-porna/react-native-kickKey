@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 compile_dictionaries.py
-Compiles KickKey word list (.txt) files into binary Trie (.bin) files.
+Compiles QyKey word list (.txt) files into binary Trie (.bin) files.
 
 Usage:
     python3 scripts/compile_dictionaries.py

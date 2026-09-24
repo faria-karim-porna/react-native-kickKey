@@ -1,7 +1,7 @@
 // keyboard.index.js — Keyboard Bundle Entry Point
 //
 // This is the entry point for the keyboard-only bundle loaded inside
-// KickKeyInputMethodService. It must import NOTHING from the companion app.
+// QyKeyInputMethodService. It must import NOTHING from the companion app.
 //
 // ⚠️  This file MUST remain .js — React Native's bundler resolves
 //     keyboard.index.js as the entry file for the keyboard bundle.
@@ -23,7 +23,7 @@ const defaultHandler =
   global.ErrorUtils?.getGlobalHandler?.() ?? (() => {});
 
 global.ErrorUtils?.setGlobalHandler?.((error, isFatal) => {
-  console.error(`[KickKey JS ${isFatal ? 'FATAL' : 'ERROR'}]`, error?.message, error?.stack);
+  console.error(`[QyKey JS ${isFatal ? 'FATAL' : 'ERROR'}]`, error?.message, error?.stack);
   defaultHandler(error, isFatal);
 });
 
@@ -32,10 +32,10 @@ if (global.HermesInternal == null) {
   // Non-Hermes fallback (shouldn't happen, but just in case)
 } else if (typeof global.Promise !== 'undefined') {
   const origReject = global.Promise.reject;
-  if (!global.__kickkeyPromisePatched) {
-    global.__kickkeyPromisePatched = true;
+  if (!global.__qykeyPromisePatched) {
+    global.__qykeyPromisePatched = true;
     global.Promise.reject = function (reason) {
-      console.error('[KickKey] Unhandled promise rejection:', reason);
+      console.error('[QyKey] Unhandled promise rejection:', reason);
       return origReject.call(this, reason);
     };
   }
@@ -85,7 +85,7 @@ const _mountPumpId = setInterval(() => {
 // previous tick-based forceRerender did nothing.
 let _rerenderCounter = 0;
 
-function KickKeyKeyboardRoot() {
+function QyKeyKeyboardRoot() {
   // Used as the `key` of the KeyboardScreen subtree. Bumping it UNMOUNTS and REMOUNTS
   // the whole keyboard, generating a brand-new mount transaction.
   const [mountNonce, setMountNonce] = useState(0);
@@ -95,10 +95,10 @@ function KickKeyKeyboardRoot() {
   // from a surface that started but never mounted (blank keyboard).
   useEffect(() => {
     try {
-      const p = NativeModules.KickKey?.keyboardReady?.();
+      const p = NativeModules.QyKey?.keyboardReady?.();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (e) {
-      console.warn('[KickKey] keyboardReady failed:', e);
+      console.warn('[QyKey] keyboardReady failed:', e);
     }
   }, []);
 
@@ -109,10 +109,10 @@ function KickKeyKeyboardRoot() {
   // "pipeline still blocked downstream".
   useEffect(() => {
     try {
-      const p = NativeModules.KickKey?.notifyPumpActive?.();
+      const p = NativeModules.QyKey?.notifyPumpActive?.();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (e) {
-      console.warn('[KickKey] notifyPumpActive failed:', e);
+      console.warn('[QyKey] notifyPumpActive failed:', e);
     }
   }, []);
 
@@ -122,9 +122,9 @@ function KickKeyKeyboardRoot() {
   // is generated for the (now pumping) event loop to flush — fixing any case where the
   // very first commit's mount transaction was lost before the surface was fully up.
   useEffect(() => {
-    if (!NativeModules.KickKey) return;
-    const emitter = new NativeEventEmitter(NativeModules.KickKey);
-    const sub = emitter.addListener('kickkey_forceRerender', () => {
+    if (!NativeModules.QyKey) return;
+    const emitter = new NativeEventEmitter(NativeModules.QyKey);
+    const sub = emitter.addListener('qykey_forceRerender', () => {
       _rerenderCounter++;
       setMountNonce(_rerenderCounter);
     });
@@ -136,21 +136,21 @@ function KickKeyKeyboardRoot() {
 
 /**
  * Register the keyboard UI component.
- * The name 'KickKeyKeyboard' MUST match the second argument of
- * host.createSurface() in KickKeyInputMethodService.kt
+ * The name 'QyKeyKeyboard' MUST match the second argument of
+ * host.createSurface() in QyKeyInputMethodService.kt
  */
-AppRegistry.registerComponent('KickKeyKeyboard', () => KickKeyKeyboardRoot);
+AppRegistry.registerComponent('QyKeyKeyboard', () => QyKeyKeyboardRoot);
 
 /**
  * Register the floating-panel component for the accessibility service.
- * The name 'KickKeyOverlay' MUST match the second argument of
- * host.createSurface() in KickKeyAccessibilityService.kt
+ * The name 'QyKeyOverlay' MUST match the second argument of
+ * host.createSurface() in QyKeyAccessibilityService.kt
  */
-AppRegistry.registerComponent('KickKeyOverlay', () => FloatingPanel);
+AppRegistry.registerComponent('QyKeyOverlay', () => FloatingPanel);
 
 /**
  * Register the cursor component for the system-wide pointer.
- * The name 'KickKeyPointer' MUST match the second argument of
+ * The name 'QyKeyPointer' MUST match the second argument of
  * host.createSurface() in PointerOverlay.kt
  */
-AppRegistry.registerComponent('KickKeyPointer', () => PointerRoot);
+AppRegistry.registerComponent('QyKeyPointer', () => PointerRoot);
