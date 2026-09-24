@@ -5,7 +5,7 @@
 // ============================================================
 
 import { Dimensions, StyleSheet } from 'react-native';
-import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 const { width } = Dimensions.get('window');
 

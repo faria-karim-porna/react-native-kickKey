@@ -1,5 +1,5 @@
 // Babel configuration — used by both the main Expo app bundle and the
-// keyboard bundle (src/keyboard → keyboard.bundle).
+// keyboard bundle (src/app/mainKeyboard → keyboard.bundle).
 //
 // react-native-reanimated 4 splits its babel transform into the
 // react-native-worklets plugin, which is required for the circuit's

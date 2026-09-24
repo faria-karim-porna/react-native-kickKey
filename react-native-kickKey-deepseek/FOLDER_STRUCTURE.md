@@ -156,10 +156,11 @@ Then `app/(tabs)/settings.tsx`'s `require('../../assets/svg/cursor-x.svg')`
 becomes `require('@assets/svg/cursor-x.svg')`, and
 `'../../store/settingsStore'` becomes `'@/store/settingsStore'`.
 
-> ⚠️ The keyboard bundle isolation rule still applies: code in `src/keyboard/`
-> must import **only** from `src/keyboard/` (plus `react-native`/npm deps).
+> ⚠️ The keyboard bundle isolation rule still applies: code in `src/app/mainKeyboard/`
+> must import **only** from `src/app/mainKeyboard/`, `src/hooks/`, `src/store/`,
+> `src/data/` (plus `react-native`/npm deps).
 > An easy convention: keyboard files use relative imports only, so any `@/`
-> import appearing under `src/keyboard/` is a red flag.
+> import appearing under `src/app/mainKeyboard/` is a red flag.
 
 ### 3.3 Move non-essential docs to `docs/`
 `FAQ.md`, `ISSUE-keyboard-keys-not-showing.md`, `todo.md`, `privacy-policy.md`

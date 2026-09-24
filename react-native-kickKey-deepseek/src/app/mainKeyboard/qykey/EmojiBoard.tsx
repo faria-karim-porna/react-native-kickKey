@@ -14,7 +14,7 @@ import { Key } from './Key';
 import { emojis, emojiCategories } from './emojiData';
 import { FA5Icon, MDIIcon } from './icons';
 import { createKeyboardStyles } from './dynamicStyles';
-import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 type EmojiBoardProps = {
   onEmojiSelect?: (emoji: string) => void;

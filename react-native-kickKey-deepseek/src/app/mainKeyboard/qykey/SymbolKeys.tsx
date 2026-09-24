@@ -8,7 +8,7 @@ import { View } from 'react-native';
 import { createKeyboardStyles } from './dynamicStyles';
 import { Key } from './Key';
 import { MDIIcon } from './icons';
-import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 type SymbolKeysProps = {
   onNext?: () => void;

@@ -7,7 +7,7 @@ import React, { useRef, useMemo } from 'react';
 import { View, Pressable, Animated, Easing } from 'react-native';
 import { createKeyboardStyles } from './dynamicStyles';
 import { FA5Icon } from './icons';
-import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 type KeyboardSliderProps = {
   toggleMode?: boolean;

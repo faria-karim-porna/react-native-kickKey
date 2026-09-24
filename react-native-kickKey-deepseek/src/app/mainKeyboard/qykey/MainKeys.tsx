@@ -12,7 +12,7 @@ import { createKeyboardStyles } from './dynamicStyles';
 import { Key } from './Key';
 import { MDIIcon } from './icons';
 import type { AppLanguage } from './QykeyKeyboard';
-import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 type MainKeysProps = {
   onKeyPress?: (key: string) => void;

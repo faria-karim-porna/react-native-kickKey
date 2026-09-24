@@ -8,7 +8,7 @@ import { View, Text, PanResponder, Pressable, NativeSyntheticEvent, NativeTouchE
 import { createKeyboardStyles } from './dynamicStyles';
 import { Key } from './Key';
 import { FA5Icon } from './icons';
-import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 export interface TouchpadProps {
   onScrollPage?: (direction: 'up' | 'down') => void;

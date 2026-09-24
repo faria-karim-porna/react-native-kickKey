@@ -8,7 +8,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useSetupStatus } from '@/hooks/useSetupStatus';
 import { useSettingsSync } from '@/hooks/useSettingsSync';
 import { useAppColors } from '@/hooks/useAppColors';
-import { Circuit } from '@/keyboard/qykey/circuit/Circuit';
+import { Circuit } from '@/app/mainKeyboard/qykey/circuit/Circuit';
 import type { KeyboardThemeColors } from '@/hooks/useKeyboardTheme';
 
 // Android permissions are granted app-wide, but the keyboard runs in a separate

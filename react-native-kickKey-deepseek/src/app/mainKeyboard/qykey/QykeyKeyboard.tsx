@@ -15,7 +15,7 @@
 
 import React, { useMemo } from 'react';
 import { View } from 'react-native';
-import { useKeyboardTheme } from '../../hooks/useKeyboardTheme';
+import { useKeyboardTheme } from '../../../hooks/useKeyboardTheme';
 import { createKeyboardStyles } from './dynamicStyles';
 import Touchpad from './Touchpad';
 import SymbolKeys from './SymbolKeys';
@@ -27,8 +27,8 @@ import { Key } from './Key';
 import { KeyboardTopKeys } from './KeyboardTopKeys';
 import { EmojiBoard } from './EmojiBoard';
 import { Circuit } from './circuit/Circuit';
-import { useKeyboardState } from '../../hooks/useKeyboardState';
-import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
+import { useKeyboardState } from '../../../hooks/useKeyboardState';
+import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 export type AppLanguage = 'en-US' | 'bn-BD' | 'banglish';
 

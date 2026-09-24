@@ -8,9 +8,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { AppRegistry, LogBox, NativeModules, NativeEventEmitter } from 'react-native';
-import KeyboardScreen from './src/keyboard/KeyboardScreen';
-import FloatingPanel from './src/keyboard/overlay/FloatingPanel';
-import PointerRoot from './src/keyboard/pointer/PointerRoot';
+import KeyboardScreen from './src/app/mainKeyboard/KeyboardScreen';
+import FloatingPanel from './src/app/mainKeyboard/overlay/FloatingPanel';
+import PointerRoot from './src/app/mainKeyboard/pointer/PointerRoot';
 
 // Suppress non-critical warnings in the keyboard bundle
 LogBox.ignoreLogs([

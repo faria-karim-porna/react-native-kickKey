@@ -149,7 +149,14 @@ def kickkeyKeyboardBundleTask = tasks.register("createKeyboardBundleReleaseJsAnd
     description = "Builds keyboard.bundle (Hermes bytecode) for the KickKey IME"
     inputs.file(kickkeyKeyboardBundleScript)
     inputs.file(new File(projectRoot, "keyboard.index.js"))
-    inputs.dir(new File(projectRoot, "src/keyboard"))
+    inputs.dir(new File(projectRoot, "src/app/mainKeyboard"))
+    // The keyboard bundle graph also pulls in the app-side hooks (useKeyboardTheme,
+    // useKeyboardState), the Zustand store they read, and the shared sound manager,
+    // so all of these must be inputs too — otherwise an incremental build could
+    // ship a stale keyboard.bundle.
+    inputs.dir(new File(projectRoot, "src/hooks"))
+    inputs.dir(new File(projectRoot, "src/store"))
+    inputs.dir(new File(projectRoot, "src/data"))
     // The build script also copies assets/fonts/NotoColorEmoji.ttf into
     // android/app/src/main/assets/fonts/ (see build-keyboard-bundle.js). It
     // must be an INPUT so an up-to-date check can never skip the font copy

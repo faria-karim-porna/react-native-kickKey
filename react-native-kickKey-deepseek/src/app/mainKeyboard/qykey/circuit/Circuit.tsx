@@ -17,7 +17,7 @@ import { config } from './config';
 import { Cell } from './Cell';
 import { Wire } from './Wire';
 import { PathWithAnimation } from './PathWithAnimation';
-import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../../../hooks/useKeyboardTheme';
 
 const { floor, random } = Math;
 
