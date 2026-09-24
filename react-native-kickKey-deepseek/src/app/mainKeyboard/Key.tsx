@@ -10,9 +10,9 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, Pressable, PanResponder } from 'react-native';
-import { createKeyboardStyles } from './keyboard/dynamicStyles';
+import { createKeyboardStyles } from '../../../assets/styles/dynamicStyles';
 import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
-import type { AppLanguage } from './keyboard/types';
+import type { AppLanguage } from '../../types/keyboard';
 
 interface KeyProps {
   children?: React.ReactNode;

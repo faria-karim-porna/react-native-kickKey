@@ -114,7 +114,7 @@ kickkey/
         ├── ErrorBoundary.tsx
         ├── hooks/            # useKeyboardState, useKeyboardTheme
         ├── data/             # soundManager
-        ├── keyboard/         # keyboard UI (KickKeyKeyboard + key components)
+        ├── keyboard/         # keyboard UI (Keyboard.tsx orchestrator + key components)
         ├── touchpad/         # Touchpad (mouse-mode surface) + PointerRoot
         ├── FloatingPanel.tsx # FloatingPanel (accessibility surface)
         ├── Key.tsx           # "Chocolate bar" key component

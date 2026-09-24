@@ -8,10 +8,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { View, Text } from 'react-native';
-import { createKeyboardStyles } from './dynamicStyles';
+import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
 import { Key } from '../Key';
 import { MDIIcon } from './KeyIcons';
-import type { AppLanguage } from './types';
+import type { AppLanguage } from '../../../types/keyboard';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 type LetterKeysProps = {

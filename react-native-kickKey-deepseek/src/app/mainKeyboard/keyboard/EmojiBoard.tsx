@@ -11,9 +11,9 @@ import {
   Pressable,
 } from 'react-native';
 import { Key } from '../Key';
-import { emojis, emojiCategories } from './emojiData';
+import { emojis, emojiCategories } from '../../../data/emojiData';
 import { FA5Icon, MDIIcon } from './KeyIcons';
-import { createKeyboardStyles } from './dynamicStyles';
+import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 type EmojiBoardProps = {

@@ -1,11 +1,11 @@
 // ============================================================
 // dynamicStyles.ts — theme-aware keyboard styles.
-// Replaces the static styles.ts with a function that generates
-// a StyleSheet based on the current keyboard theme colors.
+// Shared keyboard-bundle StyleSheet generator (consumed by both the
+// keyboard bundle and companion app via relative/alias imports).
 // ============================================================
 
 import { Dimensions, StyleSheet } from 'react-native';
-import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../src/hooks/useKeyboardTheme';
 
 const { width } = Dimensions.get('window');
 

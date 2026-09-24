@@ -50,8 +50,6 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
     _layout.tsx              # Root layout (onboarding vs mainApp)
     index.tsx                # Root redirect → /mainApp
 
-  constants/themePresets.ts  # Theme color presets
-
   hooks/
     useKickKeyBridge.ts      # Bridge calls to native module
     useSettingsSync.ts       # Zustand → SharedPreferences sync
@@ -62,14 +60,12 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
     mainKeyboard/            # Keyboard bundle code (loaded in :ime_process)
                              # ⚠ imports only relative paths — built by plain Metro
                              #   (keyboard.index.js at repo root), no @/ alias support
-      KeyboardScreen.tsx     # Root keyboard component (ErrorBoundary + KickKeyKeyboard)
+      KeyboardScreen.tsx     # Root keyboard component (ErrorBoundary + Keyboard)
       ErrorBoundary.tsx      # Catches JS errors and shows them on-screen
       FloatingPanel.tsx      # FloatingPanel (a11y surface)
       Key.tsx                # Chocolate key component
       keyboard/              # "Chocolate bar" UI ported from the qykey reference
-        KickKeyKeyboard.tsx  # Orchestrator (mode toggle, top strip, arrows, keys, emoji, touchpad)
-        dynamicStyles.ts     # Chocolate neumorphic styles (exact qykey look)
-        types.ts             # Shared types (AppLanguage)
+        Keyboard.tsx         # Orchestrator (mode toggle, top strip, arrows, keys, emoji, touchpad)
         LetterKeys.tsx       # Letter rows / bottom row
         ModeToggleBar.tsx    # Keyboard ⇄ touchpad toggle
         TopStrip.tsx         # Emoji / suggestions / SYM / mic strip
@@ -78,11 +74,16 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
         FeatheredArrowKey.tsx  # Arrow glyphs
         speechRecognition.ts # Mic bridge → real expo-speech-recognition module
         MicrophoneIcon.tsx   # FontAwesome5 "microphone" glyph (react-native-svg)
-        emojiData.ts         # Self-contained emoji categories and glyph data
       touchpad/              # Touchpad (mouse-mode surface) + PointerRoot (system pointer)
           config.ts          # Wire colors, cell size, glow speed
 
-  data/soundManager.ts       # Optional key-click sound (shared, no @/ imports inside)
+  data/
+    soundManager.ts           # Optional key-click sound (shared, no @/ imports inside)
+    emojiData.ts              # Self-contained emoji categories and glyph data
+    translations.ts           # Companion-app UI strings (en + bn)
+
+  types/
+    keyboard.ts               # Shared keyboard-bundle types (AppLanguage)
 
   store/settingsStore.ts     # Zustand store with AsyncStorage persistence
 

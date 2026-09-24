@@ -45,7 +45,7 @@ const LIGHT_COLORS: KeyboardThemeColors = {
   fontSize: 14,
 };
 
-// Keep in sync with NORD_PRESET in constants/themePresets.ts.
+// Keep in sync with NORD_PRESET in assets/styles/themePresets.ts.
 const DARK_COLORS: KeyboardThemeColors = {
   keyboardBg:   '#2e3440',
   keyBg:        '#3b4252',

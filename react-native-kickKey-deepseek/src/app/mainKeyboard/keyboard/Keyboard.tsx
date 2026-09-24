@@ -1,5 +1,5 @@
 // ============================================================
-// KickKeyKeyboard.tsx — ported from qykey/components/Keyboard/Keyboard.tsx.
+// Keyboard.tsx — ported from qykey/components/Keyboard/Keyboard.tsx.
 //
 // Structure is identical to qykey (slider + top keys, arrows row,
 // main keys / symbol pages / emoji board, touchpad mode). The
@@ -16,7 +16,7 @@
 import React, { useMemo } from 'react';
 import { View } from 'react-native';
 import { useKeyboardTheme } from '../../../hooks/useKeyboardTheme';
-import { createKeyboardStyles } from './dynamicStyles';
+import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
 import Touchpad from '../touchpad/Touchpad';
 import SymbolKeys from './SymbolKeys';
 import SystemKeys from './SystemKeys';
@@ -30,7 +30,7 @@ import { Circuit } from '../../circuit/Circuit';
 import { useKeyboardState } from '../../../hooks/useKeyboardState';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
-export default function KickKeyKeyboard() {
+export default function Keyboard() {
   const themeColors = useKeyboardTheme();
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
 

@@ -7,12 +7,12 @@
 
 import React from 'react';
 import ErrorBoundary from './ErrorBoundary';
-import KickKeyKeyboard from './keyboard/KickKeyKeyboard';
+import Keyboard from './keyboard/Keyboard';
 
 export default function KeyboardScreen() {
   return (
     <ErrorBoundary>
-      <KickKeyKeyboard />
+      <Keyboard />
     </ErrorBoundary>
   );
 }

@@ -12,7 +12,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Dimensions } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
-import { createKeyboardStyles } from '../mainKeyboard/keyboard/dynamicStyles';
+import { createKeyboardStyles } from '../../../assets/styles/dynamicStyles';
 import { config } from './config';
 import { Cell } from './Cell';
 import { Wire } from './Wire';

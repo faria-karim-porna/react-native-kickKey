@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
-import type { ThemePreset } from '@/constants/themePresets';
+import type { ThemePreset } from '@assets/styles/themePresets';
 import { useAppColors } from '@/hooks/useAppColors';
 
 interface ThemeCardProps {

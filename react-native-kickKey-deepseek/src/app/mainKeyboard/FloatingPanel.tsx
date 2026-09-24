@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, NativeModules } from 'react-native';
-import KickKeyKeyboard from './keyboard/KickKeyKeyboard';
+import Keyboard from './keyboard/Keyboard';
 import ErrorBoundary from './ErrorBoundary';
 
 export default function FloatingPanel() {
@@ -18,7 +18,7 @@ export default function FloatingPanel() {
   return (
     <ErrorBoundary>
       <View style={styles.container}>
-        <KickKeyKeyboard />
+        <Keyboard />
       </View>
     </ErrorBoundary>
   );

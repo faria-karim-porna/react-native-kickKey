@@ -5,7 +5,7 @@
 
 import React, { useMemo } from 'react';
 import { View } from 'react-native';
-import { createKeyboardStyles } from './dynamicStyles';
+import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
 import { Key } from '../Key';
 import { MDIIcon } from './KeyIcons';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
