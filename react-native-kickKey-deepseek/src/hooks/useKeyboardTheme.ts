@@ -18,7 +18,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Appearance, NativeModules, NativeEventEmitter } from 'react-native';
-import { useSettingsStore, resolveIsDark } from '../../store/settingsStore';
+import { useSettingsStore, resolveIsDark } from '../store/settingsStore';
 
 export interface KeyboardThemeColors {
   keyboardBg: string;

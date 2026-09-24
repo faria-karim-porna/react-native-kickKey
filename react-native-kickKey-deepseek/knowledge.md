@@ -8,7 +8,7 @@ This file gives Freebuff context about your project: goals, commands, convention
 
 The app has **two separate React Native bundles** loaded into the same process:
 1. **Keyboard bundle** — Entry: `keyboard.index.js`. Registers `KickKeyKeyboard` component. Runs inside `:ime_process` via `KickKeyInputMethodService.kt`. Must NOT import from the companion app.
-2. **Companion app** — Entry: `expo-router/entry` (`app/` directory). Runs 5-tab layout + 3-step onboarding wizard. Uses Expo Router.
+2. **Companion app** — Entry: `expo-router/entry` (`src/app` directory). Runs 5-tab layout + 3-step onboarding wizard under the `mainApp` route segment. Uses Expo Router.
 
 ## Quickstart
 
@@ -34,19 +34,21 @@ eas build --platform android --profile production
 
 ```
 src/                         # ALL app source code (tsconfig alias @/* → src/*)
-  app/                       # Companion app screens (Expo Router reads src/app natively)
-    (tabs)/                  # Tab navigation: Home, Settings, Themes, Language, Dictionary
-      index.tsx              # Home tab (live setup status + try-it text field)
-      settings.tsx           # Haptic/sound/autocorrect toggles
-      themes.tsx             # Dark/Light/AMOLED + key height/radius/font sliders
-      language.tsx           # English/Bangla selector
-      dictionary.tsx         # Custom word list editor
-      _layout.tsx            # Tab navigator layout
-    onboarding/              # 3-step wizard (enable → set default → done)
-    _layout.tsx              # Root layout (onboarding vs tabs)
-
-  components/                # Reusable UI components
-    LanguageTag.tsx, SetupProgress.tsx, ThemeCard.tsx, ToggleRow.tsx
+  app/                       # Expo Router routes (reads src/app natively)
+    mainApp/                 # Main-app segment: (tabs) + onboarding + shared UI components
+      (tabs)/                # Tab navigation: Home, Settings, Themes, Language, Dictionary
+        index.tsx            # Home tab (live setup status + try-it text field)
+        settings.tsx         # Haptic/sound/autocorrect toggles
+        themes.tsx           # Dark/Light/AMOLED + key height/radius/font sliders
+        language.tsx         # English/Bangla selector
+        dictionary.tsx       # Custom word list editor
+        _layout.tsx          # Tab navigator layout
+      onboarding/            # 3-step wizard (enable → set default → done)
+      KeyboardTabBar.tsx, LanguageTag.tsx, OnboardingIcons.tsx,
+      SetupProgress.tsx, ThemeCard.tsx, ToggleRow.tsx   # Shared UI components
+      _layout.tsx            # mainApp segment layout (Stack)
+    _layout.tsx              # Root layout (onboarding vs mainApp)
+    index.tsx                # Root redirect → /mainApp
 
   constants/Themes.ts        # Theme color definitions
 
@@ -54,13 +56,14 @@ src/                         # ALL app source code (tsconfig alias @/* → src/*
     useKickKeyBridge.ts      # Bridge calls to native module
     useSettingsSync.ts       # Zustand → SharedPreferences sync
     useSetupStatus.ts        # Polls keyboard enable/default status
+    useKeyboardState.ts      # State + native wiring for the keyboard bundle
+    useKeyboardTheme.ts      # Keyboard theme colors from SharedPreferences
 
   keyboard/                  # Keyboard bundle code (loaded in :ime_process)
                              # ⚠ imports only relative paths — built by plain Metro
                              #   (keyboard.index.js at repo root), no @/ alias support
     KeyboardScreen.tsx       # Root keyboard component (ErrorBoundary + QykeyKeyboard)
     ErrorBoundary.tsx        # Catches JS errors and shows them on-screen
-    hooks/useKeyboardState.ts  # State + native wiring (en-US / bn-BD / banglish)
     data/soundManager.ts     # Optional key-click sound
     qykey/                   # "Chocolate bar" UI ported from the qykey reference
       QykeyKeyboard.tsx      # Orchestrator (slider, top keys, arrows, main keys, emoji, touchpad)

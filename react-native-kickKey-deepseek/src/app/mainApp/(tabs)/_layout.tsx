@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { KeyboardTabBar } from '@/components/KeyboardTabBar';
+import { KeyboardTabBar } from '@/app/mainApp/KeyboardTabBar';
 
 export default function TabsLayout() {
   return (

@@ -11,7 +11,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, Pressable, PanResponder } from 'react-native';
 import { createKeyboardStyles } from './dynamicStyles';
-import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
 import type { AppLanguage } from './QykeyKeyboard';
 
 interface KeyProps {

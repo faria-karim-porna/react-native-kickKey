@@ -3,7 +3,7 @@
 // Now accepts themeColors for dark mode support.
 // ============================================================
 
-import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 function isDarkTheme(colors?: KeyboardThemeColors): boolean {
   if (!colors) return false;

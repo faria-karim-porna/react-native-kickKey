@@ -12,7 +12,7 @@ import { Key } from './Key';
 import MicrophoneIcon from './MicrophoneIcon';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from './speechRecognition';
 import type { AppLanguage } from './QykeyKeyboard';
-import type { KeyboardThemeColors } from '../hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '../../hooks/useKeyboardTheme';
 
 type KeyboardTopKeysProps = {
   emojiModeHandler?: () => void;

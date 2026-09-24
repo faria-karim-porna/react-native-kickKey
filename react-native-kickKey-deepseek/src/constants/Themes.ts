@@ -19,7 +19,7 @@ export const LIGHT_PRESET: ThemePreset = {
   },
 };
 
-// Must stay identical to DARK_COLORS in src/keyboard/hooks/useKeyboardTheme.ts —
+// Must stay identical to DARK_COLORS in src/hooks/useKeyboardTheme.ts —
 // it is the palette the keyboard resolves for the 'system' theme on dark devices.
 export const NORD_PRESET: ThemePreset = {
   name: 'nord',

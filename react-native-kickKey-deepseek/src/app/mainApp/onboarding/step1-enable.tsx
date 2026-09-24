@@ -2,53 +2,55 @@ import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import SetupProgress from '@/components/SetupProgress';
+import SetupProgress from '@/app/mainApp/SetupProgress';
 import { useSetupStatus } from '@/hooks/useSetupStatus';
 import { useKickKeyBridge } from '@/hooks/useKickKeyBridge';
-import { CheckCircleIcon, StepCircle } from '@/components/OnboardingIcons';
+import { KeyboardIcon, StepCircle } from '@/app/mainApp/OnboardingIcons';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';
 
-export default function Step2Default() {
+export default function Step1Enable() {
   const router = useRouter();
-  const { isDefault } = useSetupStatus();
-  const { showInputMethodPicker } = useKickKeyBridge();
+  const { isEnabled } = useSetupStatus();
+  const { openKeyboardSettings } = useKickKeyBridge();
   const colors = useAppColors();
   const t = useTranslation();
 
   useEffect(() => {
-    if (isDefault) {
-      router.replace('/onboarding/step3-overlay');
+    if (isEnabled) {
+      router.replace('/mainApp/onboarding/step2-default');
     }
-  }, [isDefault]);
+  }, [isEnabled]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <SetupProgress currentStep={2} />
+      <SetupProgress currentStep={1} />
 
       <View style={styles.iconContainer}>
-        <CheckCircleIcon size={56} />
+        <KeyboardIcon size={56} />
       </View>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{t.setAsDefaultTitle}</Text>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{t.enableKickKey}</Text>
       <Text style={[styles.description, { color: colors.textMuted }]}>
-        {t.step2Description}
+        {t.step1Description}
       </Text>
 
       <View style={[styles.card, { backgroundColor: colors.card, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }]}>
-        <StepCircle number={1} text={t.step2Step1} colors={colors} />
-        <StepCircle number={2} text={t.step2Step2} colors={colors} />
-        <StepCircle number={3} text={t.step2Step3} colors={colors} />
+        <StepCircle number={1} text={t.step1Step1} colors={colors} />
+        <StepCircle number={2} text={t.step1Step2} colors={colors} />
+        <StepCircle number={3} text={t.step1Step3} colors={colors} />
+        <StepCircle number={4} text={t.step1Step4} colors={colors} />
+        <StepCircle number={5} text={t.step1Step5} colors={colors} />
       </View>
 
       <Pressable
         style={({ pressed }) => [styles.button, { backgroundColor: colors.accent, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, pressed && styles.buttonPressed]}
-        onPress={() => showInputMethodPicker()}
+        onPress={() => openKeyboardSettings()}
       >
-        <Text style={[styles.buttonText, { color: colors.buttonText }]}>{t.setDefaultKeyboard}</Text>
+        <Text style={[styles.buttonText, { color: colors.buttonText }]}>{t.openKeyboardSettings}</Text>
       </Pressable>
 
       <Text style={[styles.hint, { color: colors.textMuted }]}>
-        {t.step2Hint}
+        {t.step1Hint}
       </Text>
     </SafeAreaView>
   );

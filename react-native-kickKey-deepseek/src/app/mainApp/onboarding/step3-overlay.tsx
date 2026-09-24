@@ -2,10 +2,10 @@ import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import SetupProgress from '@/components/SetupProgress';
+import SetupProgress from '@/app/mainApp/SetupProgress';
 import { useSetupStatus } from '@/hooks/useSetupStatus';
 import { useKickKeyBridge } from '@/hooks/useKickKeyBridge';
-import { OverlayIcon, StepCircle } from '@/components/OnboardingIcons';
+import { OverlayIcon, StepCircle } from '@/app/mainApp/OnboardingIcons';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -18,7 +18,7 @@ export default function Step3Overlay() {
 
   useEffect(() => {
     if (isOverlayGranted) {
-      router.replace('/onboarding/step4-done');
+      router.replace('/mainApp/onboarding/step4-done');
     }
   }, [isOverlayGranted]);
 
@@ -48,7 +48,7 @@ export default function Step3Overlay() {
         <Text style={[styles.buttonText, { color: colors.buttonText }]}>{t.openOverlaySettings}</Text>
       </Pressable>
 
-      <Pressable style={styles.skipButton} onPress={() => router.replace('/onboarding/step4-done')}>
+      <Pressable style={styles.skipButton} onPress={() => router.replace('/mainApp/onboarding/step4-done')}>
         <Text style={[styles.skipText, { color: colors.textMuted }]}>{t.skipForNow}</Text>
       </Pressable>
 

@@ -11,8 +11,8 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { NativeModules, NativeEventEmitter } from 'react-native';
-import { playKeySound } from '../data/soundManager';
-import type { AppLanguage } from '../qykey/QykeyKeyboard';
+import { playKeySound } from '../keyboard/data/soundManager';
+import type { AppLanguage } from '../keyboard/qykey/QykeyKeyboard';
 
 // Lazy-init — avoids crash at module scope if KickKey is not yet available
 let _KickKey: any = null;

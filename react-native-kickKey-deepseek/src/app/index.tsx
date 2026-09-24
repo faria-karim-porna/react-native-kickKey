@@ -14,16 +14,16 @@ export default function RootIndex() {
 
   if (shouldShowOnboarding) {
     if (!isEnabled) {
-      return <Redirect href="/onboarding/step1-enable" />;
+      return <Redirect href="/mainApp/onboarding/step1-enable" />;
     }
     if (!isDefault) {
-      return <Redirect href="/onboarding/step2-default" />;
+      return <Redirect href="/mainApp/onboarding/step2-default" />;
     }
     if (!isOverlayGranted) {
-      return <Redirect href="/onboarding/step3-overlay" />;
+      return <Redirect href="/mainApp/onboarding/step3-overlay" />;
     }
-    return <Redirect href="/onboarding/step4-done" />;
+    return <Redirect href="/mainApp/onboarding/step4-done" />;
   }
 
-  return <Redirect href="/(tabs)" />;
+  return <Redirect href="/mainApp" />;
 }

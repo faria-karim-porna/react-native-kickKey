@@ -9,7 +9,7 @@ import { useSetupStatus } from '@/hooks/useSetupStatus';
 import { useSettingsSync } from '@/hooks/useSettingsSync';
 import { useAppColors } from '@/hooks/useAppColors';
 import { Circuit } from '@/keyboard/qykey/circuit/Circuit';
-import type { KeyboardThemeColors } from '@/keyboard/hooks/useKeyboardTheme';
+import type { KeyboardThemeColors } from '@/hooks/useKeyboardTheme';
 
 // Android permissions are granted app-wide, but the keyboard runs in a separate
 // `:ime_process` that has no Activity — so the RECORD_AUDIO prompt can only be
@@ -63,20 +63,20 @@ export default function RootLayout() {
     // Wait until the first async bridge check has resolved before redirecting.
     if (isLoading) return;
 
-    const inOnboarding = segments[0] === 'onboarding';
+    const inMainApp = segments[0] === 'mainApp';
     const shouldShowOnboarding = !hasCompletedOnboarding || !isFullySetUp;
 
-    if (shouldShowOnboarding && !inOnboarding) {
+    if (shouldShowOnboarding && !inMainApp) {
       const targetStep = !isEnabled
-        ? '/onboarding/step1-enable'
+        ? '/mainApp/onboarding/step1-enable'
         : !isDefault
-          ? '/onboarding/step2-default'
+          ? '/mainApp/onboarding/step2-default'
           : !isOverlayGranted
-            ? '/onboarding/step3-overlay'
-            : '/onboarding/step4-done';
+            ? '/mainApp/onboarding/step3-overlay'
+            : '/mainApp/onboarding/step4-done';
       router.replace(targetStep as any);
-    } else if (!shouldShowOnboarding && inOnboarding) {
-      router.replace('/(tabs)');
+    } else if (!shouldShowOnboarding && inMainApp) {
+      router.replace('/mainApp');
     }
   }, [hasCompletedOnboarding, isFullySetUp, isEnabled, isDefault, isOverlayGranted, isLoading, segments]);
 
@@ -99,8 +99,7 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="mainApp" />
       </Stack>
     </SafeAreaView>
   );

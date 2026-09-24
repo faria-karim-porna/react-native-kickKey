@@ -2,9 +2,9 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import SetupProgress from '@/components/SetupProgress';
+import SetupProgress from '@/app/mainApp/SetupProgress';
 import { useSettingsStore } from '@/store/settingsStore';
-import { CelebrateIcon } from '@/components/OnboardingIcons';
+import { CelebrateIcon } from '@/app/mainApp/OnboardingIcons';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -16,7 +16,7 @@ export default function Step4Done() {
 
   const handleFinish = () => {
     setOnboardingComplete(true);
-    router.replace('/(tabs)');
+    router.replace('/mainApp');
   };
 
   return (

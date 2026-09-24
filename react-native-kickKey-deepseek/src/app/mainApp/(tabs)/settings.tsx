@@ -5,7 +5,7 @@ import { SvgUri } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { CursorType } from '@/store/settingsStore';
-import ToggleRow from '@/components/ToggleRow';
+import ToggleRow from '@/app/mainApp/ToggleRow';
 import KickKey from '@modules/kickkey-module';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';
