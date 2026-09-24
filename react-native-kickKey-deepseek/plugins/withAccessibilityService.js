@@ -9,8 +9,7 @@ const path = require('path');
  * 2. Adds the @string/a11y_service_name label.
  * 3. Registers KickKeyAccessibilityService in the manifest (same :ime_process as the IME).
  *
- * NOTE: KickKeyAccessibilityService.kt is copied by withImeService.js (it copies the
- * whole native-files/java/com/kickkey/ directory), so this plugin only handles the
+ * NOTE: KickKeyAccessibilityService.kt is copied by withImeService.js (it copies the   * whole native/java/com/kickkey/ directory), so this plugin only handles the
  * XML resource + manifest entry. Keep it listed AFTER withImeService in app.json.
  */
 function withAccessibilityXmlCopy(config) {
@@ -19,7 +18,7 @@ function withAccessibilityXmlCopy(config) {
     async (config) => {
       const projectRoot = config.modRequest.projectRoot;
       const srcXml = path.join(
-        projectRoot, 'native-files', 'res', 'xml', 'accessibility_service_config.xml'
+        projectRoot, 'native', 'res', 'xml', 'accessibility_service_config.xml'
       );
       const targetDir = path.join(
         projectRoot, 'android', 'app', 'src', 'main', 'res', 'xml'

@@ -36,6 +36,17 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# python
+__pycache__/
+*.pyc
+
+# editor / os junk
+*.stackdump
+
+# local build logs
+eas_full_log.jsonl
+eas_*.log
+
 # generated native folders
 /ios
 /android

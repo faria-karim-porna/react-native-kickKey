@@ -15,7 +15,7 @@ function withNativeSourceCopy(config) {
     'android',
     async (config) => {
       const projectRoot = config.modRequest.projectRoot;
-      const nativeFilesDir = path.join(projectRoot, 'native-files');
+      const nativeFilesDir = path.join(projectRoot, 'native');
 
       // 1. Copy Kotlin files
       const srcJavaDir = path.join(nativeFilesDir, 'java', 'com', 'kickkey');
