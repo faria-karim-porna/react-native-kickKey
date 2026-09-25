@@ -557,10 +557,11 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     }
 
     /**
-     * Called by JS (QyKeyKeyboard via measureInWindow on mainKeysContainer) to
-     * give the overlay the exact screen Y of the top of the main key area.
-     * This ensures the red overlay height stops at the main keys, not the toggle row.
-     * [yPx] is already in physical pixels (measureInWindow returns px on Android).
+     * Nudge from JS: re-measure the keyboard container and re-snap the red
+     * overlay's bottom edge to the keyboard's real top. The measured Y of the
+     * keyboard container (see PointerOverlay.getMeasuredKeyboardTopY) is the
+     * single source of truth — [yPx] is intentionally unused, kept only for
+     * API compatibility with the existing JS bridge.
      */
     @ReactMethod
     fun pointerSetOverlayTopY(yPx: Double, promise: Promise) {

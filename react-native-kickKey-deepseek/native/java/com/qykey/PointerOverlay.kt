@@ -145,17 +145,45 @@ object PointerOverlay {
     }
 
     /**
-     * Calculates the Y position (in pixels) where the red overlay should start —
-     * just below the status bar (battery/network/notifications area).
+     * Y (in pixels) where the red overlay starts — the very top of the screen.
+     * The overlay intentionally covers the status bar area as well.
      */
     fun getOverlayTopY(): Int = 0
 
     /**
-     * Calculates the height of the red overlay:
-     * from the very top of the screen (y=0) down to just above the keyboard.
-     * Formula: screenH - navH - kbH
+     * Measured screen Y of the keyboard container's TOP edge, in raw window
+     * coordinates. Returns null when the container isn't attached/measured yet.
+     *
+     * Raw `locationOnScreen` can briefly report 0 while a view is still being
+     * laid out, so the value is only trusted once it is non-zero.
+     */
+    private fun getMeasuredKeyboardTopY(): Int? {
+        val imeContainer = QyKeyInputMethodService.instance?.keyboardContainer
+        if (imeContainer != null && imeContainer.isAttachedToWindow && imeContainer.width > 0) {
+            val loc = IntArray(2)
+            imeContainer.getLocationOnScreen(loc)
+            if (loc[1] > 0) return loc[1]
+        }
+        val panelContainer = QyKeyAccessibilityService.instance?.panelContainer
+        if (panelContainer != null && panelContainer.isAttachedToWindow && panelContainer.width > 0) {
+            val loc = IntArray(2)
+            panelContainer.getLocationOnScreen(loc)
+            if (loc[1] > 0) return loc[1]
+        }
+        return null
+    }
+
+    /**
+     * Calculates the height of the red overlay: from the top of the screen
+     * (y=0) down to the measured TOP edge of the keyboard container, so the
+     * overlay ends exactly where the keyboard begins and never overlaps it.
+     *
+     * Falls back to the geometric estimate (screenH - navH - kbH) only when no
+     * container is available to measure (e.g. keyboard not yet laid out).
      */
     fun getKeyboardTopY(): Int {
+        getMeasuredKeyboardTopY()?.let { return it.coerceAtLeast(0) }
+
         val screenH = screenHeightPx()
         val navH = getNavBarHeight()
         val kbH = getKeyboardHeight()

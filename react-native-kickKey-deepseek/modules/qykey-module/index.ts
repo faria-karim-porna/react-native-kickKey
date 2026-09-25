@@ -133,8 +133,9 @@ export default {
     QyKey.pointerMove(dx, dy),
 
   /**
-   * Tells the overlay the exact screen Y (in pixels) of the top of the main key    * area. Call this from QyKeyKeyboard's mainKeysContainer onLayout/measureInWindow
-   * so the red overlay height stops at the main keys, not at the toggle row above.
+   * Re-snaps the red touchpad overlay's bottom edge to the keyboard container's
+   * real measured top (native measures it itself; [yPx] is unused). Safe to call
+   * after layout changes (e.g. row-gap adjustments) to force an immediate re-snap.
    */
   pointerSetOverlayTopY: (yPx: number): Promise<void> =>
     QyKey.pointerSetOverlayTopY(yPx),
