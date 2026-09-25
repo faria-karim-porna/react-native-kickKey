@@ -150,6 +150,15 @@ class QyKeyInputMethodService : InputMethodService() {
                     QyKeyModule.emitCurrentPreferences(ctx, context)
                 }
                 updateKeyboardHeight()
+
+                // Live-update the touchpad cursor overlay when type/size/color change.
+                if (extras?.containsKey("cursorType") == true || extras?.containsKey("cursorColor") == true || extras?.containsKey("cursorSize") == true) {
+                    try {
+                        PointerOverlay.refreshCursor()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "refreshCursor failed: ${e.message}")
+                    }
+                }
             }
         }
     }

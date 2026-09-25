@@ -113,6 +113,33 @@ function withNativeSourceCopy(config) {
         }
       }
 
+      // 3c. Copy cursor SVG assets into assets/svg so the IME-process cursor
+      // overlay can render the user's chosen cursor type natively.
+      const srcSvgDir = path.join(projectRoot, 'assets', 'svg');
+      const targetSvgDir = path.join(
+        projectRoot,
+        'android',
+        'app',
+        'src',
+        'main',
+        'assets',
+        'svg'
+      );
+
+      if (fs.existsSync(srcSvgDir)) {
+        fs.mkdirSync(targetSvgDir, { recursive: true });
+        const svgFiles = fs
+          .readdirSync(srcSvgDir)
+          .filter((f) => /\.svg$/i.test(f));
+        for (const file of svgFiles) {
+          fs.copyFileSync(
+            path.join(srcSvgDir, file),
+            path.join(targetSvgDir, file)
+          );
+        }
+        console.log(`[withImeService] Copied ${svgFiles.length} cursor SVGs to assets/svg`);
+      }
+
       // 4. Copy ProGuard rules file to prevent R8 stripping custom classes
       const srcProGuard = path.join(nativeFilesDir, 'proguard-rules.pro');
       const targetProGuard = path.join(
@@ -149,6 +176,17 @@ function withNativeSourceCopy(config) {
           );
           fs.writeFileSync(buildGradlePath, content, 'utf8');
           console.log('[withImeService] Added proguard-rules.pro reference in build.gradle');
+        }
+
+        // Ensure the androidsvg dependency is present — the IME-process cursor
+        // overlay parses the user's chosen cursor SVG with it (PointerOverlay.kt).
+        if (!content.includes('com.caverock:androidsvg')) {
+          content = content.replace(
+            /(dependencies\s*\{)/,
+            '$1\n    // QyKey: SVG parsing for the touchpad cursor overlay (PointerOverlay.kt)\n    implementation("com.caverock:androidsvg:1.4")'
+          );
+          fs.writeFileSync(buildGradlePath, content, 'utf8');
+          console.log('[withImeService] Added androidsvg dependency to build.gradle');
         }
       }
 

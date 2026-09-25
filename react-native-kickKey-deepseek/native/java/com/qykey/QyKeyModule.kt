@@ -770,6 +770,9 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             putBoolean("soundEnabled",    prefs.getBoolean("soundEnabled",   false))
             putBoolean("autoCorrect",     prefs.getBoolean("autoCorrect",    true))
             putBoolean("showSuggestions", prefs.getBoolean("showSuggestions",true))
+            putString("cursorType",      prefs.getString("cursorType",      "cursor-pointer-classic") ?: "cursor-pointer-classic")
+            putString("cursorColor",     prefs.getString("cursorColor",     "#8594aa")               ?: "#8594aa")
+            putInt("cursorSize",         prefs.getInt("cursorSize",        24))
         }
         promise.resolve(map)
     }
@@ -819,6 +822,16 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             context.sendBroadcast(intent)
         } catch (e: Exception) {
             Log.w("QyKeyModule", "Failed to broadcast preference change: ${e.message}")
+        }
+
+        // 3. Live-update the touchpad cursor overlay in THIS process (the module
+        //    also runs in the :ime_process when the keyboard JS calls this).
+        Handler(Looper.getMainLooper()).post {
+            try {
+                PointerOverlay.refreshCursor()
+            } catch (e: Exception) {
+                Log.w("QyKeyModule", "refreshCursor failed: ${e.message}")
+            }
         }
 
         promise.resolve(null)

@@ -25,6 +25,9 @@ export function useSettingsSync() {
   const soundEnabled       = useSettingsStore((s) => s.soundEnabled);
   const autoCorrect        = useSettingsStore((s) => s.autoCorrect);
   const showSuggestions    = useSettingsStore((s) => s.showSuggestions);
+  const cursorType         = useSettingsStore((s) => s.cursorType);
+  const cursorColor        = useSettingsStore((s) => s.cursorColor);
+  const cursorSize         = useSettingsStore((s) => s.cursorSize);
 
   const prevThemeRef = useRef(theme);
   const prevThemeColorsRef = useRef(themeColors);
@@ -58,6 +61,9 @@ export function useSettingsSync() {
         soundEnabled,
         autoCorrect,
         showSuggestions,
+        cursorType,
+        cursorColor,
+        cursorSize,
       }).catch(() => {
         // Silently ignore
       });
@@ -78,5 +84,6 @@ export function useSettingsSync() {
     language, theme, themeColors,
     keyHeight, keyBorderRadius, fontSize, keyMargin,
     hapticEnabled, soundEnabled, autoCorrect, showSuggestions,
+    cursorType, cursorColor, cursorSize,
   ]);
 }

@@ -2,11 +2,17 @@ package com.qykey
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Picture
 import android.graphics.PixelFormat
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
+import android.graphics.drawable.PictureDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -16,6 +22,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityManager
+import com.caverock.androidsvg.SVG
 
 /**
  * M2 — the system-wide on-screen mouse cursor and touch-through touchpad overlay.
@@ -40,7 +47,7 @@ object PointerOverlay {
 
     private const val TAG = "QyKeyPointer"
 
-    /** Modern cursor arrow size in dp. */
+    /** Fallback cursor arrow size in dp when no cursorSize preference exists. */
     private const val CURSOR_SIZE_DP = 28
     /** Keyboard height in dp to calculate the overlay area excluding keyboard. */
     private const val KEYBOARD_HEIGHT_DP = 250
@@ -60,7 +67,35 @@ object PointerOverlay {
         private set
 
     private val cursorSizePx: Int
-        get() = (CURSOR_SIZE_DP * (appContext?.resources?.displayMetrics?.density ?: 3f)).toInt()
+        get() {
+            val ctx = appContext ?: return (CURSOR_SIZE_DP * 3f).toInt()
+            val prefs = ctx.getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
+            val sizeDp = prefs.getInt("cursorSize", CURSOR_SIZE_DP)
+            return (sizeDp * ctx.resources.displayMetrics.density).toInt().coerceAtLeast(1)
+        }
+
+    /** Sanitized cursor asset name from prefs, mapped to assets/svg/<name>.svg. */
+    private val cursorType: String
+        get() {
+            val ctx = appContext ?: return "cursor-pointer-classic"
+            val prefs = ctx.getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
+            val raw = prefs.getString("cursorType", null) ?: return "cursor-pointer-classic"
+            // Allow only [a-z0-9-] to keep the asset lookup safe.
+            return raw.lowercase().replace(Regex("[^a-z0-9-]"), "").ifEmpty { "cursor-pointer-classic" }
+        }
+
+    /** Cursor tint color from prefs; null = use the asset's own colors. */
+    private val cursorColor: Int?
+        get() {
+            val ctx = appContext ?: return null
+            val prefs = ctx.getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
+            val hex = prefs.getString("cursorColor", null) ?: return null
+            return try {
+                Color.parseColor(hex)
+            } catch (e: IllegalArgumentException) {
+                null
+            }
+        }
 
     private val keyboardHeightPx: Int
         get() = (KEYBOARD_HEIGHT_DP * (appContext?.resources?.displayMetrics?.density ?: 3f)).toInt()
@@ -293,6 +328,58 @@ object PointerOverlay {
     fun isVisible(): Boolean = visible
 
     /**
+     * Re-reads cursor prefs and re-attaches the cursor window so a preference
+     * change (type/color/size) is reflected immediately. Main thread only.
+     * Safe to call when the overlay is not visible (no-op).
+     */
+    fun refreshCursor() {
+        if (!visible || cursorView == null) return
+        val type = resolveWindowType(appContext ?: return) ?: return
+        val wm = getWindowManager(type) ?: return
+        val savedX = cursorX
+        val savedY = cursorY
+        try {
+            cursorView?.let { wm.removeView(it) }
+        } catch (e: Exception) {
+            Log.w(TAG, "refreshCursor removeView failed: ${e.message}")
+        }
+        cursorView = null
+        attachCursorOnly(type, wm, savedX, savedY)
+    }
+
+    /**
+     * Attaches only the cursor window (not the red overlay), preserving the
+     * given position. Used by [refreshCursor] for live preference updates.
+     */
+    private fun attachCursorOnly(type: Int, wm: WindowManager, x: Float, y: Float) {
+        val targetContext = getOverlayContext(type) ?: return
+        try {
+            val size = cursorSizePx
+            val view = CursorView(targetContext)
+            val params = WindowManager.LayoutParams(
+                size, size,
+                type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                this.x = x.toInt()
+                this.y = y.toInt()
+            }
+            wm.addView(view, params)
+            cursorView = view
+            cursorX = x
+            cursorY = y
+            Log.i(TAG, "Cursor refreshed (${cursorType}, size=${size}px, color=${cursorColor})")
+        } catch (e: Throwable) {
+            Log.e(TAG, "attachCursorOnly failed", e)
+            cursorView = null
+        }
+    }
+
+    /**
      * Re-measures the keyboard top and updates the overlay height.
      */
     fun updateOverlayBounds() {
@@ -365,7 +452,8 @@ object PointerOverlay {
             wm.addView(redOverlay, overlayParams)
             screenOverlayView = redOverlay
 
-            // 2. Cursor View (Modern Sleek Pointer)
+            // 2. Cursor View — renders the user's chosen SVG cursor asset
+            //    (assets/svg/<cursorType>.svg) tinted with cursorColor at cursorSize.
             val view = CursorView(targetContext)
             val params = WindowManager.LayoutParams(
                 size, size,
@@ -417,37 +505,31 @@ object PointerOverlay {
         }
     }
 
-    // ── Native cursor drawing (Modern macOS / Windows 11 sleek style) ──────
+    // ── Native cursor drawing (SVG asset from assets/svg) ─────────────────
 
     /**
-     * A lightweight View that draws a modern macOS / Windows 11 style sleek
-     * mouse-pointer arrow with a soft drop shadow, crisp white body, and dark outline.
+     * Draws the user-selected cursor SVG (cursorType pref) scaled to the
+     * cursorSize pref and tinted with the cursorColor pref (when set).
      *
-     * The arrow tip is at the View's top-left corner (0,0) (the hotspot used by
-     * M3's click/scroll methods via [cursorX]/[cursorY]).
+     * The SVG is parsed with androidsvg and rasterized once into a Picture →
+     * PictureDrawable at the exact window size, so onDraw is a single
+     * drawable.draw() — cheap enough for 60fps WindowManager moves.
+     *
+     * The arrow tip stays at the View's top-left corner (0,0) — the hotspot
+     * used by the click/scroll methods via [cursorX]/[cursorY]. Assets whose
+     * tip is not at the top-left are drawn as-is (the picker preview matches
+     * the on-screen result, which is the behavior users expect).
      */
     private class CursorView(ctx: Context) : View(ctx) {
 
-        // Ambient soft shadow (outer diffuse)
-        private val ambientShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(45, 0, 0, 0)
-            style = Paint.Style.FILL
-        }
+        private var drawable: PictureDrawable? = null
+        private var fallbackPath: Path? = null
 
-        // Contact shadow (inner darker)
-        private val contactShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(75, 0, 0, 0)
-            style = Paint.Style.FILL
-        }
-
-        // Crisp white fill
-        private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        private val fallbackFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             style = Paint.Style.FILL
         }
-
-        // Refined dark slate outline
-        private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        private val fallbackStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.argb(235, 18, 18, 30)
             style = Paint.Style.STROKE
             strokeWidth = 2.4f
@@ -455,72 +537,115 @@ object PointerOverlay {
             strokeCap = Paint.Cap.ROUND
         }
 
-        private val arrowPath = Path()
-        private val ambientShadowPath = Path()
-        private val contactShadowPath = Path()
-
         init {
             setWillNotDraw(false)
+        }
+        // (single set of fallback fields; see below)
+
+        private fun buildDrawable(w: Int, h: Int) {
+            val type = cursorType
+            val tint = cursorColor
+
+            // 1. Load + parse the SVG from assets.
+            val svg: SVG? = try {
+                context.assets.open("svg/$type.svg").use { SVG.getFromInputStream(it) }
+            } catch (e: Exception) {
+                Log.w(TAG, "cursor svg '$type' not found (${e.message}); using fallback arrow")
+                null
+            }
+
+            if (svg == null) {
+                drawable = null
+                fallbackPath = buildFallbackArrow(w.toFloat(), h.toFloat())
+                return
+            }
+            fallbackPath = null
+
+            // 2. Rasterize into a Picture at the final size, preserving the
+            //    asset's aspect ratio inside the square window.
+            val docW = svg.documentWidth
+            val docH = svg.documentHeight
+            var dstW = w.toFloat()
+            var dstH = h.toFloat()
+            if (docW > 0f && docH > 0f) {
+                val scale = minOf(w / docW, h / docH)
+                dstW = docW * scale
+                dstH = docH * scale
+            }
+            svg.setDocumentWidth(dstW)
+            svg.setDocumentHeight(dstH)
+
+            try {
+                if (tint != null) {
+                    // Tint: render the SVG, then blend the user color over it
+                    // with SRC_IN (keeps the alpha shape, replaces the color) —
+                    // the same approach react-native-svg's `color` prop uses.
+                    val tintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = tint
+                        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                    }
+                    val bitmap = Bitmap.createBitmap(dstW.toInt().coerceAtLeast(1), dstH.toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bitmap)
+                    svg.renderToCanvas(canvas)
+                    canvas.drawRect(0f, 0f, dstW, dstH, tintPaint)
+
+                    drawable = PictureDrawable(Picture().apply {
+                        beginRecording(bitmap.width, bitmap.height).drawBitmap(bitmap, 0f, 0f, null)
+                        endRecording()
+                    })
+                    bitmap.recycle()
+                } else {
+                    drawable = PictureDrawable(
+                        svg.renderToPicture(dstW.toInt().coerceAtLeast(1), dstH.toInt().coerceAtLeast(1))
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "cursor svg '$type' render failed: ${e.message}")
+                drawable = null
+                fallbackPath = buildFallbackArrow(w.toFloat(), h.toFloat())
+            }
+        }
+
+        /** Minimal arrow used when the SVG asset is missing/corrupt. */
+        private fun buildFallbackArrow(w: Float, h: Float): Path {
+            val pts = arrayOf(
+                floatArrayOf(0f, 0f),
+                floatArrayOf(0f, 21f),
+                floatArrayOf(5.5f, 16.5f),
+                floatArrayOf(10.5f, 26.5f),
+                floatArrayOf(14.2f, 24.6f),
+                floatArrayOf(9.2f, 14.8f),
+                floatArrayOf(17.8f, 14.8f),
+                floatArrayOf(0f, 0f)
+            )
+            val scaleX = w / 24f
+            val scaleY = h / 30f
+            val p = Path()
+            p.moveTo(pts[0][0] * scaleX, pts[0][1] * scaleY)
+            for (i in 1 until pts.size) {
+                p.lineTo(pts[i][0] * scaleX, pts[i][1] * scaleY)
+            }
+            p.close()
+            return p
         }
 
         override fun onSizeChanged(w: Int, h: Int, oldW: Int, oldH: Int) {
             super.onSizeChanged(w, h, oldW, oldH)
-            buildModernArrow(w.toFloat(), h.toFloat())
-        }
-
-        /**
-         * Builds a modern macOS / Windows 11 style sleek pointer cursor.
-         * Normalized points on a 24 x 30 grid.
-         */
-        private fun buildModernArrow(w: Float, h: Float) {
-            val pts = arrayOf(
-                floatArrayOf(0f,    0f),    // tip
-                floatArrayOf(0f,    21f),   // left edge down
-                floatArrayOf(5.5f,  16.5f), // inner notch
-                floatArrayOf(10.5f, 26.5f), // tail left
-                floatArrayOf(14.2f, 24.6f), // tail right
-                floatArrayOf(9.2f,  14.8f), // tail top-right notch
-                floatArrayOf(17.8f, 14.8f), // right wing
-                floatArrayOf(0f,    0f)     // back to tip
-            )
-
-            val scaleX = w / 24f
-            val scaleY = h / 30f
-
-            arrowPath.reset()
-            arrowPath.moveTo(pts[0][0] * scaleX, pts[0][1] * scaleY)
-            for (i in 1 until pts.size) {
-                arrowPath.lineTo(pts[i][0] * scaleX, pts[i][1] * scaleY)
-            }
-            arrowPath.close()
-
-            // Ambient soft shadow (offset down-right)
-            val ambOffsetX = 2.5f * scaleX
-            val ambOffsetY = 3.5f * scaleY
-            ambientShadowPath.reset()
-            ambientShadowPath.moveTo(pts[0][0] * scaleX + ambOffsetX, pts[0][1] * scaleY + ambOffsetY)
-            for (i in 1 until pts.size) {
-                ambientShadowPath.lineTo(pts[i][0] * scaleX + ambOffsetX, pts[i][1] * scaleY + ambOffsetY)
-            }
-            ambientShadowPath.close()
-
-            // Contact shadow
-            val contactOffsetX = 1.2f * scaleX
-            val contactOffsetY = 1.6f * scaleY
-            contactShadowPath.reset()
-            contactShadowPath.moveTo(pts[0][0] * scaleX + contactOffsetX, pts[0][1] * scaleY + contactOffsetY)
-            for (i in 1 until pts.size) {
-                contactShadowPath.lineTo(pts[i][0] * scaleX + contactOffsetX, pts[i][1] * scaleY + contactOffsetY)
-            }
-            contactShadowPath.close()
+            buildDrawable(w, h)
         }
 
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
-            canvas.drawPath(ambientShadowPath, ambientShadowPaint)
-            canvas.drawPath(contactShadowPath, contactShadowPaint)
-            canvas.drawPath(arrowPath, fillPaint)
-            canvas.drawPath(arrowPath, strokePaint)
+            val d = drawable
+            if (d != null) {
+                d.setBounds(0, 0, d.intrinsicWidth, d.intrinsicHeight)
+                d.draw(canvas)
+            } else {
+                fallbackPath?.let {
+                    canvas.drawPath(it, fallbackFill)
+                    canvas.drawPath(it, fallbackStroke)
+                }
+            }
         }
     }
 }
