@@ -315,9 +315,16 @@ export default function SettingsScreen() {
                   style={[styles.cursorTypeCard, { backgroundColor: colors.card, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, cursorType === type && { borderColor: colors.accent, borderWidth: 2 }]}
                   onPress={() => setCursorType(type)}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${category.name}: ${label}`}
+                  accessibilityState={cursorType === type ? { selected: true } : {}}
                 >
-                  <SvgUri uri={getCursorSvgUri(type)} width={Math.round(cursorSize * 0.6)} height={Math.round(cursorSize * 0.6)} />
-                  <Text style={[styles.cursorTypeLabel, { color: colors.textSecondary }, cursorType === type && { color: colors.accent }]}>{label}</Text>
+                  <SvgUri
+                    uri={getCursorSvgUri(type)}
+                    width={Math.round(cursorSize * 1.1)}
+                    height={Math.round(cursorSize * 1.1)}
+                    color={cursorType === type ? colors.accent : undefined}
+                  />
                 </TouchableOpacity>
               ))}
             </View>
@@ -389,8 +396,7 @@ const styles = StyleSheet.create({
   sliderValue: { fontSize: 13, fontWeight: '600' },
   categoryLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
   cursorTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 },
-  cursorTypeCard: { width: '30%', borderRadius: 10, paddingVertical: 12, alignItems: 'center', gap: 6, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderBottomWidth: 2, borderRightWidth: 2, shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
-  cursorTypeLabel: { fontSize: 11, fontWeight: '600' },
+  cursorTypeCard: { width: '30%', aspectRatio: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1.5, borderLeftWidth: 1.5, borderBottomWidth: 2, borderRightWidth: 2, shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
   colorPalette: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 4 },
   colorSwatch: { width: 36, height: 36, borderRadius: 18, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderTopColor: 'rgba(0,0,0,0.12)', borderLeftColor: 'rgba(0,0,0,0.12)', borderBottomWidth: 2, borderRightWidth: 2, borderBottomColor: 'rgba(255,255,255,0.6)', borderRightColor: 'rgba(255,255,255,0.6)', shadowColor: '#000', shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
   cursorSizePreview: { alignItems: 'center', justifyContent: 'center', height: 56, marginBottom: 4, borderRadius: 8, borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 1, borderRightWidth: 1 },
