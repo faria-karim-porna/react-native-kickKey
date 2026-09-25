@@ -28,6 +28,9 @@ function isDarkTheme(colors: KeyboardThemeColors): boolean {
 export function createKeyboardStyles(colors: KeyboardThemeColors) {
   // Derive secondary colors from the theme
   const isDark = isDarkTheme(colors);
+  // Vertical gap between key rows (was 3px, now 2.5x per spacing pass).
+  // Row-dependent heights (emoji grid, touchpad area) derive from this value.
+  const ROW_GAP_V = 7.5;
   const keyShadowTL = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.2)';
   const keyShadowBR = isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)';
   const keyBorderColorTL = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.2)';
@@ -90,7 +93,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     line: {
       flexDirection: 'row',
       justifyContent: 'center',
-      marginBottom: 3,
+      marginBottom: ROW_GAP_V,
       gap: 3,
       width: '100%',
     },
@@ -227,7 +230,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       flexDirection: 'row',
       justifyContent: 'center',
       width: '100%',
-      height: 6 * colors.keyHeight + 15,
+      height: 6 * colors.keyHeight + 6 * ROW_GAP_V,
     },
     activeIndicator: {
       borderWidth: 0.5,
@@ -447,7 +450,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       bottom: 2,
     },
     emojiGridContainer: {
-      height: 6 * colors.keyHeight + 15,
+      height: 6 * colors.keyHeight + 6 * ROW_GAP_V,
       paddingHorizontal: 2,
     },
     scrollContent: {
@@ -456,7 +459,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     row: {
       justifyContent: 'center',
       gap: 3,
-      marginBottom: 3,
+      marginBottom: ROW_GAP_V,
     },
     emojiKey: {
       width: 42,

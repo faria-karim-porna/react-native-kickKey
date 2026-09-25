@@ -29,9 +29,9 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
     2. After installation why 3rd and 4th steps are not showing of on boarding
     3. Next and prev button position
     4. Vertical alignment of text after increasing key height
-20. Fix keyboard size and key gap (*)
+20. Fix keyboard size and key gap (->)
 21. Fix Settings Tab Cursor Should be Functional
-22. Fix Touchpad overlay size (#)
+22. Fix Touchpad overlay size (->)
 23. Fix Touchpad click event (#)
 24. Fix Touchpad button event (#)
 25. Add Icons
