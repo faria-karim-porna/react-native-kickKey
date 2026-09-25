@@ -1,6 +1,6 @@
 Email: personalfkp@gmail.com
-Download Link: https://expo.dev/artifacts/eas/q4yEZp7RKnP51rP2h6ihyZOdxSUljzc2XNJ5MsrdrNU.apk
-Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme, Fix Customize Keyboard, Partially Fixed Folder Structure
+Download Link: https://expo.dev/artifacts/eas/qWNawnjOw2IVWKG1B3wUJ-MX644EuGw10enuPwtxl3o.apk
+Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme, Fix Customize Keyboard, Partially Fixed Folder Structure, Migration To QyKey
 
 
 Bangla to English Conversion: https://chatgpt.com/c/6a3d5c31-c684-83e8-8b51-eda4710b19c4
@@ -22,18 +22,19 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
 14. [Done] Fix Theme Switch
 15. [Done] Fix Settings And Dictionary Issue
 16. [Done] Fix Settings Tab Keyboard Should be functional
-17. Find and fix other issues
+17. [Done] Fix Folder Structure
+18. [Done] Convert From KickKey to QyKey
+19. Find and fix other issues
     1. Fix Color of the mic in the dark mode
     2. After installation why 3rd and 4th steps are not showing of on boarding
     3. Next and prev button position
     4. Vertical alignment of text after increasing key height
-18. Fix keyboard size and key gap (*)
-19. Fix Settings Tab Cursor Should be Functional
-20. Fix Touchpad overlay size (#)
-21. Fix Touchpad click event (#)
-22. Fix Touchpad button event (#)
-23. Fix Folder Structure
-24. [Done] Convert From KickKey to QyKey
-25. Refactor Code
-26. Write Documentation
-27. Understand Code
+20. Fix keyboard size and key gap (*)
+21. Fix Settings Tab Cursor Should be Functional
+22. Fix Touchpad overlay size (#)
+23. Fix Touchpad click event (#)
+24. Fix Touchpad button event (#)
+25. Add Icons
+26. Refactor Code
+27. Write Documentation
+28. Understand Code

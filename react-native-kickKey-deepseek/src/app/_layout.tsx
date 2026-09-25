@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -59,6 +59,10 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, []);
 
+  // Track the last redirect target so a completed redirect isn't repeated when
+  // unrelated deps change (e.g. `segments` on every tab switch). The gate is
+  // re-evaluated whenever the setup values themselves change.
+  const lastRedirectRef = useRef<string | null>(null);
   useEffect(() => {
     // Wait until the first async bridge check has resolved before redirecting.
     if (isLoading) return;
@@ -74,11 +78,15 @@ export default function RootLayout() {
           : !isOverlayGranted
             ? '/mainApp/onboarding/step3-overlay'
             : '/mainApp/onboarding/step4-done';
-      router.replace(targetStep as any);
-    } else if (!shouldShowOnboarding && inMainApp) {
+      if (lastRedirectRef.current !== targetStep) {
+        lastRedirectRef.current = targetStep;
+        router.replace(targetStep as any);
+      }
+    } else if (!shouldShowOnboarding && inMainApp && lastRedirectRef.current !== '/mainApp') {
+      lastRedirectRef.current = '/mainApp';
       router.replace('/mainApp');
     }
-  }, [hasCompletedOnboarding, isFullySetUp, isEnabled, isDefault, isOverlayGranted, isLoading, segments]);
+  }, [hasCompletedOnboarding, isFullySetUp, isEnabled, isDefault, isOverlayGranted, isLoading, segments, router]);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.rootBg }]} edges={['top']}>
