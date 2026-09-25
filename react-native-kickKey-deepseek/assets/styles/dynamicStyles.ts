@@ -358,6 +358,11 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       fontWeight: 'bold',
       fontSize: 13,
     },
+    touchpadButtonContent: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     tabContainer: {
       alignItems: 'center',
       justifyContent: 'center',

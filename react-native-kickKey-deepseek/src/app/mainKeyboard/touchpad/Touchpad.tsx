@@ -6,7 +6,6 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, PanResponder, Pressable, NativeSyntheticEvent, NativeTouchEvent, PixelRatio } from 'react-native';
 import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
-import { Key } from '../Key';
 import { FA5Icon } from '../keyboard/KeyIcons';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
@@ -98,6 +97,67 @@ export default function Touchpad({
 
   const SCROLL_THRESHOLD_PX = 14;
   const SENSITIVITY = 1.25;
+
+  // ── Touchpad button handlers ─────────────────────────────────────────
+  // All five physical buttons route through here. Every handler touches its
+  // prop through a ref so the handlers stay referentially stable (the Key
+  // components are memoized and the pan-responder path reads stale closures
+  // otherwise).
+
+  /** Nav ◀ — history back. Uses the a11y service (GLOBAL_ACTION_BACK); falls
+   *  back to a DPAD-left key event on the focused text field. */
+  const handleNavBackward = useCallback(() => {
+    onNavigateHistoryRef.current?.('backward');
+  }, []);
+
+  /** Nav ▶ — history forward. Resolves false when unsupported (a11y off);
+   *  shows the transient hint in that case. */
+  const handleNavForward = useCallback(() => {
+    const result = onNavigateHistoryRef.current?.('forward');
+    Promise.resolve(result)
+      .then((handled) => {
+        if (handled === false) {
+          setForwardHint(true);
+          setTimeout(() => setForwardHint(false), 1500);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  /** Scroll ▲ — one page up; long-press auto-repeats via useKeyboardState. */
+  const handleScrollUp = useCallback(() => {
+    onScrollPageRef.current?.('up');
+  }, []);
+  const handleScrollUpRepeatStart = useCallback(() => {
+    onScrollRepeatStart?.('up');
+  }, [onScrollRepeatStart]);
+
+  /** Scroll ▼ — one page down; long-press auto-repeats via useKeyboardState. */
+  const handleScrollDown = useCallback(() => {
+    onScrollPageRef.current?.('down');
+  }, []);
+  const handleScrollDownRepeatStart = useCallback(() => {
+    onScrollRepeatStart?.('down');
+  }, [onScrollRepeatStart]);
+  const handleScrollRepeatEnd = useCallback(() => {
+    onScrollRepeatEnd?.();
+  }, [onScrollRepeatEnd]);
+
+  /** L button press — arm a native drag at the cursor (tap on release if the
+   *  pointer never moved → plain left click). */
+  const handleLButtonDown = useCallback(() => {
+    onDragStartRef.current?.();
+  }, []);
+
+  /** L button release — dispatch the accumulated drag stroke (or tap). */
+  const handleLButtonUp = useCallback(() => {
+    onDragEndRef.current?.();
+  }, []);
+
+  /** R button — right click: long-press at the cursor (context menu). */
+  const handleRightClick = useCallback(() => {
+    onMouseClickRef.current?.('right');
+  }, []);
 
   const flushPointerMove = useCallback(() => {
     rafPending.current = false;
@@ -364,46 +424,160 @@ export default function Touchpad({
 
       <View style={styles.touchpadButtons}>
         <View style={styles.touchpadButtonArea}>
-          <Key variant="nav" isIcon type="mouse" onPressHandler={() => onNavigateHistory?.('backward')} themeColors={themeColors}>
+          <TouchpadButton
+            variant="nav"
+            themeColors={themeColors}
+            label="Back"
+            onPress={handleNavBackward}
+          >
             <FA5Icon name="chevron-left" size={12} color={themeColors.keyText} />
-          </Key>
-          <Key variant="mouse" type="mouse" onPressHandler={() => onDragStartRef.current?.()} onRepeatEnd={() => onDragEndRef.current?.()} themeColors={themeColors}>
+          </TouchpadButton>
+          <TouchpadButton
+            variant="mouse"
+            themeColors={themeColors}
+            label="Left click (hold and move on the pad to drag)"
+            onPress={handleLButtonDown}
+            onPressOut={handleLButtonUp}
+          >
             <Text style={styles.btnText}>L</Text>
-          </Key>
+          </TouchpadButton>
         </View>
 
         <View style={styles.scrollStack}>
-          <Key variant="scroll" isIcon type="mouse" onPressHandler={() => onScrollPageRef.current?.('up')} onRepeatStart={() => onScrollRepeatStart?.('up')} onRepeatEnd={() => onScrollRepeatEnd?.()} themeColors={themeColors}>
+          <TouchpadButton
+            variant="scroll"
+            themeColors={themeColors}
+            label="Scroll up"
+            onPress={handleScrollUp}
+            repeatStart={handleScrollUpRepeatStart}
+            repeatEnd={handleScrollRepeatEnd}
+          >
             <FA5Icon name="caret-up" size={14} color={themeColors.keyText} />
-          </Key>
-          <Key variant="scroll" isIcon type="mouse" onPressHandler={() => onScrollPageRef.current?.('down')} onRepeatStart={() => onScrollRepeatStart?.('down')} onRepeatEnd={() => onScrollRepeatEnd?.()} themeColors={themeColors}>
+          </TouchpadButton>
+          <TouchpadButton
+            variant="scroll"
+            themeColors={themeColors}
+            label="Scroll down"
+            onPress={handleScrollDown}
+            repeatStart={handleScrollDownRepeatStart}
+            repeatEnd={handleScrollRepeatEnd}
+          >
             <FA5Icon name="caret-down" size={14} color={themeColors.keyText} />
-          </Key>
+          </TouchpadButton>
         </View>
 
         <View style={styles.touchpadButtonArea}>
-          <Key
+          <TouchpadButton
             variant="nav"
-            isIcon
-            type="mouse"
-            onPressHandler={() => {
-              const result = onNavigateHistoryRef.current?.('forward');
-              Promise.resolve(result).then((handled) => {
-                if (handled === false) {
-                  setForwardHint(true);
-                  setTimeout(() => setForwardHint(false), 1500);
-                }
-              });
-            }}
             themeColors={themeColors}
+            label="Forward"
+            onPress={handleNavForward}
           >
             <FA5Icon name="chevron-right" size={12} color={themeColors.keyText} />
-          </Key>
-          <Key variant="mouse" type="mouse" onPressHandler={() => onMouseClickRef.current?.('right')} themeColors={themeColors}>
+          </TouchpadButton>
+          <TouchpadButton
+            variant="mouse"
+            themeColors={themeColors}
+            label="Right click"
+            onPress={handleRightClick}
+          >
             <Text style={styles.btnText}>R</Text>
-          </Key>
+          </TouchpadButton>
         </View>
       </View>
     </View>
   );
+}
+
+// ─── TouchpadButton ─────────────────────────────────────────────────────────
+
+interface TouchpadButtonProps {
+  variant: 'nav' | 'scroll' | 'mouse';
+  themeColors: KeyboardThemeColors;
+  /** Accessibility label announced by screen readers. */
+  label: string;
+  /** Fired on press-in (immediate, like a physical mouse button). */
+  onPress: () => void;
+  /** Fired on release (used by the L button to end a drag). */
+  onPressOut?: () => void;
+  /** Long-press auto-repeat start (scroll keys). */
+  repeatStart?: () => void;
+  /** Long-press auto-repeat end. */
+  repeatEnd?: () => void;
+  children?: React.ReactNode;
+}
+
+/**
+ * A single touchpad control button.
+ *
+ * Presses are handled on PRESS-IN (not press-release) so actions fire the
+ * moment the finger lands — matching physical mouse-button feel and avoiding
+ * the dead zone a Pressable-onPress can hit when a parent pan-responder
+ * claims the gesture. Press-out still fires repeat-end / drag-end so held
+ * interactions terminate correctly even if the finger slides off the button.
+ */
+function TouchpadButton({
+  variant,
+  themeColors,
+  label,
+  onPress,
+  onPressOut,
+  repeatStart,
+  repeatEnd,
+  children,
+}: TouchpadButtonProps) {
+  const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
+  const pressRef = useRef(onPress);
+  const pressOutRef = useRef(onPressOut);
+  const repeatStartRef = useRef(repeatStart);
+  const repeatEndRef = useRef(repeatEnd);
+
+  useEffect(() => {
+    pressRef.current = onPress;
+    pressOutRef.current = onPressOut;
+    repeatStartRef.current = repeatStart;
+    repeatEndRef.current = repeatEnd;
+  }, [onPress, onPressOut, repeatStart, repeatEnd]);
+
+  return (
+    <Pressable
+      unstable_pressDelay={0}
+      hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }}
+      onPressIn={() => {
+        pressRef.current?.();
+        repeatStartRef.current?.();
+      }}
+      onPressOut={() => {
+        repeatEndRef.current?.();
+        pressOutRef.current?.();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        styles.key,
+        typeVariantStyle(variant, styles),
+        pressed && styles.keyPressed,
+      ]}
+    >
+      {({ pressed }) => (
+        <View style={styles.touchpadButtonContent} pointerEvents="none">
+          {children}
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+function typeVariantStyle(
+  variant: 'nav' | 'scroll' | 'mouse',
+  styles: ReturnType<typeof createKeyboardStyles>
+) {
+  switch (variant) {
+    case 'nav':
+      return styles.navBtn;
+    case 'scroll':
+      return styles.scrollBtn;
+    case 'mouse':
+      return styles.mouseBtn;
+  }
 }
