@@ -164,6 +164,25 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         promise.resolve(null)
     }
 
+    /**
+     * JS keyboard reports its natural (unclamped) content height in px so the
+     * IME window can auto-fit (see QyKeyInputMethodService.keyboardHeightPx).
+     * Native re-clamps to sane dp bounds, so a bogus report can't break layout.
+     */
+    @ReactMethod
+    fun reportKeyboardContentHeight(heightPx: Double, promise: Promise) {
+        val px = heightPx.toInt()
+        if (px > 0) {
+            // Route to BOTH hosts: the IME keyboard window and the a11y floating
+            // panel can be active independently (the panel works without the IME),
+            // and each is responsible for sizing its own window. Reports are
+            // idempotent (same natural height from the same bundle UI).
+            QyKeyInputMethodService.instance?.onContentHeightReported(px)
+            QyKeyAccessibilityService.instance?.onContentHeightReported(px)
+        }
+        promise.resolve(null)
+    }
+
     @ReactMethod
     fun commitKey(code: String, language: String, promise: Promise) {
         val ic = activeInputConnection

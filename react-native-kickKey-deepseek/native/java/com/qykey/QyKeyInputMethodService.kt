@@ -21,12 +21,24 @@ import com.facebook.react.interfaces.TaskInterface
 import com.facebook.react.interfaces.fabric.ReactSurface
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.facebook.react.modules.core.ReactChoreographer
+import kotlin.math.ceil
 
 class QyKeyInputMethodService : InputMethodService() {
 
     companion object {
         private const val TAG = "QyKeyIME"
         private const val KEYBOARD_HEIGHT_DP = 250
+        // Vertical gap between key rows in the JS keyboard (ROW_GAP_V in
+        // assets/styles/dynamicStyles.ts). The JS keyboard needs 6 rows of
+        // (keyHeight + gap) plus 18dp padding, so the window must scale with
+        // the gap or the last row clips.
+        private const val ROW_GAP_V_DP = 15
+        private const val KEYBOARD_CONTENT_EXTRA_DP = 18
+        // Auto-fit window sizing (see applyKeyboardWindowHeight): sane bounds
+        // around the JS-reported content height. Min = the formula result so
+        // pre-report first paint doesn't shrink; max keeps gestures reachable.
+        private const val REPORTED_HEIGHT_MIN_DP = 250
+        private const val REPORTED_HEIGHT_MAX_DP = 420
         // First watchdog check after this delay, then re-check periodically. The
         // FIRST cold start after install is slow (RN init + 911KB Hermes bundle +
         // Fabric setup can exceed 8s on slow hardware), so we retry a few times
@@ -46,22 +58,80 @@ class QyKeyInputMethodService : InputMethodService() {
             private set
     }
 
-    /** Keyboard height in pixels, derived from dp × device density. */
+    /** Keyboard height in pixels.
+     *
+     * Auto-fit: prefers the height the JS keyboard actually measured for its
+     * current mode/content (reported via QyKeyModule.reportKeyboardContentHeight,
+     * px→dp rounded up). Falls back to the 6-row formula when nothing has been
+     * reported yet (or the report is stale/unreasonable), and always clamps to
+     * [REPORTED_HEIGHT_MIN_DP, REPORTED_HEIGHT_MAX_DP] so a broken report can
+     * never collapse or blow up the window.
+     */
     internal val keyboardHeightPx: Int
         get() {
             val prefs = getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
             val keyHeight = prefs.getInt("keyHeight", 26)
-            val dp = if (keyHeight > 0) {
-                maxOf(KEYBOARD_HEIGHT_DP, 7 * keyHeight + 36)
+            val formulaDp = if (keyHeight > 0) {
+                // 6 key rows × (keyHeight + row gap) + base padding (18dp).
+                6 * (keyHeight + ROW_GAP_V_DP) + KEYBOARD_CONTENT_EXTRA_DP
             } else {
                 KEYBOARD_HEIGHT_DP
             }
+            val reportedDp = reportedContentHeightPx
+                ?.takeIf { it > 0 }
+                ?.let { ceil(it / resources.displayMetrics.density).toInt() }
+                ?.takeIf { it in REPORTED_HEIGHT_MIN_DP..REPORTED_HEIGHT_MAX_DP }
+            // The formula is the minimum for 6 letter rows; the reported height is
+            // the actual need for the CURRENT mode (emoji needs more). Fit both.
+            val dp = maxOf(REPORTED_HEIGHT_MIN_DP, maxOf(formulaDp, reportedDp ?: formulaDp))
             return (dp * resources.displayMetrics.density).toInt()
         }
+
+    private var reportedContentHeightPx: Int? = null
 
     // ── Touchpad mode ───────────────────────────────────────────────────────
     internal val currentKeyboardHeightPx: Int
         get() = keyboardHeightPx
+
+    /**
+     * Main-thread only. Sizes the IME window to the keyboard's natural content
+     * height (from keyboardHeightPx: reported measurement clamped by formula &
+     * bounds). Called on window show, preferences change, and content reports.
+     */
+    private fun applyKeyboardWindowHeight() {
+        val heightPx = keyboardHeightPx
+        keyboardContainer?.let { container ->
+            if (container.layoutParams?.height != heightPx) {
+                container.layoutParams = container.layoutParams?.apply { height = heightPx }
+                    ?: FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, heightPx)
+                container.minimumHeight = heightPx
+                container.requestLayout()
+                Log.i(TAG, "Window height -> ${heightPx}px (${ceil(heightPx / resources.displayMetrics.density).toInt()}dp)")
+            }
+            // Keep the surface view's explicit height in lockstep (same as the
+            // legacy updateKeyboardHeight behavior).
+            reactSurface?.view?.let { surfaceView ->
+                surfaceView.layoutParams = surfaceView.layoutParams?.apply { height = heightPx }
+                    ?: FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, heightPx)
+                surfaceView.minimumHeight = heightPx
+            }
+        }
+    }
+
+    override fun onWindowShown() {
+        super.onWindowShown()
+        applyKeyboardWindowHeight()
+    }
+
+    /** Entry point from QyKeyModule: the JS keyboard reported its natural content height (px). */
+    internal fun onContentHeightReported(heightPx: Int) {
+        if (heightPx <= 0) return
+        reportedContentHeightPx = heightPx
+        // Called on a RN native-modules thread — hop to main before touching views.
+        mainHandler.post {
+            applyKeyboardWindowHeight()
+        }
+    }
 
     internal fun updateKeyboardHeight() {
         mainHandler.post {
@@ -80,6 +150,11 @@ class QyKeyInputMethodService : InputMethodService() {
                 surfaceView?.minimumHeight = targetHeightPx
 
                 container.requestLayout()
+            }
+            // Auto-fit: prefer the latest JS-reported natural content height —
+            // the keyboard re-reports on every mode/content change (Keyboard.tsx).
+            if (reportedContentHeightPx != null) {
+                applyKeyboardWindowHeight()
             }
         }
     }

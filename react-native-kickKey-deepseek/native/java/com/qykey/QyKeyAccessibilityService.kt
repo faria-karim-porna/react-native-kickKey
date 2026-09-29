@@ -12,6 +12,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
+import kotlin.math.ceil
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.FrameLayout
@@ -47,6 +48,13 @@ class QyKeyAccessibilityService : AccessibilityService() {
 
         // Same keyboard height constant as the IME (KEYBOARD_HEIGHT_DP in QyKeyInputMethodService).
         private const val KEYBOARD_HEIGHT_DP = 250
+        // Mirrors ROW_GAP_V_DP / KEYBOARD_CONTENT_EXTRA_DP in QyKeyInputMethodService:
+        // the JS keyboard needs 6 rows × (keyHeight + 15dp gap) + 18dp padding.
+        private const val ROW_GAP_V_DP = 15
+        private const val KEYBOARD_CONTENT_EXTRA_DP = 18
+        // Mirrors the IME's auto-fit clamps (REPORTED_HEIGHT_MIN_DP/MAX_DP).
+        private const val REPORTED_HEIGHT_MIN_DP = 250
+        private const val REPORTED_HEIGHT_MAX_DP = 420
 
         // ── Gesture timing (M3) ──
         private const val TAP_DURATION_MS = 40L            // left-click tap (crisp 40ms down/up)
@@ -67,12 +75,39 @@ class QyKeyAccessibilityService : AccessibilityService() {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var panelSurface: ReactSurface? = null
+    // Last natural JS content height (px) reported from the keyboard bundle,
+    // mirrored from the IME report so a fresh panel opens at the right size.
+    @Volatile
+    private var reportedContentHeightPx: Int? = null
     internal var panelContainer: FrameLayout? = null
     private var panelSurfaceTask: TaskInterface<Void>? = null
     private var isPanelShowing = false
 
+    /** Height in px for new panel windows.
+     *
+     * Mirrors the IME's auto-fit: uses the live IME container height when the
+     * keyboard is showing (it may have auto-fit to a taller emoji mode),
+     * otherwise the reported JS content height, else the 6-row formula.
+     */
     private val keyboardHeightPx: Int
-        get() = (KEYBOARD_HEIGHT_DP * resources.displayMetrics.density).toInt()
+        get() {
+            QyKeyInputMethodService.instance?.keyboardContainer?.let { container ->
+                if (container.height > 0) return container.height
+            }
+            val prefs = getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
+            val keyHeight = prefs.getInt("keyHeight", 26)
+            val formulaDp = if (keyHeight > 0) {
+                maxOf(KEYBOARD_HEIGHT_DP, 6 * (keyHeight + ROW_GAP_V_DP) + KEYBOARD_CONTENT_EXTRA_DP)
+            } else {
+                KEYBOARD_HEIGHT_DP
+            }
+            val reportedDp = reportedContentHeightPx
+                ?.takeIf { it > 0 }
+                ?.let { ceil(it / resources.displayMetrics.density).toInt() }
+                ?.takeIf { it in REPORTED_HEIGHT_MIN_DP..REPORTED_HEIGHT_MAX_DP }
+            val dp = maxOf(KEYBOARD_HEIGHT_DP, maxOf(formulaDp, reportedDp ?: formulaDp))
+            return (dp * resources.displayMetrics.density).toInt()
+        }
 
     // ── Service lifecycle ──────────────────────────────────────────────────
 
@@ -146,6 +181,32 @@ class QyKeyAccessibilityService : AccessibilityService() {
     fun toggleFloatingPanel() {
         mainHandler.post {
             if (isPanelShowing) hideFloatingPanel() else showFloatingPanel()
+        }
+    }
+
+    /**
+     * Live panel resize to the keyboard's auto-fit height (no-op if unchanged).
+     * Thread-safe: stores the report immediately, hops to main for view work.
+     * Uses WindowManager.updateViewLayout — for a window root, mutating
+     * layoutParams alone doesn't reliably update the window's actual size.
+     */
+    fun onContentHeightReported(heightPx: Int) {
+        reportedContentHeightPx = heightPx
+        if (!isPanelShowing) return
+        mainHandler.post {
+            val container = panelContainer ?: return@post
+            val target = keyboardHeightPx
+            if (container.layoutParams?.height != target) {
+                container.layoutParams = container.layoutParams?.apply { height = target }
+                try {
+                    (getSystemService(Context.WINDOW_SERVICE) as WindowManager)
+                        .updateViewLayout(container, container.layoutParams)
+                } catch (e: Exception) {
+                    Log.w(TAG, "panel resize failed: ${e.message}")
+                }
+                container.requestLayout()
+                Log.i(TAG, "Panel height -> ${target}px (${ceil(target / resources.displayMetrics.density).toInt()}dp)")
+            }
         }
     }
 

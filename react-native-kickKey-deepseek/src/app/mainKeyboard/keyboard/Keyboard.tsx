@@ -13,8 +13,8 @@
 //               converts them to Bangla (commitKey(code, 'bn'))
 // ============================================================
 
-import React, { useMemo } from 'react';
-import { View } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { NativeModules, View } from 'react-native';
 import { useKeyboardTheme } from '../../../hooks/useKeyboardTheme';
 import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
 import Touchpad from '../touchpad/Touchpad';
@@ -29,6 +29,15 @@ import { EmojiBoard } from './EmojiBoard';
 import { Circuit } from '../../circuit/Circuit';
 import { useKeyboardState } from '../../../hooks/useKeyboardState';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
+
+// Natural (unclamped) content height of the keyboard for the current mode, in
+// px. The IME window is sized by NATIVE code, so it cannot know how tall the
+// JS content wants to be — we measure it and report up (QyKeyModule →
+// QyKeyInputMethodService.onContentHeightReported). Native re-clamps to sane
+// bounds and keeps a formula fallback, so a bogus report cannot break layout.
+const qykeyNative = NativeModules.QyKey as {
+  reportKeyboardContentHeight?: (heightPx: number) => void;
+} | undefined;
 
 export default function Keyboard() {
   const themeColors = useKeyboardTheme();
@@ -74,6 +83,27 @@ export default function Keyboard() {
   const symHandler = () => handleSymbolToggle();
   const onToggleMode = () => setToggleMode(!toggleMode);
 
+  // ── Auto-fit reporting ───────────────────────────────────────────────
+  // The window height is controlled by NATIVE code, so it can't know how tall
+  // the JS content wants to be. `styles.base` (the content wrapper) is laid
+  // out by Yoga at its NATURAL height — it overflows the fixed window instead
+  // of being clamped — so its onLayout gives us the true content height for
+  // the current mode (letters/symbols ~264dp, emoji ~300dp, touchpad, etc.).
+  // We report that up; native re-clamps to sane bounds and keeps a formula
+  // fallback, so a bogus report cannot break layout.
+  const lastReportedHeight = React.useRef<number | null>(null);
+
+  const handleLayout = useCallback((e: { nativeEvent: { layout: { height: number } } }) => {
+    const height = Math.ceil(e.nativeEvent.layout.height);
+    if (height <= 0 || lastReportedHeight.current === height) return;
+    lastReportedHeight.current = height;
+    try {
+      qykeyNative?.reportKeyboardContentHeight?.(height);
+    } catch (err) {
+      // Companion preview / non-IME contexts have no QyKey module — silent no-op.
+    }
+  }, []);
+
   const emojiModeHandler = () => handleEmojiToggle();
 
   return (
@@ -81,7 +111,7 @@ export default function Keyboard() {
       {/* Circuit board behind the translucent keyboard shell. */}
       <Circuit animated={!isEmojiMode} themeColors={themeColors} />
 
-      <View style={styles.base}>
+      <View style={styles.base} onLayout={handleLayout}>
         {/* Top Row */}
         <View style={[styles.line, { justifyContent: 'flex-start' }]}>
           <ModeToggleBar toggleMode={toggleMode} onToggleMode={onToggleMode} themeColors={themeColors} />

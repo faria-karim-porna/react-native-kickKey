@@ -1,4 +1,4 @@
-Email: personalfkp@gmail.com
+Email: myselffariakarimporna@gmail.com
 Download Link: https://expo.dev/artifacts/eas/-3X7K3pDhPLhYlhzOBy7cQ8LTYh8-PHWsmL1fbxdADw.apk
 Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme, Fix Customize Keyboard, Partially Fixed Folder Structure, Migration To QyKey, Fix Customized Cursor, Touchpad Button Functionality
 

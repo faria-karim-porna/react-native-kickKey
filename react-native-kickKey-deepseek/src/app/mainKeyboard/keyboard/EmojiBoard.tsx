@@ -13,7 +13,10 @@ import {
 import { Key } from '../Key';
 import { emojis, emojiCategories } from '../../../data/emojiData';
 import { FA5Icon, MDIIcon } from './KeyIcons';
-import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
+import {
+  createKeyboardStyles,
+  ROW_GAP_V,
+} from '../../../../assets/styles/dynamicStyles';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 type EmojiBoardProps = {
@@ -22,10 +25,14 @@ type EmojiBoardProps = {
 };
 
 const COLUMNS = 8;
-const ROW_HEIGHT = 35;
+// Actual rendered row height = emoji key height + vertical row gap.
+// Must match the `row` style (marginBottom: ROW_GAP_V) in dynamicStyles.ts
+// so FlatList `getItemLayout` scroll estimates stay accurate.
+const rowHeightFor = (keyHeight: number) => keyHeight + ROW_GAP_V;
 
 const EmojiBoardComponent = ({ onEmojiSelect, themeColors }: EmojiBoardProps) => {
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
+  const ROW_HEIGHT = useMemo(() => rowHeightFor(themeColors.keyHeight), [themeColors.keyHeight]);
   const [activeTab, setActiveTab] = useState('people');
 
   const currentEmojis = useMemo(() => emojis()[activeTab] || [], [activeTab]);

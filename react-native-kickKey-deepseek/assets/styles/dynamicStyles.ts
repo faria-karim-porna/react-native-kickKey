@@ -25,12 +25,14 @@ function isDarkTheme(colors: KeyboardThemeColors): boolean {
   return false;
 }
 
+// Vertical gap between key rows (was 3px → 7.5px → 15px, doubled each spacing pass).
+// Shared by every keyboard surface: letter/symbol/system rows (`line`), emoji rows
+// (`row`), and row-dependent heights (emoji grid, touchpad area).
+export const ROW_GAP_V = 15;
+
 export function createKeyboardStyles(colors: KeyboardThemeColors) {
   // Derive secondary colors from the theme
   const isDark = isDarkTheme(colors);
-  // Vertical gap between key rows (was 3px, now 2.5x per spacing pass).
-  // Row-dependent heights (emoji grid, touchpad area) derive from this value.
-  const ROW_GAP_V = 7.5;
   const keyShadowTL = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.2)';
   const keyShadowBR = isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)';
   const keyBorderColorTL = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.2)';
