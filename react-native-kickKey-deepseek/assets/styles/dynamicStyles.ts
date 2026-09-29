@@ -54,10 +54,12 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
 
   return StyleSheet.create({
     // Wrapper that layers the circuit board BEHIND the keyboard shell.
+    // Must NOT use flex:1 — the keyboard must wrap its content height so that
+    // `base`'s onLayout reports the true content height (not the clamped IME
+    // window height). Native uses that report to resize the window.
     keyboardContainer: {
-      flex: 1,
       position: 'relative',
-      alignSelf: 'center',
+      alignSelf: 'stretch',
       width: '100%',
       backgroundColor: 'transparent',
     },
@@ -72,7 +74,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       borderBottomRightRadius: 0,
     },
     base: {
-      flex: 1,
+      alignSelf: 'flex-start',
       zIndex: 1,
       width: '100%',
       paddingTop: 4,
