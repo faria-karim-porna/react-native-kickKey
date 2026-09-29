@@ -6,13 +6,14 @@
 //   - Now accepts themeColors for dynamic styling.
 // ============================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text } from 'react-native';
 import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
 import { Key } from '../Key';
 import { MDIIcon } from './KeyIcons';
 import type { AppLanguage } from '../../../types/keyboard';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
+import type { ModifierKey } from '../../../hooks/useKeyboardState';
 
 type LetterKeysProps = {
   onKeyPress?: (key: string) => void;
@@ -22,6 +23,13 @@ type LetterKeysProps = {
   onSpace?: () => void;
   onEnter?: () => void;
   onSpecialKey?: (key: string) => void;
+  /** PC-style shift: controlled from useKeyboardState (one-shot + double-tap lock). */
+  shiftActive?: boolean;
+  capsLockOn?: boolean;
+  onShiftPress?: () => void;
+  /** Currently latched modifiers (Ctrl/Alt/Win), for the lit key indicators. */
+  heldModifiers?: ModifierKey[];
+  onModifierToggle?: (key: ModifierKey) => void;
   language?: AppLanguage;
   onLanguageChange?: (lang: AppLanguage) => void;
   themeColors: KeyboardThemeColors;
@@ -38,9 +46,17 @@ const LetterKeysComponent = ({
   language = 'en-US',
   onLanguageChange,
   themeColors,
+  shiftActive = false,
+  capsLockOn = false,
+  onShiftPress,
+  heldModifiers = [],
+  onModifierToggle,
 }: LetterKeysProps) => {
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
-  const [isCapsOn, setIsCapsOn] = useState(false);
+  // Shift state lives in useKeyboardState (one-shot latch / caps lock) so it
+  // also participates in PC-style combos (Ctrl+Shift+…). Rows preview their
+  // shifted glyphs while shift is latched OR caps lock is on.
+  const isCapsOn = capsLockOn || shiftActive;
   const cycleLeft: Record<AppLanguage, AppLanguage> = {
     'en-US': 'banglish',
     banglish: 'bn-BD',
@@ -95,10 +111,11 @@ const LetterKeysComponent = ({
           style={styles.wider}
           isIcon
           hasActiveState
-          onPressHandler={() => setIsCapsOn(!isCapsOn)}
+          isStatusActive={shiftActive}
+          onPressHandler={() => onShiftPress?.()}
           themeColors={themeColors}
         >
-          <MDIIcon name="arrow-up-bold-outline" size={isCapsOn ? 14 : 16} color={themeColors.keyText} />
+          <MDIIcon name="arrow-up-bold-outline" size={shiftActive ? 14 : 16} color={themeColors.keyText} />
         </Key>
         {(language === 'bn-BD'
           ? isCapsOn
@@ -136,7 +153,8 @@ const LetterKeysComponent = ({
           special
           style={styles.wider}
           hasActiveState
-          onPressHandler={() => onSpecialKey?.('ctrl')}
+          isStatusActive={heldModifiers.includes('ctrl')}
+          onPressHandler={() => onModifierToggle?.('ctrl')}
           themeColors={themeColors}
         >
           Ctrl
@@ -145,7 +163,8 @@ const LetterKeysComponent = ({
           special
           style={styles.wider}
           hasActiveState
-          onPressHandler={() => onSpecialKey?.('meta')}
+          isStatusActive={heldModifiers.includes('meta')}
+          onPressHandler={() => onModifierToggle?.('meta')}
           themeColors={themeColors}
         >
           ⊞
@@ -154,7 +173,8 @@ const LetterKeysComponent = ({
           special
           style={styles.wider}
           hasActiveState
-          onPressHandler={() => onSpecialKey?.('alt')}
+          isStatusActive={heldModifiers.includes('alt')}
+          onPressHandler={() => onModifierToggle?.('alt')}
           themeColors={themeColors}
         >
           Alt
@@ -174,7 +194,6 @@ const LetterKeysComponent = ({
         <Key
           special
           style={styles.wider}
-          hasActiveState
           onPressHandler={() => onSpecialKey?.('tab')}
           themeColors={themeColors}
         >
@@ -183,7 +202,6 @@ const LetterKeysComponent = ({
         <Key
           special
           style={styles.wider}
-          hasActiveState
           onPressHandler={() => onSpecialKey?.('esc')}
           themeColors={themeColors}
         >

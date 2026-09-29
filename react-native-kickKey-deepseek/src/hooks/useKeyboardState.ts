@@ -14,6 +14,17 @@ import { NativeModules, NativeEventEmitter } from 'react-native';
 import { playKeySound } from '../data/soundManager';
 import type { AppLanguage } from '../types/keyboard';
 
+/** PC-style modifier keys that can be latched with a tap (Ctrl/Alt/Win/Shift). */
+export type ModifierKey = 'ctrl' | 'alt' | 'meta' | 'shift';
+
+/** Named keys that participate in PC-style combos (Ctrl + key, Alt + key, …). */
+const COMBOABLE_KEYS = new Set<string>([
+  'tab', 'esc', 'escape', 'enter', 'return', 'space',
+  'left', 'right', 'up', 'down',
+  'del', 'delete', 'backspace', 'home', 'end', 'pageup', 'pagedown', 'insert',
+  ...Array.from({ length: 12 }, (_, i) => `f${i + 1}`),
+]);
+
 // Lazy-init — avoids crash at module scope if QyKey is not yet available
 let _QyKey: any = null;
 let _emitter: any = null;
@@ -50,6 +61,12 @@ export interface KeyboardState {
   handleSpace: () => void;
   handleEnter: () => void;
   handleSpecialKey: (key: string) => void;
+  // ── PC-style modifiers (one-shot latch, Shift double-tap = caps lock) ─────
+  heldModifiers: ModifierKey[];
+  shiftActive: boolean;
+  capsLockOn: boolean;
+  toggleHeldModifier: (key: ModifierKey) => void;
+  handleShiftPress: () => void;
   handleMoveCursor: (direction: 'left' | 'right' | 'up' | 'down') => void;
   handleLanguageChange: (lang: AppLanguage) => void;
   handleSymbolToggle: () => void;
@@ -93,6 +110,15 @@ export function useKeyboardState(): KeyboardState {
   const scrollRepeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [tapToClick, setTapToClick] = useState(true);
+
+  // ── PC-style modifier latch state ──────────────────────────────────────────
+  // One-shot latched modifiers (Ctrl/Alt/Win/Shift): tap the modifier (its key
+  // lights up), then the next key is sent as a real combo (Ctrl+C, Alt+Tab…)
+  // and the latch clears — mirroring "hold the modifier while pressing" on a
+  // physical keyboard. Double-tapping Shift toggles caps lock instead.
+  const [heldModifiers, setHeldModifiers] = useState<ModifierKey[]>([]);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const lastShiftTapRef = useRef<number>(0);
 
   useEffect(() => {
     getQyKey()
@@ -156,6 +182,8 @@ export function useKeyboardState(): KeyboardState {
       setIsEmojiMode(false);
       setSuggestions([]);
       setToggleMode(false);
+      // Clear latched modifiers on a new field (caps lock persists, PC-like).
+      setHeldModifiers([]);
       getQyKey()?.pointerHide?.();
     });
 
@@ -178,14 +206,34 @@ export function useKeyboardState(): KeyboardState {
 
   const handleKeyPress = useCallback((code: string) => {
     if (!code) return;
-    getQyKey()?.commitKey(code, nativeLanguageFor(language));
+    if (heldModifiers.length > 0) {
+      // PC-style combo: Ctrl+C, Alt+1, Shift+A … via real key events with meta
+      // state, so apps (and remote-desktop hosts) treat them as combos. Shift
+      // stays in the meta set: it is what makes the target app type the
+      // uppercase letter / shifted symbol (Shift+1 → '!').
+      const comboKey =
+        heldModifiers.includes('shift') && code.length === 1 ? code.toUpperCase() : code;
+      getQyKey()?.sendKeyCombo(heldModifiers.join(','), comboKey);
+      setHeldModifiers([]);
+      playKeySound();
+      return;
+    }
+    const effective = capsLockOn && code.length === 1 ? code.toUpperCase() : code;
+    getQyKey()?.commitKey(effective, nativeLanguageFor(language));
     playKeySound();
-  }, [language]);
+  }, [language, heldModifiers, capsLockOn]);
 
   const handleBackspace = useCallback(() => {
-    getQyKey()?.sendBackspace();
+    const comboMods = heldModifiers.filter((m) => m !== 'shift');
+    if (comboMods.length > 0) {
+      // Ctrl+Backspace = delete previous word (PC behavior).
+      getQyKey()?.sendKeyCombo(comboMods.join(','), 'backspace');
+      setHeldModifiers([]);
+    } else {
+      getQyKey()?.sendBackspace();
+    }
     playKeySound();
-  }, []);
+  }, [heldModifiers]);
 
   const handleBackspaceRepeatStart = useCallback(() => {
     if (backspaceRepeatRef.current || backspaceDelayRef.current) return;
@@ -220,25 +268,88 @@ export function useKeyboardState(): KeyboardState {
   }, []);
 
   const handleSpace = useCallback(() => {
-    getQyKey()?.commitSpace();
+    const comboMods = heldModifiers.filter((m) => m !== 'shift');
+    if (comboMods.length > 0) {
+      getQyKey()?.sendKeyCombo(comboMods.join(','), 'space');
+      setHeldModifiers([]);
+    } else {
+      getQyKey()?.commitSpace();
+    }
     playKeySound();
-  }, []);
+  }, [heldModifiers]);
 
   const handleEnter = useCallback(() => {
-    getQyKey()?.sendEnter();
+    const comboMods = heldModifiers.filter((m) => m !== 'shift');
+    if (comboMods.length > 0) {
+      getQyKey()?.sendKeyCombo(comboMods.join(','), 'enter');
+      setHeldModifiers([]);
+    } else {
+      getQyKey()?.sendEnter();
+    }
     playKeySound();
-  }, []);
+  }, [heldModifiers]);
 
   const handleSpecialKey = useCallback((key: string) => {
     if (!key) return;
-    getQyKey()?.sendSpecialKey(key);
+    const comboMods = heldModifiers.filter((m) => m !== 'shift');
+    if (comboMods.length > 0 && COMBOABLE_KEYS.has(key.toLowerCase())) {
+      // e.g. Alt+Tab, Ctrl+F5 — send as a real combo and consume the latch.
+      getQyKey()?.sendKeyCombo(comboMods.join(','), key);
+      setHeldModifiers([]);
+    } else {
+      getQyKey()?.sendSpecialKey(key);
+    }
+    playKeySound();
+  }, [heldModifiers]);
+
+  const handleMoveCursor = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
+    const comboMods = heldModifiers.filter((m) => m !== 'shift');
+    if (comboMods.length > 0) {
+      // Ctrl+←/→ = word jump (PC behavior).
+      getQyKey()?.sendKeyCombo(comboMods.join(','), direction);
+      setHeldModifiers([]);
+    } else {
+      getQyKey()?.moveCursor(direction);
+    }
+    playKeySound();
+  }, [heldModifiers]);
+
+  // ── PC-style modifiers: one-shot latch (+ Shift double-tap = caps lock) ────
+
+  /** Toggles a latched modifier (Ctrl / Alt / Win). Tap again to unlatch. */
+  const toggleHeldModifier = useCallback((key: ModifierKey) => {
+    setHeldModifiers((mods) =>
+      mods.includes(key) ? mods.filter((m) => m !== key) : [...mods, key],
+    );
     playKeySound();
   }, []);
 
-  const handleMoveCursor = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
-    getQyKey()?.moveCursor(direction);
+  /**
+   * Shift, PC-style: single tap = one-shot (next letter capitalized, then it
+   * auto-releases); double tap = caps lock until tapped again.
+   */
+  const handleShiftPress = useCallback(() => {
+    const now = Date.now();
+    const isDoubleTap = now - lastShiftTapRef.current < 350;
+    lastShiftTapRef.current = now;
+    if (isDoubleTap) {
+      // Double tap → toggle caps lock (a latched one-shot shift clears).
+      setCapsLockOn((on) => !on);
+      setHeldModifiers((mods) => mods.filter((m) => m !== 'shift'));
+      playKeySound();
+      return;
+    }
+    if (capsLockOn) {
+      // Already locked: a single tap releases the lock.
+      setCapsLockOn(false);
+    } else if (heldModifiers.includes('shift')) {
+      // Latched: a second single tap unlatches.
+      setHeldModifiers((mods) => mods.filter((m) => m !== 'shift'));
+    } else {
+      setHeldModifiers((mods) => [...mods, 'shift']);
+    }
     playKeySound();
-  }, []);
+  }, [capsLockOn, heldModifiers]);
 
   // ── Mode switches ────────────────────────────────────────────────────────
 
@@ -349,6 +460,8 @@ export function useKeyboardState(): KeyboardState {
     handleKeyPress, handleBackspace,
     handleBackspaceRepeatStart, handleBackspaceRepeatEnd,
     handleSpace, handleEnter, handleSpecialKey, handleMoveCursor,
+    heldModifiers, shiftActive: capsLockOn || heldModifiers.includes('shift'),
+    capsLockOn, toggleHeldModifier, handleShiftPress,
     handleLanguageChange,
     handleSymbolToggle, handleSymbolNext, handleSymbolPrev,
     handleEmojiToggle, handleEmojiSelect,

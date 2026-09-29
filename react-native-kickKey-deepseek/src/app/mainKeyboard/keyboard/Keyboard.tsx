@@ -78,6 +78,8 @@ export default function Keyboard() {
     handlePointerHide,
     handlePointerMove,
     handleRequestPointerPermission,
+    heldModifiers, toggleHeldModifier, handleShiftPress,
+    shiftActive, capsLockOn,
   } = useKeyboardState();
 
   const symHandler = () => handleSymbolToggle();
@@ -170,6 +172,11 @@ export default function Keyboard() {
                     onSpace={handleSpace}
                     onEnter={handleEnter}
                     onSpecialKey={handleSpecialKey}
+                    shiftActive={shiftActive}
+                    capsLockOn={capsLockOn}
+                    onShiftPress={handleShiftPress}
+                    heldModifiers={heldModifiers}
+                    onModifierToggle={toggleHeldModifier}
                     language={language}
                     onLanguageChange={handleLanguageChange}
                     themeColors={themeColors}
@@ -180,6 +187,9 @@ export default function Keyboard() {
                     onKeyPress={handleKeyPress}
                     onBackspace={handleBackspace}
                     onEnter={handleEnter}
+                    onSpecialKey={handleSpecialKey}
+                    heldModifiers={heldModifiers}
+                    onModifierToggle={toggleHeldModifier}
                     themeColors={themeColors}
                   />
                 ) : (
@@ -187,6 +197,9 @@ export default function Keyboard() {
                     onPrev={handleSymbolPrev}
                     onBackspace={handleBackspace}
                     onEnter={handleEnter}
+                    onSpecialKey={handleSpecialKey}
+                    heldModifiers={heldModifiers}
+                    onModifierToggle={toggleHeldModifier}
                     themeColors={themeColors}
                   />
                 )

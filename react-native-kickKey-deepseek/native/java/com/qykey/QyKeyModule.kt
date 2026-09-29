@@ -1,5 +1,6 @@
 package com.qykey
 
+import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
@@ -9,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
@@ -367,57 +369,181 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         promise.resolve(null)
     }
 
+    /**
+     * Sends down+up KeyEvent pairs for each keycode with the given meta state
+     * (PC-style: remote-desktop hosts such as AnyDesk forward these to the
+     * computer, and focusable apps receive them locally).
+     */
+    private fun sendKeyEvents(keyCodes: List<Int>, metaState: Int = 0) {
+        val ic = activeInputConnection ?: return
+        for (keyCode in keyCodes) {
+            val now = SystemClock.uptimeMillis()
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, metaState))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, metaState))
+        }
+    }
+
+    /** Maps a single character to its Android keycode (null when unmappable). */
+    private fun keyCodeForCharacter(c: Char): Int? = when (c) {
+        in 'a'..'z' -> KeyEvent.KEYCODE_A + (c - 'a')
+        in 'A'..'Z' -> KeyEvent.KEYCODE_A + (c - 'A')
+        in '0'..'9' -> KeyEvent.KEYCODE_0 + (c - '0')
+        ' ' -> KeyEvent.KEYCODE_SPACE
+        '\n' -> KeyEvent.KEYCODE_ENTER
+        '\t' -> KeyEvent.KEYCODE_TAB
+        '-' -> KeyEvent.KEYCODE_MINUS
+        '=' -> KeyEvent.KEYCODE_EQUALS
+        '[' -> KeyEvent.KEYCODE_LEFT_BRACKET
+        ']' -> KeyEvent.KEYCODE_RIGHT_BRACKET
+        '\\' -> KeyEvent.KEYCODE_BACKSLASH
+        ';' -> KeyEvent.KEYCODE_SEMICOLON
+        '\'' -> KeyEvent.KEYCODE_APOSTROPHE
+        '/' -> KeyEvent.KEYCODE_SLASH
+        '.' -> KeyEvent.KEYCODE_PERIOD
+        ',' -> KeyEvent.KEYCODE_COMMA
+        '`' -> KeyEvent.KEYCODE_GRAVE
+        else -> null
+    }
+
+    /** Maps a named key ("tab", "f5", "pagedown"…) to its Android keycode. */
+    private fun namedKeyCode(name: String): Int? = when {
+        name == "tab" -> KeyEvent.KEYCODE_TAB
+        name == "esc" || name == "escape" -> KeyEvent.KEYCODE_ESCAPE
+        name == "enter" || name == "return" -> KeyEvent.KEYCODE_ENTER
+        name == "space" -> KeyEvent.KEYCODE_SPACE
+        name == "left" -> KeyEvent.KEYCODE_DPAD_LEFT
+        name == "right" -> KeyEvent.KEYCODE_DPAD_RIGHT
+        name == "up" -> KeyEvent.KEYCODE_DPAD_UP
+        name == "down" -> KeyEvent.KEYCODE_DPAD_DOWN
+        name == "del" || name == "delete" || name == "forward_del" -> KeyEvent.KEYCODE_FORWARD_DEL
+        name == "backspace" || name == "bksp" -> KeyEvent.KEYCODE_DEL
+        name == "home" -> KeyEvent.KEYCODE_MOVE_HOME
+        name == "end" -> KeyEvent.KEYCODE_MOVE_END
+        name == "pageup" -> KeyEvent.KEYCODE_PAGE_UP
+        name == "pagedown" || name == "pgdn" -> KeyEvent.KEYCODE_PAGE_DOWN
+        name == "insert" -> KeyEvent.KEYCODE_INSERT
+        name == "printscreen" || name == "sysrq" || name == "prtsc" -> KeyEvent.KEYCODE_SYSRQ
+        name == "scrolllock" -> KeyEvent.KEYCODE_SCROLL_LOCK
+        name == "pause" || name == "break" -> KeyEvent.KEYCODE_BREAK
+        name == "search" -> KeyEvent.KEYCODE_SEARCH
+        name == "brightness_up" -> KeyEvent.KEYCODE_BRIGHTNESS_UP
+        name == "brightness_down" -> KeyEvent.KEYCODE_BRIGHTNESS_DOWN
+        name.startsWith("f") -> name.substring(1).toIntOrNull()
+            ?.takeIf { it in 1..12 }
+            ?.let { KeyEvent.KEYCODE_F1 + it - 1 }   // KEYCODE_F1..F12 are consecutive
+        else -> null
+    }
+
     @ReactMethod
     fun sendSpecialKey(key: String, promise: Promise) {
         val ic = activeInputConnection
         if (ic != null) {
-            when (key.lowercase()) {
-                "tab" -> {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_TAB))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_TAB))
+            when (val k = key.lowercase()) {
+                "select_all", "ctrl_a" -> ic.performContextMenuAction(android.R.id.selectAll)
+                "copy", "ctrl_c" -> ic.performContextMenuAction(android.R.id.copy)
+                "paste", "ctrl_v" -> ic.performContextMenuAction(android.R.id.paste)
+                "cut", "ctrl_x" -> ic.performContextMenuAction(android.R.id.cut)
+                "volume_up" -> {
+                    // Local effect via AudioManager (injected VOLUME keycodes are
+                    // filtered by the system), plus the raw keycode so remote
+                    // desktops forward the PC volume change.
+                    val am = reactApplicationContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                    am?.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
+                    sendKeyEvents(listOf(KeyEvent.KEYCODE_VOLUME_UP))
                 }
-                "esc", "escape" -> {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ESCAPE))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_ESCAPE))
+                "volume_down" -> {
+                    val am = reactApplicationContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                    am?.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
+                    sendKeyEvents(listOf(KeyEvent.KEYCODE_VOLUME_DOWN))
                 }
-                "ctrl" -> {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_CTRL_LEFT))
+                "volume_mute" -> {
+                    val am = reactApplicationContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                    am?.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, AudioManager.FLAG_SHOW_UI)
+                    sendKeyEvents(listOf(KeyEvent.KEYCODE_VOLUME_MUTE))
                 }
-                "alt" -> {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_ALT_LEFT))
+                "settings" -> {
+                    // Smart action: open Android Settings.
+                    try {
+                        reactApplicationContext.startActivity(
+                            Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    } catch (e: Exception) {
+                        Log.w("QyKeyModule", "open settings failed: ${e.message}")
+                    }
                 }
-                "meta", "win", "⊞" -> {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_META_LEFT))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_META_LEFT))
+                "power" -> {
+                    // Smart action: lock the screen via the accessibility service
+                    // (API 28+); fall back to the raw POWER keycode (remote hosts).
+                    val svc = QyKeyAccessibilityService.instance
+                    if (svc != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        svc.performGlobalAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)
+                    } else {
+                        sendKeyEvents(listOf(KeyEvent.KEYCODE_POWER))
+                    }
                 }
-                "home" -> {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_HOME))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MOVE_HOME))
-                }
-                "end" -> {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_END))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MOVE_END))
-                }
-                "select_all", "ctrl_a" -> {
-                    ic.performContextMenuAction(android.R.id.selectAll)
-                }
-                "copy", "ctrl_c" -> {
-                    ic.performContextMenuAction(android.R.id.copy)
-                }
-                "paste", "ctrl_v" -> {
-                    ic.performContextMenuAction(android.R.id.paste)
-                }
-                "cut", "ctrl_x" -> {
-                    ic.performContextMenuAction(android.R.id.cut)
+                "ctrl", "alt", "meta", "win", "⊞" -> {
+                    // A lone modifier tap sends a quick down/up (no-op, like a PC).
+                    // Real combos go through sendKeyCombo (JS modifier latch).
+                    val keyCode = when (k) {
+                        "ctrl" -> KeyEvent.KEYCODE_CTRL_LEFT
+                        "alt" -> KeyEvent.KEYCODE_ALT_LEFT
+                        else -> KeyEvent.KEYCODE_META_LEFT
+                    }
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
                 }
                 else -> {
-                    ic.commitText(key, 1)
+                    // F1-F12, PrtSc, ScrLck, Pause, Insert, Del, Home, End,
+                    // PgUp/PgDn, Tab, Esc, search, brightness… → real keycodes.
+                    val keyCode = namedKeyCode(k)
+                    if (keyCode != null) {
+                        sendKeyEvents(listOf(keyCode))
+                    } else {
+                        ic.commitText(key, 1)
+                    }
                 }
             }
             hapticManager?.vibrate()
         }
+        promise.resolve(null)
+    }
+
+    /**
+     * Sends a PC-style key combo with modifier meta state held down:
+     * Ctrl+C, Alt+Tab, Ctrl+Shift+S, Win+D, …
+     *
+     * modifiers: comma-separated subset of "ctrl", "shift", "alt", "meta"
+     *            (produced by the JS one-shot modifier latch, e.g. "ctrl,shift").
+     * key:       a single character (letter/digit/symbol) or a named key
+     *            ("tab", "esc", "left", "f5", …).
+     */
+    @ReactMethod
+    fun sendKeyCombo(modifiers: String, key: String, promise: Promise) {
+        val ic = activeInputConnection
+        if (ic == null) {
+            promise.resolve(null)
+            return
+        }
+        var meta = 0
+        modifiers.lowercase().split(",").map { it.trim() }.forEach { m ->
+            meta = meta or when (m) {
+                "ctrl" -> KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
+                "shift" -> KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
+                "alt" -> KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
+                "meta", "win" -> KeyEvent.META_META_ON or KeyEvent.META_META_LEFT_ON
+                else -> 0
+            }
+        }
+        val keyCode: Int? = if (key.length == 1) keyCodeForCharacter(key[0]) else namedKeyCode(key.lowercase())
+        if (keyCode != null) {
+            val now = SystemClock.uptimeMillis()
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, meta))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, meta))
+        } else {
+            // Unmappable key (e.g. Bangla glyph): commit raw text, no modifiers.
+            ic.commitText(key, 1)
+        }
+        hapticManager?.vibrate()
         promise.resolve(null)
     }
 

@@ -9,16 +9,30 @@ import { createKeyboardStyles } from '../../../../assets/styles/dynamicStyles';
 import { Key } from '../Key';
 import { MDIIcon } from './KeyIcons';
 import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
+import type { ModifierKey } from '../../../hooks/useKeyboardState';
 
 type SymbolKeysProps = {
   onNext?: () => void;
   onKeyPress?: (key: string) => void;
   onBackspace?: () => void;
   onEnter?: () => void;
+  onSpecialKey?: (key: string) => void;
+  /** Currently latched modifiers (Ctrl/Alt/Win), for the lit key indicators. */
+  heldModifiers?: ModifierKey[];
+  onModifierToggle?: (key: ModifierKey) => void;
   themeColors: KeyboardThemeColors;
 };
 
-export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter, themeColors }: SymbolKeysProps) {
+export default function SymbolKeys({
+  onNext,
+  onKeyPress,
+  onBackspace,
+  onEnter,
+  onSpecialKey,
+  heldModifiers = [],
+  onModifierToggle,
+  themeColors,
+}: SymbolKeysProps) {
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const press = (s: string) => () => onKeyPress?.(s);
 
@@ -73,7 +87,7 @@ export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter, t
           <MDIIcon name="arrow-up-bold-outline" size={16} color={themeColors.keyText} />
         </Key>
         {fkeys1.map((f) => (
-          <Key key={f} functionKey themeColors={themeColors}>{f}</Key>
+          <Key key={f} functionKey onPressHandler={() => onSpecialKey?.(f)} themeColors={themeColors}>{f}</Key>
         ))}
         <Key special style={styles.wider} isIcon onPressHandler={onBackspace} themeColors={themeColors}>
           <MDIIcon name="backspace-outline" size={16} color={themeColors.keyText} />
@@ -81,10 +95,19 @@ export default function SymbolKeys({ onNext, onKeyPress, onBackspace, onEnter, t
       </View>
 
       <View style={[styles.line, styles.lastLine]}>
-        <Key special style={styles.wider} themeColors={themeColors}>Ctrl</Key>
+        <Key
+          special
+          style={styles.wider}
+          hasActiveState
+          isStatusActive={heldModifiers.includes('ctrl')}
+          onPressHandler={() => onModifierToggle?.('ctrl')}
+          themeColors={themeColors}
+        >
+          Ctrl
+        </Key>
         <View style={styles.lastLineInner}>
           {fkeys2.map((f) => (
-            <Key key={f} functionKey themeColors={themeColors}>{f}</Key>
+            <Key key={f} functionKey onPressHandler={() => onSpecialKey?.(f)} themeColors={themeColors}>{f}</Key>
           ))}
         </View>
         <Key special style={styles.wider} isIcon onPressHandler={onEnter} themeColors={themeColors}>

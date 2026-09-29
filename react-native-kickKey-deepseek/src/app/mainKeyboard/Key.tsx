@@ -63,7 +63,7 @@ const KeyComponent = ({
   };
 
   useEffect(() => {
-    if (!isStatusActive) setIsActive(false);
+    if (isStatusActive !== undefined) setIsActive(isStatusActive);
   }, [isStatusActive]);
 
   const isSwipeable = !!(onSwipeLeft || onSwipeRight);
