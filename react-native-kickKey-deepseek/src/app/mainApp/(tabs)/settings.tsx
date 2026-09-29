@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, AppState, Pressable, TouchableOpacity, Image } from 'react-native';
+import type { ComponentType } from 'react';
+import { View, Text, ScrollView, StyleSheet, AppState, Pressable, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SvgUri } from 'react-native-svg';
+import type { SvgProps } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { CursorType } from '@/store/settingsStore';
@@ -10,9 +11,12 @@ import QyKey from '@modules/qykey-module';
 import { useAppColors } from '@/hooks/useAppColors';
 import { useTranslation } from '@/hooks/useTranslation';
 
-// ─── SVG asset map ────────────────────────────────────────────────────────
+// ─── SVG component map ─────────────────────────────────────────────────────
+// react-native-svg-transformer (metro.config.js) turns each .svg require()
+// below into a ready-to-render react-native-svg component — no runtime
+// fetch/parse step, so previews always render.
 
-const CURSOR_SVG_ASSETS: Record<CursorType, ReturnType<typeof require>> = {
+const CURSOR_SVG_COMPONENTS: Record<CursorType, ComponentType<SvgProps>> = {
   'cursor-alt-thick-pointer':         require('@assets/svg/cursor-alt-thick-pointer.svg'),
   'cursor-pointer-classic':           require('@assets/svg/cursor-pointer-classic.svg'),
   'cursor-pointer-nested':            require('@assets/svg/cursor-pointer-nested.svg'),
@@ -66,11 +70,10 @@ const CURSOR_SVG_ASSETS: Record<CursorType, ReturnType<typeof require>> = {
 
 const DEFAULT_CURSOR_TYPE: CursorType = 'cursor-pointer-classic';
 
-function getCursorSvgUri(type: CursorType): string {
+function getCursorSvg(type: CursorType): ComponentType<SvgProps> {
   // A persisted cursorType from an older app version may not exist any more,
-  // so never index the asset map without a fallback.
-  const asset = CURSOR_SVG_ASSETS[type] ?? CURSOR_SVG_ASSETS[DEFAULT_CURSOR_TYPE];
-  return Image.resolveAssetSource(asset)?.uri ?? '';
+  // so never index the component map without a fallback.
+  return CURSOR_SVG_COMPONENTS[type] ?? CURSOR_SVG_COMPONENTS[DEFAULT_CURSOR_TYPE];
 }
 
 // ─── Cursor categories ──────────────────────────────────────────────────────
@@ -267,6 +270,8 @@ export default function SettingsScreen() {
   const setCursorColor          = useSettingsStore((s) => s.setCursorColor);
   const setCursorSize            = useSettingsStore((s) => s.setCursorSize);
 
+  const CursorPreview = getCursorSvg(cursorType);
+
   const cardStyle = {
     backgroundColor: colors.card,
     borderTopColor: colors.cardBorderTL,
@@ -309,7 +314,9 @@ export default function SettingsScreen() {
           <View key={category.name} style={{ marginBottom: 12 }}>
             <Text style={[styles.categoryLabel, { color: colors.textMuted }]}>{category.name}</Text>
             <View style={styles.cursorTypeGrid}>
-              {category.entries.map(({ type, label }) => (
+              {category.entries.map(({ type, label }) => {
+                const Svg = getCursorSvg(type);
+                return (
                 <TouchableOpacity
                   key={type}
                   style={[styles.cursorTypeCard, { backgroundColor: colors.card, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, cursorType === type && { borderColor: colors.accent, borderWidth: 2 }]}
@@ -319,14 +326,14 @@ export default function SettingsScreen() {
                   accessibilityLabel={`${category.name}: ${label}`}
                   accessibilityState={cursorType === type ? { selected: true } : {}}
                 >
-                  <SvgUri
-                    uri={getCursorSvgUri(type)}
+                  <Svg
                     width={Math.round(cursorSize * 1.1)}
                     height={Math.round(cursorSize * 1.1)}
                     color={cursorType === type ? colors.accent : undefined}
                   />
                 </TouchableOpacity>
-              ))}
+                );
+              })}
             </View>
           </View>
         ))}
@@ -341,7 +348,7 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.cursorSize}</Text>
         <View style={[styles.card, cardStyle]}>
           <View style={[styles.cursorSizePreview, { backgroundColor: colors.inputBg, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR }]}>
-            <SvgUri uri={getCursorSvgUri(cursorType)} width={cursorSize} height={cursorSize} />
+            <CursorPreview width={cursorSize} height={cursorSize} />
           </View>
           <SliderRow label={t.size} value={cursorSize} min={12} max={48} onChange={setCursorSize} unit="px" colors={colors} />
         </View>
