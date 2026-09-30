@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
 import { View, Text, ScrollView, StyleSheet, AppState, Pressable, TouchableOpacity } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
@@ -78,6 +79,10 @@ function getCursorSvg(type: CursorType): ComponentType<SvgProps> {
   // so never index the component map without a fallback.
   return CURSOR_SVG_COMPONENTS[type] ?? CURSOR_SVG_COMPONENTS[DEFAULT_CURSOR_TYPE];
 }
+
+// Fixed icon size for the cursor-type grid — deliberate: the cursor-size slider
+// must affect the preview box only, not every tile in the list.
+const CURSOR_LIST_ICON_SIZE = 26;
 
 // ─── Cursor categories ──────────────────────────────────────────────────────
 
@@ -186,6 +191,39 @@ const CURSOR_COLORS = [
 
 
 
+
+// ─── Small shared pieces ───────────────────────────────────────────────────
+
+/** Material checkmark — used by selected tiles and color swatches. */
+function CheckIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill={color} />
+    </Svg>
+  );
+}
+
+/** Display label for a cursor type, e.g. 'cursor-pointer-classic' → 'Classic'. */
+function cursorTypeLabel(type: CursorType): string {
+  for (const category of CURSOR_CATEGORIES) {
+    const hit = category.entries.find((e) => e.type === type);
+    if (hit) return hit.label;
+  }
+  return type;
+}
+
+/**
+ * Checkmark color for a color swatch: dark ink on light swatches, white on
+ * dark ones — keeps the selection mark readable on all 12 palette entries.
+ */
+function swatchCheckColor(hex: string): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.55 ? '#2c2b2b' : '#ffffff';
+}
 
 // ─── SliderRow (reusable) ──────────────────────────────────────────────────
 
@@ -314,26 +352,44 @@ export default function SettingsScreen() {
         {/* ── Cursor ───────────────────────────────────────────── */}
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.cursorType}</Text>
         {CURSOR_CATEGORIES.map((category) => (
-          <View key={category.name} style={{ marginBottom: 12 }}>
+          <View key={category.name} style={{ marginBottom: 6 }}>
             <Text style={[styles.categoryLabel, { color: colors.textMuted }]}>{category.name}</Text>
             <View style={styles.cursorTypeGrid}>
               {category.entries.map(({ type, label }) => {
                 const Svg = getCursorSvg(type);
+                const isSelected = cursorType === type;
                 return (
                 <TouchableOpacity
                   key={type}
-                  style={[styles.cursorTypeCard, { backgroundColor: colors.card, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow }, cursorType === type && { borderColor: colors.accent, borderWidth: 2 }]}
+                  style={[
+                    styles.cursorTypeCard,
+                    { backgroundColor: colors.card, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR, shadowColor: colors.cardShadow },
+                    isSelected
+                      ? { borderColor: colors.accent, borderWidth: 2, backgroundColor: colors.inputBg }
+                      : undefined,
+                  ]}
                   onPress={() => setCursorType(type)}
                   activeOpacity={0.8}
                   accessibilityRole="button"
                   accessibilityLabel={`${category.name}: ${label}`}
-                  accessibilityState={cursorType === type ? { selected: true } : {}}
+                  accessibilityState={isSelected ? { selected: true } : {}}
                 >
-                  <Svg
-                    width={Math.round(cursorSize * 1.1)}
-                    height={Math.round(cursorSize * 1.1)}
-                    color={cursorType === type ? colors.accent : undefined}
-                  />
+                  {/* Exact-size wrapper: centers a fixed box inside the aspectRatio
+                      tile so the Svg canvas always fills its layout bounds. Sizing
+                      the Svg directly inside the aspectRatio parent can measure
+                      inconsistently on Android and shifts the icon off-center. */}
+                  <View style={{ width: CURSOR_LIST_ICON_SIZE, height: CURSOR_LIST_ICON_SIZE, alignItems: 'center', justifyContent: 'center' }}>
+                    <Svg
+                      width={CURSOR_LIST_ICON_SIZE}
+                      height={CURSOR_LIST_ICON_SIZE}
+                      color={isSelected ? colors.accent : colors.textMuted}
+                    />
+                  </View>
+                  {isSelected && (
+                    <View style={[styles.selectedBadge, { backgroundColor: colors.accent }]}>
+                      <CheckIcon size={10} color={colors.buttonText} />
+                    </View>
+                  )}
                 </TouchableOpacity>
                 );
               })}
@@ -341,17 +397,47 @@ export default function SettingsScreen() {
           </View>
         ))}
 
-        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.cursorColor}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>
+          {t.cursorColor}
+          <Text style={[styles.selectedInline, { color: colors.accent }]}>
+            {'  '}{cursorColor.toUpperCase()}
+          </Text>
+        </Text>
         <View style={styles.colorPalette}>
-          {CURSOR_COLORS.map((c) => (
-            <TouchableOpacity key={c} style={[styles.colorSwatch, { backgroundColor: c }, cursorColor === c && { borderWidth: 2, borderColor: colors.accent }]} onPress={() => setCursorColor(c)} activeOpacity={0.8} />
-          ))}
+          {CURSOR_COLORS.map((c) => {
+            const isSelected = cursorColor === c;
+            return (
+              <TouchableOpacity
+                key={c}
+                style={[
+                  styles.colorSwatch,
+                  { backgroundColor: c },
+                  isSelected && { borderWidth: 2, borderColor: colors.accent },
+                ]}
+                onPress={() => setCursorColor(c)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={c}
+                accessibilityState={isSelected ? { selected: true } : {}}
+              >
+                {isSelected && <CheckIcon size={14} color={swatchCheckColor(c)} />}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.cursorSize}</Text>
         <View style={[styles.card, cardStyle]}>
+          <View style={styles.previewMetaRow}>
+            <Text style={[styles.previewMetaLabel, { color: colors.textMuted }]}>{t.preview}</Text>
+            <View style={styles.previewMetaRight}>
+              <Text style={[styles.previewMetaValue, { color: colors.accent }]}>{cursorTypeLabel(cursorType)} · {t.selected}</Text>
+              <View style={[styles.previewMetaSwatch, { backgroundColor: cursorColor, borderColor: colors.cardBorderTL }]} />
+              <Text style={[styles.previewMetaValue, { color: colors.accent }]}>{cursorColor.toUpperCase()}</Text>
+            </View>
+          </View>
           <View style={[styles.cursorSizePreview, { backgroundColor: colors.inputBg, borderTopColor: colors.cardBorderTL, borderLeftColor: colors.cardBorderTL, borderBottomColor: colors.cardBorderBR, borderRightColor: colors.cardBorderBR }]}>
-            <CursorPreview width={cursorSize} height={cursorSize} />
+            <CursorPreview width={cursorSize} height={cursorSize} color={cursorColor} />
           </View>
           <SliderRow label={t.size} value={cursorSize} min={12} max={48} onChange={setCursorSize} unit="px" colors={colors} />
         </View>
@@ -404,8 +490,15 @@ const styles = StyleSheet.create({
   sliderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   sliderLabel: { fontSize: 13 },
   sliderValue: { fontSize: 13, fontWeight: '600' },
-  categoryLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
-  cursorTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 },
+  categoryLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, marginTop: 2 },
+  cursorTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 0 },
+  selectedBadge: { position: 'absolute', top: -7, right: -7, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  selectedInline: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
+  previewMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  previewMetaLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  previewMetaRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  previewMetaValue: { fontSize: 12, fontWeight: '600' },
+  previewMetaSwatch: { width: 14, height: 14, borderRadius: 7, borderWidth: 1 },
   cursorTypeCard: { width: '30%', aspectRatio: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1.5, borderLeftWidth: 1.5, borderBottomWidth: 2, borderRightWidth: 2, shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
   colorPalette: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 4 },
   colorSwatch: { width: 36, height: 36, borderRadius: 18, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderTopColor: 'rgba(0,0,0,0.12)', borderLeftColor: 'rgba(0,0,0,0.12)', borderBottomWidth: 2, borderRightWidth: 2, borderBottomColor: 'rgba(255,255,255,0.6)', borderRightColor: 'rgba(255,255,255,0.6)', shadowColor: '#000', shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
