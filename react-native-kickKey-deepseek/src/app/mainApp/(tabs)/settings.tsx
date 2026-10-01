@@ -512,3 +512,4 @@ const styles = StyleSheet.create({
   a11yHint: { fontSize: 12, lineHeight: 17, paddingBottom: 12 },
   footnote: { fontSize: 12, textAlign: 'center', marginTop: 24 },
 });
+
