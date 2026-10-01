@@ -212,17 +212,30 @@ function cursorTypeLabel(type: CursorType): string {
   return type;
 }
 
+/** Relative luminance of a hex color: 0 (black) → 1 (white). */
+function hexLuminance(hex: string): number {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
 /**
  * Checkmark color for a color swatch: dark ink on light swatches, white on
  * dark ones — keeps the selection mark readable on all 12 palette entries.
  */
 function swatchCheckColor(hex: string): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16) / 255;
-  const g = parseInt(h.slice(2, 4), 16) / 255;
-  const b = parseInt(h.slice(4, 6), 16) / 255;
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luminance > 0.55 ? '#2c2b2b' : '#ffffff';
+  return hexLuminance(hex) > 0.55 ? '#2c2b2b' : '#ffffff';
+}
+
+/**
+ * Scrim disc color behind the swatch checkmark: a translucent overlay that
+ * darkens light swatches and lightens dark ones, so the check sits on a
+ * high-contrast disc no matter the swatch fill.
+ */
+function swatchScrimColor(hex: string): string {
+  return hexLuminance(hex) > 0.55 ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
 }
 
 // ─── SliderRow (reusable) ──────────────────────────────────────────────────
@@ -352,7 +365,7 @@ export default function SettingsScreen() {
         {/* ── Cursor ───────────────────────────────────────────── */}
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.cursorType}</Text>
         {CURSOR_CATEGORIES.map((category) => (
-          <View key={category.name} style={{ marginBottom: 6 }}>
+          <View key={category.name} style={{ marginBottom: 2 }}>
             <Text style={[styles.categoryLabel, { color: colors.textMuted }]}>{category.name}</Text>
             <View style={styles.cursorTypeGrid}>
               {category.entries.map(({ type, label }) => {
@@ -378,7 +391,7 @@ export default function SettingsScreen() {
                       tile so the Svg canvas always fills its layout bounds. Sizing
                       the Svg directly inside the aspectRatio parent can measure
                       inconsistently on Android and shifts the icon off-center. */}
-                  <View style={{ width: CURSOR_LIST_ICON_SIZE, height: CURSOR_LIST_ICON_SIZE, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{display:"flex", width: CURSOR_LIST_ICON_SIZE, height: CURSOR_LIST_ICON_SIZE, alignItems: 'center', justifyContent: 'center' }}>
                     <Svg
                       width={CURSOR_LIST_ICON_SIZE}
                       height={CURSOR_LIST_ICON_SIZE}
@@ -407,21 +420,30 @@ export default function SettingsScreen() {
           {CURSOR_COLORS.map((c) => {
             const isSelected = cursorColor === c;
             return (
-              <TouchableOpacity
+              // Selection ring cell: the outer wrapper carries the accent ring
+              // with a transparent gap between it and the swatch, so the ring
+              // stays visible even when the swatch fill matches the accent.
+              <View
                 key={c}
-                style={[
-                  styles.colorSwatch,
-                  { backgroundColor: c },
-                  isSelected && { borderWidth: 2, borderColor: colors.accent },
-                ]}
-                onPress={() => setCursorColor(c)}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel={c}
-                accessibilityState={isSelected ? { selected: true } : {}}
+                style={[styles.swatchRingCell, isSelected && { borderColor: colors.accent }]}
               >
-                {isSelected && <CheckIcon size={14} color={swatchCheckColor(c)} />}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.colorSwatch, { backgroundColor: c }]}
+                  onPress={() => setCursorColor(c)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={c}
+                  accessibilityState={isSelected ? { selected: true } : {}}
+                >
+                  {isSelected && (
+                    // Scrim disc behind the check keeps it readable on any
+                    // of the 12 palette fills.
+                    <View style={[styles.swatchCheckScrim, { backgroundColor: swatchScrimColor(c) }]}>
+                      <CheckIcon size={14} color={swatchCheckColor(c)} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
             );
           })}
         </View>
@@ -501,7 +523,9 @@ const styles = StyleSheet.create({
   previewMetaSwatch: { width: 14, height: 14, borderRadius: 7, borderWidth: 1 },
   cursorTypeCard: { width: '30%', aspectRatio: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1.5, borderLeftWidth: 1.5, borderBottomWidth: 2, borderRightWidth: 2, shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
   colorPalette: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 4 },
-  colorSwatch: { width: 36, height: 36, borderRadius: 18, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderTopColor: 'rgba(0,0,0,0.12)', borderLeftColor: 'rgba(0,0,0,0.12)', borderBottomWidth: 2, borderRightWidth: 2, borderBottomColor: 'rgba(255,255,255,0.6)', borderRightColor: 'rgba(255,255,255,0.6)', shadowColor: '#000', shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
+  swatchRingCell: { padding: 4, borderRadius: 22, borderWidth: 2, borderColor: 'transparent' },
+  swatchCheckScrim: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  colorSwatch: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1.5, borderLeftWidth: 1.5, borderTopColor: 'rgba(0,0,0,0.12)', borderLeftColor: 'rgba(0,0,0,0.12)', borderBottomWidth: 2, borderRightWidth: 2, borderBottomColor: 'rgba(255,255,255,0.6)', borderRightColor: 'rgba(255,255,255,0.6)', shadowColor: '#000', shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
   cursorSizePreview: { alignItems: 'center', justifyContent: 'center', height: 56, marginBottom: 4, borderRadius: 8, borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 1, borderRightWidth: 1 },
   a11yRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1 },
   a11yLabel: { fontSize: 15 },

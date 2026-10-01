@@ -1,6 +1,6 @@
 Email: myselffariakarimporna@gmail.com
-Download Link: https://expo.dev/artifacts/eas/-3X7K3pDhPLhYlhzOBy7cQ8LTYh8-PHWsmL1fbxdADw.apk
-Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme, Fix Customize Keyboard, Partially Fixed Folder Structure, Migration To QyKey, Fix Customized Cursor, Touchpad Button Functionality
+Download Link: https://expo.dev/artifacts/eas/ZxQxwlmBZsn8MWOcr50RuRztpucHmDzKg9DzHdbwjdQ.apk
+Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme, Fix Customize Keyboard, Partially Fixed Folder Structure, Migration To QyKey, Fix Customized Cursor, Touchpad Button Functionality, Fix Color Selection, Keyboard Area
 
 
 Bangla to English Conversion: https://chatgpt.com/c/6a3d5c31-c684-83e8-8b51-eda4710b19c4
@@ -24,16 +24,17 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
 16. [Done] Fix Settings Tab Keyboard Should be functional
 17. [Done] Fix Folder Structure
 18. [Done] Convert From KickKey to QyKey
-19. Find and fix other issues
+19. [Done] Fix keyboard size and key gap
+20. [Done] Fix Settings Tab Cursor Should be Functional
+21. [Done] Fix Touchpad click event
+22. Find and fix other issues
     1. Fix Color of the mic in the dark mode
     2. After installation why 3rd and 4th steps are not showing of on boarding
     3. Next and prev button position
     4. Vertical alignment of text after increasing key height
     5. Scroll of the emoji keyboard
-20. Fix keyboard size and key gap (->)
-21. Fix Settings Tab Cursor Should be Functional
-22. Fix Touchpad overlay size (->)
-23. Fix Touchpad click event (#)
+    6. After clicking accessibility should also force to on
+23. Fix Touchpad overlay size
 24. Fix Touchpad button event (#)
 25. Add Icons
 26. Refactor Code

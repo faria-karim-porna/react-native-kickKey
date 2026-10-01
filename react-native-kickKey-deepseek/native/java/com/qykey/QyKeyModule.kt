@@ -73,6 +73,18 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
         const val ACTION_PREFERENCES_CHANGED = "com.qykey.PREFERENCES_CHANGED"
 
+        // Bottom inset (dp) the IME window reports for the system navigation
+        // bar / gesture bar. Measured in QyKeyInputMethodService (which owns
+        // the IME window) and pushed to the keyboard JS like any other
+        // preference so the keyboard's bottom padding can lift the last key
+        // row above the bar — on Android 15+ the system draws the nav bar
+        // over the IME window (edge-to-edge enforcement), and floating-panel
+        // windows using FLAG_LAYOUT_IN_SCREEN extend behind it on every
+        // version. 0 = nothing overlaps the keyboard.
+        // @Volatile: written on the main thread (IME), read on the RN thread.
+        @Volatile
+        var imeNavBarInsetDp: Int = 0
+
         fun emitPreferences(reactContext: ReactApplicationContext?, prefMap: ReadableMap?) {
             if (reactContext == null || prefMap == null) return
             try {
@@ -121,6 +133,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
                     putInt("keyBorderRadius",     prefs.getInt("keyBorderRadius",   8))
                     putInt("fontSize",          prefs.getInt("fontSize",          14))
                     putInt("keyMargin",          prefs.getInt("keyMargin",          3))
+                    putInt("navBarBottomInset",  imeNavBarInsetDp)
                     putBoolean("hapticEnabled",   prefs.getBoolean("hapticEnabled",  true))
                     putBoolean("soundEnabled",    prefs.getBoolean("soundEnabled",   false))
                     putBoolean("autoCorrect",     prefs.getBoolean("autoCorrect",    true))
@@ -911,6 +924,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             putInt("keyBorderRadius",     prefs.getInt("keyBorderRadius",   8))
             putInt("fontSize",          prefs.getInt("fontSize",          14))
             putInt("keyMargin",          prefs.getInt("keyMargin",          3))
+            putInt("navBarBottomInset",  imeNavBarInsetDp)
             putBoolean("hapticEnabled",   prefs.getBoolean("hapticEnabled",  true))
             putBoolean("soundEnabled",    prefs.getBoolean("soundEnabled",   false))
             putBoolean("autoCorrect",     prefs.getBoolean("autoCorrect",    true))

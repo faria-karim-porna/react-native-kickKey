@@ -52,6 +52,9 @@ class QyKeyAccessibilityService : AccessibilityService() {
         // the JS keyboard needs 6 rows × (keyHeight + 15dp gap) + 18dp padding.
         private const val ROW_GAP_V_DP = 15
         private const val KEYBOARD_CONTENT_EXTRA_DP = 18
+        // Hard cap on the navigation-bar inset applied to the panel window —
+        // a misreported value can never blow up the panel.
+        private const val MAX_NAV_INSET_DP = 64
         // Mirrors the IME's auto-fit clamps (REPORTED_HEIGHT_MIN_DP/MAX_DP).
         private const val REPORTED_HEIGHT_MIN_DP = 250
         private const val REPORTED_HEIGHT_MAX_DP = 420
@@ -96,18 +99,54 @@ class QyKeyAccessibilityService : AccessibilityService() {
             }
             val prefs = getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
             val keyHeight = prefs.getInt("keyHeight", 26)
+            // FLAG_LAYOUT_IN_SCREEN lays this window out across the FULL screen
+            // including behind the navigation bar, so the last key row hides
+            // under it on every Android version. The window height and the JS
+            // bottom padding both need the nav-bar inset (mirrors the IME).
+            val navInsetDp = QyKeyModule.imeNavBarInsetDp.coerceIn(0, MAX_NAV_INSET_DP)
             val formulaDp = if (keyHeight > 0) {
-                maxOf(KEYBOARD_HEIGHT_DP, 6 * (keyHeight + ROW_GAP_V_DP) + KEYBOARD_CONTENT_EXTRA_DP)
+                maxOf(KEYBOARD_HEIGHT_DP, 6 * (keyHeight + ROW_GAP_V_DP) + KEYBOARD_CONTENT_EXTRA_DP) + navInsetDp
             } else {
-                KEYBOARD_HEIGHT_DP
+                KEYBOARD_HEIGHT_DP + navInsetDp
             }
             val reportedDp = reportedContentHeightPx
                 ?.takeIf { it > 0 }
                 ?.let { ceil(it / resources.displayMetrics.density).toInt() }
                 ?.takeIf { it in REPORTED_HEIGHT_MIN_DP..REPORTED_HEIGHT_MAX_DP }
+            // NOTE: the JS-reported height already includes the nav-bar inset
+            // (it is measured from the keyboard's own content padding), while
+            // formulaDp gets the inset added here — both paths count it once.
             val dp = maxOf(KEYBOARD_HEIGHT_DP, maxOf(formulaDp, reportedDp ?: formulaDp))
             return (dp * resources.displayMetrics.density).toInt()
         }
+
+    /**
+     * Bottom navigation-bar inset in dp measured from the system window
+     * metrics. The panel window spans the full screen, so the system-wide
+     * inset (not the panel window's own insets) is what it must clear.
+     */
+    private fun systemNavBarInsetDp(): Int {
+        return try {
+            val density = resources.displayMetrics.density
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                val wm = getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+                val insets = wm?.currentWindowMetrics?.windowInsets
+                    ?.getInsetsIgnoringVisibility(android.view.WindowInsets.Type.navigationBars())
+                if (insets != null && insets.bottom > 0) {
+                    return ceil(insets.bottom / density).toInt().coerceIn(0, MAX_NAV_INSET_DP)
+                }
+            }
+            val resId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+            if (resId > 0) {
+                ceil(resources.getDimensionPixelSize(resId) / density).toInt().coerceIn(0, MAX_NAV_INSET_DP)
+            } else {
+                0
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "systemNavBarInsetDp failed: ${e.message}")
+            0
+        }
+    }
 
     // ── Service lifecycle ──────────────────────────────────────────────────
 
@@ -223,6 +262,25 @@ class QyKeyAccessibilityService : AccessibilityService() {
 
         try {
             val host = app.keyboardReactHost
+
+            // The panel window spans the full screen (FLAG_LAYOUT_IN_SCREEN),
+            // so it ALWAYS extends behind the navigation bar — measure the
+            // system inset directly. The IME's stored measurement may be 0
+            // because its own window sits above the bar.
+            val measuredInsetDp = systemNavBarInsetDp()
+            if (measuredInsetDp != QyKeyModule.imeNavBarInsetDp) {
+                QyKeyModule.imeNavBarInsetDp = measuredInsetDp
+                Log.i(TAG, "Panel: nav bar inset -> ${measuredInsetDp}dp")
+                // Push the new inset to the keyboard JS (base paddingBottom).
+                try {
+                    val ctx = (host.currentReactContext
+                            as? com.facebook.react.bridge.ReactApplicationContext)
+                        ?: QyKeyModule.keyboardReactContext
+                    if (ctx != null) QyKeyModule.emitCurrentPreferences(ctx, this)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Panel nav-inset emit failed: ${e.message}")
+                }
+            }
 
             // Second surface from the SAME host + bundle as the IME keyboard.
             // The name must match the AppRegistry registration in keyboard.index.js.

@@ -47,6 +47,7 @@ export default function RootLayout() {
     keyHeight: 38,
     keyBorderRadius: 5,
     fontSize: 16,
+    navBarBottomInset: 0,
   }), [colors]);
 
   // Sync settings to SharedPreferences on every change, app-wide

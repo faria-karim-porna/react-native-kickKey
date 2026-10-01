@@ -31,6 +31,11 @@ export interface KeyboardThemeColors {
   keyHeight: number;
   keyBorderRadius: number;
   fontSize: number;
+  // Bottom navigation-bar inset (dp) the host window reports. 0 = nothing
+  // overlaps the keyboard. Used to lift the last key row above the system
+  // navigation bar (Android 15+ draws it over the IME; FLAG_LAYOUT_IN_SCREEN
+  // panel windows extend behind it on every version).
+  navBarBottomInset: number;
 }
 
 const LIGHT_COLORS: KeyboardThemeColors = {
@@ -43,6 +48,7 @@ const LIGHT_COLORS: KeyboardThemeColors = {
   keyHeight: 26,
   keyBorderRadius: 8,
   fontSize: 14,
+  navBarBottomInset: 0,
 };
 
 // Keep in sync with NORD_PRESET in assets/styles/themePresets.ts.
@@ -56,6 +62,7 @@ const DARK_COLORS: KeyboardThemeColors = {
   keyHeight: 26,
   keyBorderRadius: 8,
   fontSize: 14,
+  navBarBottomInset: 0,
 };
 
 let _QyKey: any = null;
@@ -105,6 +112,7 @@ export function useKeyboardTheme(): KeyboardThemeColors {
       keyHeight: storeKeyHeight ?? fallback.keyHeight,
       keyBorderRadius: storeKeyBorderRadius ?? fallback.keyBorderRadius,
       fontSize: storeFontSize ?? fallback.fontSize,
+      navBarBottomInset: 0,
     };
   });
 
@@ -128,6 +136,7 @@ export function useKeyboardTheme(): KeyboardThemeColors {
       keyHeight: storeKeyHeight ?? fallback.keyHeight,
       keyBorderRadius: storeKeyBorderRadius ?? fallback.keyBorderRadius,
       fontSize: storeFontSize ?? fallback.fontSize,
+      navBarBottomInset: 0,
     });
   }, [storeTheme, storeThemeColors, storeKeyHeight, storeKeyBorderRadius, storeFontSize, systemIsDark]);
 
@@ -143,6 +152,11 @@ export function useKeyboardTheme(): KeyboardThemeColors {
       const keyHeight = typeof prefs.keyHeight === 'number' ? prefs.keyHeight : defaultColors.keyHeight;
       const keyBorderRadius = typeof prefs.keyBorderRadius === 'number' ? prefs.keyBorderRadius : defaultColors.keyBorderRadius;
       const fontSize = typeof prefs.fontSize === 'number' ? prefs.fontSize : defaultColors.fontSize;
+      // Bottom inset from the host window (IME / floating panel). When absent
+      // (older native build), keep 0 so the layout is unchanged.
+      const navBarBottomInset = typeof prefs.navBarBottomInset === 'number'
+        ? Math.max(0, Math.round(prefs.navBarBottomInset))
+        : 0;
 
       const newColors: KeyboardThemeColors = {
         keyboardBg:    useStored ? (prefs.keyboardBg  || defaultColors.keyboardBg) : defaultColors.keyboardBg,
@@ -154,6 +168,7 @@ export function useKeyboardTheme(): KeyboardThemeColors {
         keyHeight:     keyHeight,
         keyBorderRadius: keyBorderRadius,
         fontSize:      fontSize,
+        navBarBottomInset,
       };
 
       // Keep local Zustand state in sync within this process

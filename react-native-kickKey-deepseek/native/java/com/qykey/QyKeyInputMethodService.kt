@@ -39,6 +39,9 @@ class QyKeyInputMethodService : InputMethodService() {
         // pre-report first paint doesn't shrink; max keeps gestures reachable.
         private const val REPORTED_HEIGHT_MIN_DP = 250
         private const val REPORTED_HEIGHT_MAX_DP = 420
+        // Hard cap on the navigation-bar inset applied to the keyboard: a
+        // misreported value can never blow up the window.
+        private const val MAX_NAV_INSET_DP = 64
         // First watchdog check after this delay, then re-check periodically. The
         // FIRST cold start after install is slow (RN init + 911KB Hermes bundle +
         // Fabric setup can exceed 8s on slow hardware), so we retry a few times
@@ -71,11 +74,16 @@ class QyKeyInputMethodService : InputMethodService() {
         get() {
             val prefs = getSharedPreferences("qykey_prefs", Context.MODE_PRIVATE)
             val keyHeight = prefs.getInt("keyHeight", 26)
+            // The window must also clear the system navigation bar when it is
+            // drawn over the keyboard (Android 15+ edge-to-edge, or a floating
+            // panel window that extends behind it). Formula/report heights are
+            // CONTENT heights — the inset is added on top of both.
+            val navInsetDp = QyKeyModule.imeNavBarInsetDp.coerceIn(0, MAX_NAV_INSET_DP)
             val formulaDp = if (keyHeight > 0) {
                 // 6 key rows × (keyHeight + row gap) + base padding (18dp).
-                6 * (keyHeight + ROW_GAP_V_DP) + KEYBOARD_CONTENT_EXTRA_DP
+                6 * (keyHeight + ROW_GAP_V_DP) + KEYBOARD_CONTENT_EXTRA_DP + navInsetDp
             } else {
-                KEYBOARD_HEIGHT_DP
+                KEYBOARD_HEIGHT_DP + navInsetDp
             }
             val reportedDp = reportedContentHeightPx
                 ?.takeIf { it > 0 }
@@ -92,6 +100,68 @@ class QyKeyInputMethodService : InputMethodService() {
     // ── Touchpad mode ───────────────────────────────────────────────────────
     internal val currentKeyboardHeightPx: Int
         get() = keyboardHeightPx
+
+    /**
+     * Measures how much of the system navigation bar overlaps the IME window
+     * (Android 15+ draws the bar over the IME; some OEM skins do it on older
+     * versions too) and stores it in QyKeyModule.imeNavBarInsetDp so both the
+     * height formula and the keyboard JS (bottom padding) can account for it.
+     * 0 when the system already positions the IME above the bar — a no-op.
+     *
+     * Uses real geometry (screen bottom vs the decor view's laid-out bottom
+     * edge) rather than the raw window insets, because non-edge-to-edge windows
+     * still receive non-zero navigationBars insets even when the system keeps
+     * them clear of the bar. Retries briefly while the window finishes its
+     * show/layout animation, then re-applies the window height and re-emits
+     * preferences when the inset changed. Main thread only (onWindowShown).
+     */
+    private fun measureAndEmitNavBarInset(attempt: Int = 0) {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+            val wm = getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
+            val metrics = wm.currentWindowMetrics
+            val navInsetPx = metrics.windowInsets
+                .getInsetsIgnoringVisibility(android.view.WindowInsets.Type.navigationBars())
+                .bottom
+            if (navInsetPx <= 0) {
+                storeNavBarInsetDp(0)
+                return
+            }
+            // InputMethodService.getWindow() returns the IME's Dialog; the
+            // decor view lives on the dialog's window.
+            val decor = window?.window?.decorView
+            if (decor == null || decor.height <= 0) {
+                // Window not laid out yet — retry while the show animation runs.
+                if (attempt < 10) mainHandler.postDelayed({ measureAndEmitNavBarInset(attempt + 1) }, 100)
+                return
+            }
+            val loc = IntArray(2)
+            decor.getLocationOnScreen(loc)
+            // The bar overlaps the keyboard only when the window's bottom edge
+            // reaches into the bar's band at the bottom of the screen.
+            val overlapPx = (loc[1] + decor.height) - (metrics.bounds.bottom - navInsetPx)
+            val dp = ceil(maxOf(0, overlapPx) / resources.displayMetrics.density).toInt()
+                .coerceIn(0, MAX_NAV_INSET_DP)
+            if (storeNavBarInsetDp(dp)) {
+                applyKeyboardWindowHeight()
+                val app = application as? QyKeyApplication
+                val ctx = (app?.keyboardReactHost?.currentReactContext
+                        as? com.facebook.react.bridge.ReactApplicationContext)
+                    ?: QyKeyModule.keyboardReactContext
+                if (ctx != null) QyKeyModule.emitCurrentPreferences(ctx, this)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "measureAndEmitNavBarInset failed: ${e.message}")
+        }
+    }
+
+    /** Stores the inset when changed; returns true when it changed. */
+    private fun storeNavBarInsetDp(dp: Int): Boolean {
+        if (dp == QyKeyModule.imeNavBarInsetDp) return false
+        QyKeyModule.imeNavBarInsetDp = dp
+        Log.i(TAG, "Nav bar inset -> ${dp}dp")
+        return true
+    }
 
     /**
      * Main-thread only. Sizes the IME window to the keyboard's natural content
@@ -120,6 +190,7 @@ class QyKeyInputMethodService : InputMethodService() {
 
     override fun onWindowShown() {
         super.onWindowShown()
+        measureAndEmitNavBarInset()
         applyKeyboardWindowHeight()
     }
 
