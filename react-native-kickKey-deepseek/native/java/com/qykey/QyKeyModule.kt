@@ -198,9 +198,13 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         promise.resolve(null)
     }
 
+    private fun getInputConnection(): InputConnection? {
+        return activeInputConnection ?: QyKeyInputMethodService.instance?.currentInputConnection
+    }
+
     @ReactMethod
     fun commitKey(code: String, language: String, promise: Promise) {
-        val ic = activeInputConnection
+        val ic = getInputConnection()
         if (ic != null) {
             if (language == "bn" && code.isNotEmpty()) {
                 val banglaResult = banglaEngine?.processKey(code) ?: code
@@ -230,7 +234,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             // The Bangla phonetic buffer consumed the backspace — something was removed.
             deleted = true
         } else {
-            deleted = deleteGraphemeBeforeCursor(activeInputConnection)
+            deleted = deleteGraphemeBeforeCursor(getInputConnection())
             suggestionEngine?.onBackspace()
         }
         // Only give tactile feedback when something was actually deleted — holding
@@ -251,34 +255,42 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
      * 👨‍👩‍👧‍👦 as ONE cluster, so a single backspace removes the whole emoji,
      * matching Ridmik/Gboard behavior.
      *
-     * @return true if a grapheme was actually deleted, false when there is
-     *         nothing before the cursor to delete.
+     * In AnyDesk/TeamViewer/RDP sessions, getTextBeforeCursor is null or empty
+     * because the remote desktop has no local text buffer. When that happens,
+     * this falls back to sending low-level KEYCODE_DEL down/up events with
+     * virtual keyboard flags so the remote PC deletes characters properly.
+     *
+     * @return true if a grapheme or key event was dispatched.
      */
     private fun deleteGraphemeBeforeCursor(ic: InputConnection?): Boolean {
         if (ic == null) return false
         val before = ic.getTextBeforeCursor(32, 0)
-        if (before == null || before.length == 0) {
-            // Nothing before the cursor — nothing to delete.
-            return false
+        if (before != null && before.isNotEmpty()) {
+            val iterator = android.icu.text.BreakIterator.getCharacterInstance(java.util.Locale.ROOT)
+            iterator.setText(before.toString())
+            val lastBoundary = iterator.last()
+            val clusterStart = iterator.previous()
+            if (clusterStart != android.icu.text.BreakIterator.DONE) {
+                val toDelete = lastBoundary - clusterStart
+                if (toDelete > 0 && ic.deleteSurroundingText(toDelete, 0)) {
+                    return true
+                }
+            }
         }
-        val iterator = android.icu.text.BreakIterator.getCharacterInstance(java.util.Locale.ROOT)
-        iterator.setText(before.toString())
-        val lastBoundary = iterator.last()
-        val clusterStart = iterator.previous()
-        if (clusterStart == android.icu.text.BreakIterator.DONE) {
-            return false
-        }
-        val toDelete = lastBoundary - clusterStart
-        if (toDelete > 0) {
-            ic.deleteSurroundingText(toDelete, 0)
-            return true
-        }
-        return false
+        // Fallback for remote desktop (AnyDesk, TeamViewer), terminals, and non-text views:
+        // When there is no local text buffer or deleteSurroundingText is unhandled,
+        // send hardware KEYCODE_DEL down/up events with virtual keyboard flags.
+        val now = SystemClock.uptimeMillis()
+        val flags = KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE
+        val deviceId = android.view.KeyCharacterMap.VIRTUAL_KEYBOARD
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL, 0, 0, deviceId, 0, flags))
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL, 0, 0, deviceId, 0, flags))
+        return true
     }
 
     @ReactMethod
     fun commitSpace(promise: Promise) {
-        val ic = activeInputConnection
+        val ic = getInputConnection()
         if (ic != null) {
             val pending = banglaEngine?.flush() ?: ""
             if (pending.isNotEmpty()) {
@@ -310,7 +322,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
     @ReactMethod
     fun commitSuggestion(word: String, promise: Promise) {
-        val ic = activeInputConnection
+        val ic = getInputConnection()
         if (ic != null) {
             val currentWord = suggestionEngine?.getCurrentWord() ?: ""
             ic.beginBatchEdit()
@@ -328,7 +340,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
     @ReactMethod
     fun commitText(text: String, promise: Promise) {
-        val ic = activeInputConnection
+        val ic = getInputConnection()
         if (ic != null && text.isNotEmpty()) {
             // Flush any pending bangla phonetic buffer first so dictation text
             // never mixes with an uncommitted Roman buffer.
@@ -345,7 +357,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
     @ReactMethod
     fun flushBanglaBuffer(promise: Promise) {
-        val ic = activeInputConnection
+        val ic = getInputConnection()
         if (ic != null) {
             val pending = banglaEngine?.flush() ?: ""
             if (pending.isNotEmpty()) {
@@ -365,7 +377,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
     @ReactMethod
     fun sendEnter(promise: Promise) {
-        val ic = activeInputConnection
+        val ic = getInputConnection()
         if (ic != null) {
             val pending = banglaEngine?.flush() ?: ""
             if (pending.isNotEmpty()) {
@@ -373,8 +385,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
                 ic.commitText(pending, 1)
                 ic.endBatchEdit()
             }
-            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_ENTER))
+            sendKeyEvents(listOf(KeyEvent.KEYCODE_ENTER))
 
             suggestionEngine?.onWordCommitted(suggestionEngine?.getCurrentWord() ?: "")
             hapticManager?.vibrate()
@@ -388,11 +399,13 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
      * computer, and focusable apps receive them locally).
      */
     private fun sendKeyEvents(keyCodes: List<Int>, metaState: Int = 0) {
-        val ic = activeInputConnection ?: return
+        val ic = getInputConnection() ?: return
+        val flags = KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE
+        val deviceId = android.view.KeyCharacterMap.VIRTUAL_KEYBOARD
         for (keyCode in keyCodes) {
             val now = SystemClock.uptimeMillis()
-            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, metaState))
-            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, metaState))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, metaState, deviceId, 0, flags))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, metaState, deviceId, 0, flags))
         }
     }
 
@@ -406,6 +419,10 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         '\t' -> KeyEvent.KEYCODE_TAB
         '-' -> KeyEvent.KEYCODE_MINUS
         '=' -> KeyEvent.KEYCODE_EQUALS
+        '+' -> KeyEvent.KEYCODE_PLUS
+        '*' -> KeyEvent.KEYCODE_STAR
+        '#' -> KeyEvent.KEYCODE_POUND
+        '@' -> KeyEvent.KEYCODE_AT
         '[' -> KeyEvent.KEYCODE_LEFT_BRACKET
         ']' -> KeyEvent.KEYCODE_RIGHT_BRACKET
         '\\' -> KeyEvent.KEYCODE_BACKSLASH
@@ -436,8 +453,9 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         name == "pagedown" || name == "pgdn" -> KeyEvent.KEYCODE_PAGE_DOWN
         name == "insert" -> KeyEvent.KEYCODE_INSERT
         name == "printscreen" || name == "sysrq" || name == "prtsc" -> KeyEvent.KEYCODE_SYSRQ
-        name == "scrolllock" -> KeyEvent.KEYCODE_SCROLL_LOCK
+        name == "scrolllock" || name == "scrlck" -> KeyEvent.KEYCODE_SCROLL_LOCK
         name == "pause" || name == "break" -> KeyEvent.KEYCODE_BREAK
+        name == "caps_lock" || name == "capslock" -> KeyEvent.KEYCODE_CAPS_LOCK
         name == "search" -> KeyEvent.KEYCODE_SEARCH
         name == "brightness_up" -> KeyEvent.KEYCODE_BRIGHTNESS_UP
         name == "brightness_down" -> KeyEvent.KEYCODE_BRIGHTNESS_DOWN
@@ -449,7 +467,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
     @ReactMethod
     fun sendSpecialKey(key: String, promise: Promise) {
-        val ic = activeInputConnection
+        val ic = getInputConnection()
         if (ic != null) {
             when (val k = key.lowercase()) {
                 "select_all", "ctrl_a" -> ic.performContextMenuAction(android.R.id.selectAll)
@@ -495,15 +513,17 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
                     }
                 }
                 "ctrl", "alt", "meta", "win", "⊞" -> {
-                    // A lone modifier tap sends a quick down/up (no-op, like a PC).
+                    // A lone modifier tap sends a quick down/up (like a physical PC keyboard, e.g. Win -> Start menu).
                     // Real combos go through sendKeyCombo (JS modifier latch).
                     val keyCode = when (k) {
                         "ctrl" -> KeyEvent.KEYCODE_CTRL_LEFT
                         "alt" -> KeyEvent.KEYCODE_ALT_LEFT
                         else -> KeyEvent.KEYCODE_META_LEFT
                     }
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
+                    sendKeyEvents(listOf(keyCode))
+                }
+                "caps_lock", "capslock" -> {
+                    sendKeyEvents(listOf(KeyEvent.KEYCODE_CAPS_LOCK))
                 }
                 else -> {
                     // F1-F12, PrtSc, ScrLck, Pause, Insert, Del, Home, End,
@@ -522,36 +542,81 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     }
 
     /**
-     * Sends a PC-style key combo with modifier meta state held down:
-     * Ctrl+C, Alt+Tab, Ctrl+Shift+S, Win+D, …
+     * Sends a PC-style key combo with modifier keycodes and meta state held down:
+     * Ctrl+C, Alt+Tab, Ctrl+Shift+S, Win+D, Win+R, Ctrl+Alt+Del, …
      *
-     * modifiers: comma-separated subset of "ctrl", "shift", "alt", "meta"
-     *            (produced by the JS one-shot modifier latch, e.g. "ctrl,shift").
+     * Injects hardware-style modifier ACTION_DOWN before the key, and modifier
+     * ACTION_UP after the key, while synchronously maintaining the meta bitmask.
+     * This guarantees that remote-desktop hosts (AnyDesk, TeamViewer, RDP, VNC)
+     * register real physical PC key chords and translate them to the remote OS.
+     *
+     * modifiers: comma-separated subset of "ctrl", "shift", "alt", "meta", "win"
      * key:       a single character (letter/digit/symbol) or a named key
      *            ("tab", "esc", "left", "f5", …).
      */
     @ReactMethod
     fun sendKeyCombo(modifiers: String, key: String, promise: Promise) {
-        val ic = activeInputConnection
+        val ic = getInputConnection()
         if (ic == null) {
             promise.resolve(null)
             return
         }
         var meta = 0
-        modifiers.lowercase().split(",").map { it.trim() }.forEach { m ->
-            meta = meta or when (m) {
-                "ctrl" -> KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
-                "shift" -> KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
-                "alt" -> KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
-                "meta", "win" -> KeyEvent.META_META_ON or KeyEvent.META_META_LEFT_ON
-                else -> 0
+        val modKeyCodes = mutableListOf<Int>()
+        modifiers.lowercase().split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach { m ->
+            when (m) {
+                "ctrl" -> {
+                    meta = meta or (KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON)
+                    modKeyCodes.add(KeyEvent.KEYCODE_CTRL_LEFT)
+                }
+                "shift" -> {
+                    meta = meta or (KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON)
+                    modKeyCodes.add(KeyEvent.KEYCODE_SHIFT_LEFT)
+                }
+                "alt" -> {
+                    meta = meta or (KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON)
+                    modKeyCodes.add(KeyEvent.KEYCODE_ALT_LEFT)
+                }
+                "meta", "win" -> {
+                    meta = meta or (KeyEvent.META_META_ON or KeyEvent.META_META_LEFT_ON)
+                    modKeyCodes.add(KeyEvent.KEYCODE_META_LEFT)
+                }
             }
         }
         val keyCode: Int? = if (key.length == 1) keyCodeForCharacter(key[0]) else namedKeyCode(key.lowercase())
         if (keyCode != null) {
             val now = SystemClock.uptimeMillis()
-            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, meta))
-            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, meta))
+            val flags = KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE
+            val deviceId = android.view.KeyCharacterMap.VIRTUAL_KEYBOARD
+
+            // 1. Press down modifiers (in order) so remote desktop hosts register key chord
+            var runningMeta = 0
+            for (modCode in modKeyCodes) {
+                runningMeta = runningMeta or when (modCode) {
+                    KeyEvent.KEYCODE_CTRL_LEFT -> KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
+                    KeyEvent.KEYCODE_SHIFT_LEFT -> KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
+                    KeyEvent.KEYCODE_ALT_LEFT -> KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
+                    KeyEvent.KEYCODE_META_LEFT -> KeyEvent.META_META_ON or KeyEvent.META_META_LEFT_ON
+                    else -> 0
+                }
+                ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, modCode, 0, runningMeta, deviceId, 0, flags))
+            }
+
+            // 2. Press down and release main key with full cumulative meta
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, meta, deviceId, 0, flags))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, meta, deviceId, 0, flags))
+
+            // 3. Release modifiers in reverse order
+            for (modCode in modKeyCodes.asReversed()) {
+                ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, modCode, 0, runningMeta, deviceId, 0, flags))
+                runningMeta = runningMeta and when (modCode) {
+                    KeyEvent.KEYCODE_CTRL_LEFT -> (KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON).inv()
+                    KeyEvent.KEYCODE_SHIFT_LEFT -> (KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON).inv()
+                    KeyEvent.KEYCODE_ALT_LEFT -> (KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON).inv()
+                    KeyEvent.KEYCODE_META_LEFT -> (KeyEvent.META_META_ON or KeyEvent.META_META_LEFT_ON).inv()
+                    else -> 0.inv()
+                }
+            }
         } else {
             // Unmappable key (e.g. Bangla glyph): commit raw text, no modifiers.
             ic.commitText(key, 1)
@@ -568,7 +633,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
     @ReactMethod
     fun moveCursor(direction: String, promise: Promise) {
-        val ic = activeInputConnection
+        val ic = getInputConnection()
         if (ic != null) {
             val keyCode = when (direction) {
                 "left"  -> KeyEvent.KEYCODE_DPAD_LEFT
@@ -577,8 +642,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
                 "down"  -> KeyEvent.KEYCODE_DPAD_DOWN
                 else    -> { promise.resolve(null); return }
             }
-            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
-            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   keyCode))
+            sendKeyEvents(listOf(keyCode))
             hapticManager?.vibrate()
         }
         promise.resolve(null)
@@ -595,14 +659,12 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         Handler(Looper.getMainLooper()).post {
             if (svc != null) {
                 svc.scrollAt(direction, PointerOverlay.cursorX, PointerOverlay.cursorY)
-                hapticManager?.vibrate()
             } else {
-                val ic = activeInputConnection
+                val ic = getInputConnection()
                 if (ic != null) {
                     val keyCode = if (direction == "up") KeyEvent.KEYCODE_PAGE_UP
                                   else                   KeyEvent.KEYCODE_PAGE_DOWN
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   keyCode))
+                    sendKeyEvents(listOf(keyCode))
                     hapticManager?.vibrate()
                 }
             }
@@ -625,25 +687,20 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
                     svc.navigateBack()
                 } else {
                     // Fallback: ALT + DPAD_LEFT (word-left / history-back).
-                    val ic = activeInputConnection
+                    val ic = getInputConnection()
                     if (ic != null) {
-                        val metaState = KeyEvent.META_ALT_ON
-                        ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_DOWN,
-                            KeyEvent.KEYCODE_DPAD_LEFT, 0, metaState))
-                        ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_UP,
-                            KeyEvent.KEYCODE_DPAD_LEFT, 0, metaState))
+                        val metaState = KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
+                        sendKeyEvents(listOf(KeyEvent.KEYCODE_DPAD_LEFT), metaState)
+                        hapticManager?.vibrate()
                     }
                     true
                 }
-                hapticManager?.vibrate()
                 promise.resolve(handled)
             } else {
                 // Forward: no GLOBAL_ACTION_FORWARD and a11y cannot inject keys.
                 // Best effort = scroll-forward on the focused node; JS shows a
                 // subtle hint when this resolves false. (Pro mode = M4.)
-                val handled = svc?.scrollForwardOnNode() ?: false
-                if (handled) hapticManager?.vibrate()
-                promise.resolve(handled)
+                promise.resolve(svc?.scrollForwardOnNode() ?: false)
             }
         }
     }
@@ -667,15 +724,10 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
                 hapticManager?.vibrate()
             } else {
                 // Fallback: a11y disabled → previous text-field behavior.
-                val ic = activeInputConnection
+                val ic = getInputConnection()
                 if (ic != null) {
-                    if (button == "left") {
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_DPAD_CENTER))
-                    } else {
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MENU))
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_MENU))
-                    }
+                    val keyCode = if (button == "left") KeyEvent.KEYCODE_DPAD_CENTER else KeyEvent.KEYCODE_MENU
+                    sendKeyEvents(listOf(keyCode))
                     hapticManager?.vibrate()
                 }
             }
@@ -756,17 +808,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     @ReactMethod
     fun dragEnd(promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            val svc = QyKeyAccessibilityService.instance
-            if (svc != null) {
-                svc.endDrag()
-            } else {
-                val ic = activeInputConnection
-                if (ic != null) {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_DPAD_CENTER))
-                }
-            }
-            hapticManager?.vibrate()
+            QyKeyAccessibilityService.instance?.endDrag()
             promise.resolve(null)
         }
     }

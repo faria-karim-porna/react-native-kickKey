@@ -21,7 +21,9 @@ export type ModifierKey = 'ctrl' | 'alt' | 'meta' | 'shift';
 const COMBOABLE_KEYS = new Set<string>([
   'tab', 'esc', 'escape', 'enter', 'return', 'space',
   'left', 'right', 'up', 'down',
-  'del', 'delete', 'backspace', 'home', 'end', 'pageup', 'pagedown', 'insert',
+  'del', 'delete', 'backspace', 'bksp', 'home', 'end', 'pageup', 'pagedown', 'pgdn', 'insert',
+  'prtsc', 'printscreen', 'sysrq', 'scrolllock', 'scrlck', 'pause', 'break',
+  '+', '-', '=', '[', ']', '\\', '/', ';', '\'', ',', '.', '`', '*', '#', '@',
   ...Array.from({ length: 12 }, (_, i) => `f${i + 1}`),
 ]);
 
@@ -224,10 +226,9 @@ export function useKeyboardState(): KeyboardState {
   }, [language, heldModifiers, capsLockOn]);
 
   const handleBackspace = useCallback(() => {
-    const comboMods = heldModifiers.filter((m) => m !== 'shift');
-    if (comboMods.length > 0) {
-      // Ctrl+Backspace = delete previous word (PC behavior).
-      getQyKey()?.sendKeyCombo(comboMods.join(','), 'backspace');
+    if (heldModifiers.length > 0) {
+      // Ctrl+Backspace = delete previous word, Alt+Backspace, etc.
+      getQyKey()?.sendKeyCombo(heldModifiers.join(','), 'backspace');
       setHeldModifiers([]);
     } else {
       getQyKey()?.sendBackspace();
@@ -268,9 +269,8 @@ export function useKeyboardState(): KeyboardState {
   }, []);
 
   const handleSpace = useCallback(() => {
-    const comboMods = heldModifiers.filter((m) => m !== 'shift');
-    if (comboMods.length > 0) {
-      getQyKey()?.sendKeyCombo(comboMods.join(','), 'space');
+    if (heldModifiers.length > 0) {
+      getQyKey()?.sendKeyCombo(heldModifiers.join(','), 'space');
       setHeldModifiers([]);
     } else {
       getQyKey()?.commitSpace();
@@ -279,9 +279,9 @@ export function useKeyboardState(): KeyboardState {
   }, [heldModifiers]);
 
   const handleEnter = useCallback(() => {
-    const comboMods = heldModifiers.filter((m) => m !== 'shift');
-    if (comboMods.length > 0) {
-      getQyKey()?.sendKeyCombo(comboMods.join(','), 'enter');
+    if (heldModifiers.length > 0) {
+      // e.g. Shift+Enter (soft line break), Ctrl+Enter (submit)
+      getQyKey()?.sendKeyCombo(heldModifiers.join(','), 'enter');
       setHeldModifiers([]);
     } else {
       getQyKey()?.sendEnter();
@@ -291,10 +291,9 @@ export function useKeyboardState(): KeyboardState {
 
   const handleSpecialKey = useCallback((key: string) => {
     if (!key) return;
-    const comboMods = heldModifiers.filter((m) => m !== 'shift');
-    if (comboMods.length > 0 && COMBOABLE_KEYS.has(key.toLowerCase())) {
-      // e.g. Alt+Tab, Ctrl+F5 — send as a real combo and consume the latch.
-      getQyKey()?.sendKeyCombo(comboMods.join(','), key);
+    if (heldModifiers.length > 0 && COMBOABLE_KEYS.has(key.toLowerCase())) {
+      // e.g. Alt+Tab, Ctrl+F5, Shift+Tab, Shift+Insert, Shift+F10, Ctrl+Shift+Esc, Win+PrtSc, Win+Pause
+      getQyKey()?.sendKeyCombo(heldModifiers.join(','), key);
       setHeldModifiers([]);
     } else {
       getQyKey()?.sendSpecialKey(key);
@@ -303,10 +302,9 @@ export function useKeyboardState(): KeyboardState {
   }, [heldModifiers]);
 
   const handleMoveCursor = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
-    const comboMods = heldModifiers.filter((m) => m !== 'shift');
-    if (comboMods.length > 0) {
-      // Ctrl+←/→ = word jump (PC behavior).
-      getQyKey()?.sendKeyCombo(comboMods.join(','), direction);
+    if (heldModifiers.length > 0) {
+      // Shift+Arrow = select text, Ctrl+Arrow = word jump, Ctrl+Shift+Arrow = select word
+      getQyKey()?.sendKeyCombo(heldModifiers.join(','), direction);
       setHeldModifiers([]);
     } else {
       getQyKey()?.moveCursor(direction);
@@ -316,17 +314,26 @@ export function useKeyboardState(): KeyboardState {
 
   // ── PC-style modifiers: one-shot latch (+ Shift double-tap = caps lock) ────
 
-  /** Toggles a latched modifier (Ctrl / Alt / Win). Tap again to unlatch. */
+  /** Toggles a latched modifier (Ctrl / Alt / Win). Tap again to unlatch.
+   *  For 'meta' (⊞): tapping again while already latched dispatches the lone Win key (opens Start Menu) and unlatches. */
   const toggleHeldModifier = useCallback((key: ModifierKey) => {
-    setHeldModifiers((mods) =>
-      mods.includes(key) ? mods.filter((m) => m !== key) : [...mods, key],
-    );
+    setHeldModifiers((mods) => {
+      if (mods.includes(key)) {
+        if (key === 'meta') {
+          // Double-tap / unlatch ⊞ dispatches lone Win key to open PC Start Menu
+          getQyKey()?.sendSpecialKey('win');
+        }
+        return mods.filter((m) => m !== key);
+      }
+      return [...mods, key];
+    });
     playKeySound();
   }, []);
 
   /**
-   * Shift, PC-style: single tap = one-shot (next letter capitalized, then it
-   * auto-releases); double tap = caps lock until tapped again.
+   * Shift, PC-style: single tap = one-shot (next letter capitalized / shifted combo,
+   * then auto-releases); double tap = caps lock until tapped again.
+   * Toggling caps lock also sends KEYCODE_CAPS_LOCK to keep remote PC in sync.
    */
   const handleShiftPress = useCallback(() => {
     const now = Date.now();
@@ -334,7 +341,11 @@ export function useKeyboardState(): KeyboardState {
     lastShiftTapRef.current = now;
     if (isDoubleTap) {
       // Double tap → toggle caps lock (a latched one-shot shift clears).
-      setCapsLockOn((on) => !on);
+      setCapsLockOn((on) => {
+        const next = !on;
+        getQyKey()?.sendSpecialKey('caps_lock');
+        return next;
+      });
       setHeldModifiers((mods) => mods.filter((m) => m !== 'shift'));
       playKeySound();
       return;
@@ -342,6 +353,7 @@ export function useKeyboardState(): KeyboardState {
     if (capsLockOn) {
       // Already locked: a single tap releases the lock.
       setCapsLockOn(false);
+      getQyKey()?.sendSpecialKey('caps_lock');
     } else if (heldModifiers.includes('shift')) {
       // Latched: a second single tap unlatches.
       setHeldModifiers((mods) => mods.filter((m) => m !== 'shift'));

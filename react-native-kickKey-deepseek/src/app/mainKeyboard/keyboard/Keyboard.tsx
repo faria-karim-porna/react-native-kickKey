@@ -188,6 +188,8 @@ export default function Keyboard() {
                     onBackspace={handleBackspace}
                     onEnter={handleEnter}
                     onSpecialKey={handleSpecialKey}
+                    shiftActive={shiftActive}
+                    onShiftPress={handleShiftPress}
                     heldModifiers={heldModifiers}
                     onModifierToggle={toggleHeldModifier}
                     themeColors={themeColors}
@@ -198,6 +200,8 @@ export default function Keyboard() {
                     onBackspace={handleBackspace}
                     onEnter={handleEnter}
                     onSpecialKey={handleSpecialKey}
+                    shiftActive={shiftActive}
+                    onShiftPress={handleShiftPress}
                     heldModifiers={heldModifiers}
                     onModifierToggle={toggleHeldModifier}
                     themeColors={themeColors}

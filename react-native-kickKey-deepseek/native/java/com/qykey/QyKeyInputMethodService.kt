@@ -1074,6 +1074,11 @@ class QyKeyInputMethodService : InputMethodService() {
         win.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
     }
 
+    override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(attribute, restarting)
+        QyKeyModule.activeInputConnection = currentInputConnection
+    }
+
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         QyKeyModule.activeInputConnection = currentInputConnection

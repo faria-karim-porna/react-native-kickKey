@@ -18,6 +18,9 @@ type SystemKeysProps = {
   /** Named key actions: PC keycodes (prtsc, insert, pageup…) or smart actions
    *  (power → lock screen, settings → Android settings, volume/brightness/search). */
   onSpecialKey?: (key: string) => void;
+  /** PC-style shift: controlled from useKeyboardState (one-shot + double-tap lock). */
+  shiftActive?: boolean;
+  onShiftPress?: () => void;
   /** Currently latched modifiers (Ctrl/Alt/Win), for the lit key indicators. */
   heldModifiers?: ModifierKey[];
   onModifierToggle?: (key: ModifierKey) => void;
@@ -29,6 +32,8 @@ export default function SystemKeys({
   onBackspace,
   onEnter,
   onSpecialKey,
+  shiftActive = false,
+  onShiftPress,
   heldModifiers = [],
   onModifierToggle,
   themeColors,
@@ -59,8 +64,16 @@ export default function SystemKeys({
       </View>
 
       <View style={[styles.line, styles.utilityLine]}>
-        <Key special style={styles.wider} isIcon themeColors={themeColors}>
-          <MDIIcon name="arrow-up-bold-outline" size={16} color={themeColors.keyText} />
+        <Key
+          special
+          style={styles.wider}
+          isIcon
+          hasActiveState
+          isStatusActive={shiftActive}
+          onPressHandler={() => onShiftPress?.()}
+          themeColors={themeColors}
+        >
+          <MDIIcon name="arrow-up-bold-outline" size={shiftActive ? 14 : 16} color={themeColors.keyText} />
         </Key>
         <View style={styles.utilityLineInner}>
           <Key functionKey isIcon onPressHandler={() => onSpecialKey?.('brightness_up')} themeColors={themeColors}>

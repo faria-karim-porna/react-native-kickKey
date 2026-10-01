@@ -17,6 +17,9 @@ type SymbolKeysProps = {
   onBackspace?: () => void;
   onEnter?: () => void;
   onSpecialKey?: (key: string) => void;
+  /** PC-style shift: controlled from useKeyboardState (one-shot + double-tap lock). */
+  shiftActive?: boolean;
+  onShiftPress?: () => void;
   /** Currently latched modifiers (Ctrl/Alt/Win), for the lit key indicators. */
   heldModifiers?: ModifierKey[];
   onModifierToggle?: (key: ModifierKey) => void;
@@ -29,6 +32,8 @@ export default function SymbolKeys({
   onBackspace,
   onEnter,
   onSpecialKey,
+  shiftActive = false,
+  onShiftPress,
   heldModifiers = [],
   onModifierToggle,
   themeColors,
@@ -83,8 +88,16 @@ export default function SymbolKeys({
       </View>
 
       <View style={styles.line}>
-        <Key special style={styles.wider} isIcon themeColors={themeColors}>
-          <MDIIcon name="arrow-up-bold-outline" size={16} color={themeColors.keyText} />
+        <Key
+          special
+          style={styles.wider}
+          isIcon
+          hasActiveState
+          isStatusActive={shiftActive}
+          onPressHandler={() => onShiftPress?.()}
+          themeColors={themeColors}
+        >
+          <MDIIcon name="arrow-up-bold-outline" size={shiftActive ? 14 : 16} color={themeColors.keyText} />
         </Key>
         {fkeys1.map((f) => (
           <Key key={f} functionKey onPressHandler={() => onSpecialKey?.(f)} themeColors={themeColors}>{f}</Key>
