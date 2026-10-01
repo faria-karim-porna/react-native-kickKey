@@ -407,6 +407,7 @@ export function useKeyboardState(): KeyboardState {
   /** Scroll the focused view / app one step up or down. */
   const handleScrollPage = useCallback((direction: 'up' | 'down') => {
     getQyKey()?.scrollPage(direction);
+    playKeySound();
   }, []);
 
   /** Held scroll caret → auto-repeat (mirrors backspace repeat: 350ms delay, 150ms tick). */
@@ -416,6 +417,7 @@ export function useKeyboardState(): KeyboardState {
       scrollRepeatDelayRef.current = null;
       scrollRepeatRef.current = setInterval(() => {
         getQyKey()?.scrollPage(direction);
+        playKeySound();
       }, 150);
     }, 350);
   }, []);
@@ -433,17 +435,20 @@ export function useKeyboardState(): KeyboardState {
 
   /** Back/Forward. Resolves false when Forward is unsupported. */
   const handleNavigateHistory = useCallback((direction: 'backward' | 'forward') => {
+    playKeySound();
     const res = getQyKey()?.navigateHistory(direction);
     return res && typeof res.then === 'function' ? res : Promise.resolve(true);
   }, []);
 
   /** Mouse L/R button action (native: tap / long-press under the cursor). */
   const handleMouseClick = useCallback((button: 'left' | 'right') => {
+    playKeySound();
     getQyKey()?.mouseClick(button);
   }, []);
 
   /** L button press-in — arm a native drag at the cursor. */
   const handleDragStart = useCallback(() => {
+    playKeySound();
     getQyKey()?.dragStart();
   }, []);
 

@@ -336,7 +336,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      width: '43%',
+      width: '42%',
     },
     navBtn: {
       width: '100%',
@@ -345,12 +345,13 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       borderRadius: 7,
     },
     scrollStack: {
-      width: '8%',
+      width: '12%',
       gap: 4,
       height: '100%',
     },
     scrollBtn: {
       flex: 1,
+      height: undefined,
       backgroundColor: scrollBtnBg,
       borderRadius: 7,
     },

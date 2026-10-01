@@ -595,6 +595,7 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         Handler(Looper.getMainLooper()).post {
             if (svc != null) {
                 svc.scrollAt(direction, PointerOverlay.cursorX, PointerOverlay.cursorY)
+                hapticManager?.vibrate()
             } else {
                 val ic = activeInputConnection
                 if (ic != null) {
@@ -631,16 +632,18 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
                             KeyEvent.KEYCODE_DPAD_LEFT, 0, metaState))
                         ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_UP,
                             KeyEvent.KEYCODE_DPAD_LEFT, 0, metaState))
-                        hapticManager?.vibrate()
                     }
                     true
                 }
+                hapticManager?.vibrate()
                 promise.resolve(handled)
             } else {
                 // Forward: no GLOBAL_ACTION_FORWARD and a11y cannot inject keys.
                 // Best effort = scroll-forward on the focused node; JS shows a
                 // subtle hint when this resolves false. (Pro mode = M4.)
-                promise.resolve(svc?.scrollForwardOnNode() ?: false)
+                val handled = svc?.scrollForwardOnNode() ?: false
+                if (handled) hapticManager?.vibrate()
+                promise.resolve(handled)
             }
         }
     }
@@ -753,7 +756,17 @@ class QyKeyModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     @ReactMethod
     fun dragEnd(promise: Promise) {
         Handler(Looper.getMainLooper()).post {
-            QyKeyAccessibilityService.instance?.endDrag()
+            val svc = QyKeyAccessibilityService.instance
+            if (svc != null) {
+                svc.endDrag()
+            } else {
+                val ic = activeInputConnection
+                if (ic != null) {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP,   KeyEvent.KEYCODE_DPAD_CENTER))
+                }
+            }
+            hapticManager?.vibrate()
             promise.resolve(null)
         }
     }
