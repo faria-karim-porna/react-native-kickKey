@@ -63,7 +63,7 @@ export default function SystemKeys({
         </Key>
       </View>
 
-      <View style={[styles.line, styles.utilityLine]}>
+      <View style={styles.line}>
         <Key
           special
           style={styles.wider}

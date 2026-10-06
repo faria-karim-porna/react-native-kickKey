@@ -274,20 +274,35 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     largeKeyLine: {
       justifyContent: 'flex-start',
     },
-    utilityLine: {
-      justifyContent: 'space-between',
-      paddingHorizontal: 20.25,
-    },
+    // Utility row (System page): shift | brightness/search/settings/power | backspace.
+    // The icon band is fixed to the exact width of SymbolKeys' F1–F7 band
+    // (7 keys × 33.75 + 6 gaps × 3 = 254.25) so the row's total content
+    // (44 + 254.25 + 44 + 2 row gaps × 3 = 348.25) matches SymbolKeys row 4.
+    // Both rows are centered `line`s, so the shift and backspace keys land at
+    // identical x positions on the two pages on every device width. The icons
+    // stay centered in the band (same on-screen spot as before).
     utilityLineInner: {
       display: 'flex',
       flexDirection: 'row',
+      justifyContent: 'center',
       gap: 3,
+      width: 254.25,
     },
     extraWider: {
-      width: 100,
+      // System-page large keys (PrtSc/ScrLck/Pause, Insert/Home/Pg Up,
+      // Del/End/Pg Dn): 100dp whenever the row has room, shrinking
+      // proportionally on narrow screens so the Prev key always fits
+      // at the row's right edge without clipping.
+      flex: 1,
+      maxWidth: 100,
     },
     pageBtn: {
+      // Prev key: same width and right-edge position as the sym page's
+      // Next key (moreWider + symNextLine's paddingRight) so Prev on the
+      // system page aligns exactly with Next on the symbol page.
       width: 60,
+      marginLeft: 'auto', // push to the row's right edge
+      marginRight: 3.75, // matches symNextLine's paddingRight
       backgroundColor: functionKeyBg,
     },
 
