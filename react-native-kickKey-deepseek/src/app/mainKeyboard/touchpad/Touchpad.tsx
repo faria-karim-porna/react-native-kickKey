@@ -124,7 +124,9 @@ export default function Touchpad({
     const result = onNavigateHistoryRef.current?.('forward');
     Promise.resolve(result)
       .then((handled) => {
-        if (handled === false) {
+        // `false` = native said unsupported; `null`/`undefined` = prop absent.
+        // In all falsy cases show the hint so the user knows something failed.
+        if (!handled) {
           setForwardHint(true);
           setTimeout(() => setForwardHint(false), 1500);
         }
@@ -447,7 +449,7 @@ export default function Touchpad({
           }}
         >
           <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center' }}>
-            Forward is not supported on this Android version
+            Forward not available — tap a text field first
           </Text>
         </View>
       )}

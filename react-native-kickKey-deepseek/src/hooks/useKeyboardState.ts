@@ -449,7 +449,11 @@ export function useKeyboardState(): KeyboardState {
   const handleNavigateHistory = useCallback((direction: 'backward' | 'forward') => {
     playKeySound();
     const res = getQyKey()?.navigateHistory(direction);
-    return res && typeof res.then === 'function' ? res : Promise.resolve(true);
+    if (res && typeof res.then === 'function') return res;
+    // Native module not yet bridged: forward → false (Touchpad will show the hint);
+    // backward → true (GLOBAL_ACTION_BACK would have worked but the module isn't
+    // ready, so treat it as best-effort success to avoid a spurious error hint).
+    return Promise.resolve(direction === 'forward' ? false : true);
   }, []);
 
   /** Mouse L/R button action (native: tap / long-press under the cursor). */
