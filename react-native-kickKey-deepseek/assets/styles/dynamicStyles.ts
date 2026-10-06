@@ -477,9 +477,26 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       position: 'absolute',
       bottom: 2,
     },
+    // Emoji board side inset: equal left/right padding around the board's
+    // content (tab bar + grid). Responsive, clamped so an 8-column emoji
+    // row (8 × 42 + 7 × 3 = 357dp) still fits on narrow screens — it never
+    // clips more than the old 2dp grid padding did.
+    emojiBoardInset: {
+      paddingHorizontal: Math.max(2, Math.min(12, (width - 357) / 2)),
+    },
     emojiGridContainer: {
-      height: 6 * colors.keyHeight + 6 * ROW_GAP_V,
-      paddingHorizontal: 2,
+      // 5 rows (was 6): the freed row hosts the fixed backspace row below
+      // the board, keeping the keyboard's total height unchanged.
+      height: 5 * colors.keyHeight + 5 * ROW_GAP_V,
+    },
+    // Places the emoji board's backspace key at the exact same x range as
+    // the backspace keys on the letter/symbol/system pages: as wide as
+    // those pages' key rows (2 × 44 + 254.25 + 2 × 3 = 348.25) with the
+    // key right-aligned inside it, inside the centered `line` row.
+    emojiBackspaceRow: {
+      width: 348.25,
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
     },
     scrollContent: {
       paddingBottom: 5,

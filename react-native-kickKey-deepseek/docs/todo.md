@@ -34,10 +34,10 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
     2. [Done] After installation why 3rd and 4th steps are not showing of on boarding
     3. (*) Next and prev button position and x button position in next prev page
     4. Vertical alignment of text after increasing key height
-    5. Scroll of the emoji keyboard
+    5. (*) Scroll of the emoji keyboard
     6. After clicking accessibility should also force to on
     7. emoji, pointer, sym switching issue find
-    8. add cross buton in emoji keyboard
+    8. (*) add cross buton in emoji keyboard
     9. padding in emoji keyboard
 25. Fix Touchpad overlay size
 26. Fix Touchpad button event (#)

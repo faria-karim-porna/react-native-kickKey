@@ -21,6 +21,8 @@ import type { KeyboardThemeColors } from '../../../hooks/useKeyboardTheme';
 
 type EmojiBoardProps = {
   onEmojiSelect?: (emoji: string) => void;
+  /** Backspace — same handler as the other keyboard pages. */
+  onBackspace?: () => void;
   themeColors: KeyboardThemeColors;
 };
 
@@ -30,7 +32,7 @@ const COLUMNS = 8;
 // so FlatList `getItemLayout` scroll estimates stay accurate.
 const rowHeightFor = (keyHeight: number) => keyHeight + ROW_GAP_V;
 
-const EmojiBoardComponent = ({ onEmojiSelect, themeColors }: EmojiBoardProps) => {
+const EmojiBoardComponent = ({ onEmojiSelect, onBackspace, themeColors }: EmojiBoardProps) => {
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const ROW_HEIGHT = useMemo(() => rowHeightFor(themeColors.keyHeight), [themeColors.keyHeight]);
   const [activeTab, setActiveTab] = useState('people');
@@ -106,28 +108,46 @@ const EmojiBoardComponent = ({ onEmojiSelect, themeColors }: EmojiBoardProps) =>
 
   return (
     <>
-      <View style={styles.tabBar}>{emojiCategories().map(renderTabItem)}</View>
+      <View style={[styles.emojiBoardInset, styles.container]}>
+        <View style={styles.tabBar}>{emojiCategories().map(renderTabItem)}</View>
 
-      <View style={styles.emojiGridContainer}>
-        <FlatList
-          data={currentEmojis}
-          renderItem={renderEmojiItem}
-          keyExtractor={(item, index) => `${index}-${item}`}
-          numColumns={COLUMNS}
-          columnWrapperStyle={styles.row}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          getItemLayout={(_, index) => ({
-            length: ROW_HEIGHT,
-            offset: ROW_HEIGHT * Math.floor(index / COLUMNS),
-            index,
-          })}
-          initialNumToRender={COLUMNS * 3}
-          maxToRenderPerBatch={COLUMNS * 3}
-          windowSize={5}
-          updateCellsBatchingPeriod={50}
-        />
+        <View style={styles.emojiGridContainer}>
+          <FlatList
+            data={currentEmojis}
+            renderItem={renderEmojiItem}
+            keyExtractor={(item, index) => `${index}-${item}`}
+            numColumns={COLUMNS}
+            columnWrapperStyle={styles.row}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            getItemLayout={(_, index) => ({
+              length: ROW_HEIGHT,
+              offset: ROW_HEIGHT * Math.floor(index / COLUMNS),
+              index,
+            })}
+            initialNumToRender={COLUMNS * 3}
+            maxToRenderPerBatch={COLUMNS * 3}
+            windowSize={5}
+            updateCellsBatchingPeriod={50}
+          />
+        </View>
+
+        {/* Fixed backspace row — the key sits at the same x range as the
+            backspace on the letter/symbol/system pages. */}
+        <View style={styles.line}>
+          <View style={styles.emojiBackspaceRow}>
+            <Key
+              special
+              style={styles.wider}
+              isIcon
+              onPressHandler={onBackspace}
+              themeColors={themeColors}
+            >
+              <MDIIcon name="backspace-outline" size={16} color={themeColors.keyText} />
+            </Key>
+          </View>
+        </View>
       </View>
     </>
   );

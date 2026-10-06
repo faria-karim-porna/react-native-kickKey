@@ -134,7 +134,11 @@ export default function Keyboard() {
           {!toggleMode ? (
             <>
               {isEmojiMode ? (
-                <EmojiBoard onEmojiSelect={handleEmojiSelect} themeColors={themeColors} />
+                <EmojiBoard
+                  onEmojiSelect={handleEmojiSelect}
+                  onBackspace={handleBackspace}
+                  themeColors={themeColors}
+                />
               ) : (
                 <View style={styles.line}>
                   {['\"', ':', ','].map((k) => (
