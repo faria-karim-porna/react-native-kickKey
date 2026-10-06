@@ -204,7 +204,7 @@ const TopStripComponent = (props: TopStripProps) => {
         onPressHandler={handleVoicePress}
         themeColors={themeColors}
       >
-        <MicrophoneIcon active={isMicrophoneActive} />
+        <MicrophoneIcon active={isMicrophoneActive} color={themeColors.keyText} />
       </Key>
     </>
   );

@@ -27,16 +27,21 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
 19. [Done] Fix keyboard size and key gap
 20. [Done] Fix Settings Tab Cursor Should be Functional
 21. [Done] Fix Touchpad click event
-22. Find and fix other issues
+22. Fix repository (kaalke)
+23. Move to main branch (kaalke)
+24. Find and fix other issues
     1. Fix Color of the mic in the dark mode
-    2. After installation why 3rd and 4th steps are not showing of on boarding
-    3. Next and prev button position
+    2. [Done] After installation why 3rd and 4th steps are not showing of on boarding
+    3. Next and prev button position and x button position in next prev page
     4. Vertical alignment of text after increasing key height
     5. Scroll of the emoji keyboard
     6. After clicking accessibility should also force to on
-23. Fix Touchpad overlay size
-24. Fix Touchpad button event (#)
-25. Add Icons
-26. Refactor Code
-27. Write Documentation
-28. Understand Code
+    7. emoji, pointer, sym switching issue find
+    8. add cross buton in emoji keyboard
+    9. padding in emoji keyboard
+25. Fix Touchpad overlay size
+26. Fix Touchpad button event (#)
+27. Add Icons
+28. Refactor Code
+29. Write Documentation
+30. Understand Code
