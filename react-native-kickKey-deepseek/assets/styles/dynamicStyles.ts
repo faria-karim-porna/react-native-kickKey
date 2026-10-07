@@ -79,10 +79,10 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       width: '100%',
       paddingTop: 4,
       paddingRight: 4,
-      // Bottom padding = base (14) + navigation-bar inset reported by the host
+      // Bottom padding = base (28, 2x of previous 14) + navigation-bar inset reported by the host
       // window. The shell still reaches the screen bottom (Gboard-style); the
       // keys sit above the nav bar. 0 when nothing overlaps the keyboard.
-      paddingBottom: 14 + colors.navBarBottomInset,
+      paddingBottom: 28 + colors.navBarBottomInset,
       paddingLeft: 4,
       backgroundColor: colors.keyboardBg + 'cc',
       borderRadius: 12,
