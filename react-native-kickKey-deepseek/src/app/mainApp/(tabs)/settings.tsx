@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
-import { useSettingsStore } from '@/store/settingsStore';
+import { useSettingsStore, DEFAULT_CURSOR_COLOR } from '@/store/settingsStore';
 import type { CursorType } from '@/store/settingsStore';
 import ToggleRow from '@/app/mainApp/ToggleRow';
 import QyKey from '@modules/qykey-module';
@@ -183,10 +183,14 @@ const CURSOR_CATEGORIES: CursorCategory[] = [
   },
 ];
 
+// Selectable cursor colours. The fresh-install default (the app accent) has to
+// be one of them, otherwise a new install shows a cursor colour that matches no
+// swatch and the palette renders with nothing marked as selected.
 const CURSOR_COLORS = [
   '#2c2b2b', '#444', '#8a8a8a', '#ffffff',
   '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71',
   '#3498db', '#9b59b6', '#e91e63', '#00bcd4',
+  DEFAULT_CURSOR_COLOR,
 ];
 
 
@@ -365,7 +369,7 @@ export default function SettingsScreen() {
         {/* ── Cursor ───────────────────────────────────────────── */}
         <Text style={[styles.sectionLabel, { color: colors.sectionLabel }]}>{t.cursorType}</Text>
         {CURSOR_CATEGORIES.map((category) => (
-          <View key={category.name} style={{ marginBottom: 2 }}>
+          <View key={category.name}>
             <Text style={[styles.categoryLabel, { color: colors.textMuted }]}>{category.name}</Text>
             <View style={styles.cursorTypeGrid}>
               {category.entries.map(({ type, label }) => {
@@ -387,11 +391,11 @@ export default function SettingsScreen() {
                   accessibilityLabel={`${category.name}: ${label}`}
                   accessibilityState={isSelected ? { selected: true } : {}}
                 >
-                  {/* Exact-size wrapper: centers a fixed box inside the aspectRatio
-                      tile so the Svg canvas always fills its layout bounds. Sizing
-                      the Svg directly inside the aspectRatio parent can measure
-                      inconsistently on Android and shifts the icon off-center. */}
-                  <View style={{display:"flex", width: CURSOR_LIST_ICON_SIZE, height: CURSOR_LIST_ICON_SIZE, alignItems: 'center', justifyContent: 'center' }}>
+                  {/* Icon layer: absolutely positioned over the tile's padding box
+                      and centred on both axes, so the glyph lands in the exact
+                      middle of its container box instead of depending on how the
+                      tile flex-lays-out a fixed-size child. */}
+                  <View style={styles.cursorTypeIcon}>
                     <Svg
                       width={CURSOR_LIST_ICON_SIZE}
                       height={CURSOR_LIST_ICON_SIZE}
@@ -514,6 +518,9 @@ const styles = StyleSheet.create({
   sliderValue: { fontSize: 13, fontWeight: '600' },
   categoryLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, marginTop: 2 },
   cursorTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 0 },
+  // Icon layer fills the whole tile and centres the glyph on both axes, so the
+  // SVG always sits in the middle of its container box.
+  cursorTypeIcon: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   selectedBadge: { position: 'absolute', top: -7, right: -7, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   selectedInline: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
   previewMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
@@ -521,7 +528,10 @@ const styles = StyleSheet.create({
   previewMetaRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   previewMetaValue: { fontSize: 12, fontWeight: '600' },
   previewMetaSwatch: { width: 14, height: 14, borderRadius: 7, borderWidth: 1 },
-  cursorTypeCard: { width: '30%', aspectRatio: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1.5, borderLeftWidth: 1.5, borderBottomWidth: 2, borderRightWidth: 2, shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
+  // Fixed height (was a 30%-wide square): the tile now hugs its icon, so the
+  // icons of a group stay close together and the next group's label sits right
+  // below them instead of after a tall band of empty tile.
+  cursorTypeCard: { width: '30%', height: 52, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1.5, borderLeftWidth: 1.5, borderBottomWidth: 2, borderRightWidth: 2, shadowOffset: { width: -2, height: -2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
   colorPalette: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 4 },
   swatchRingCell: { padding: 4, borderRadius: 22, borderWidth: 2, borderColor: 'transparent' },
   swatchCheckScrim: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },

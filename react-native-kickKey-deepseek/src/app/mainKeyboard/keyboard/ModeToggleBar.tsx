@@ -31,9 +31,17 @@ const ModeToggleBarComponent = (props: ModeToggleBarProps) => {
     }).start();
   };
 
+  // The track (styles.slider) is split into two equal halves, one glyph each
+  // (styles.iconSlot), with a knob that slides between them. Deriving the knob
+  // travel from those same numbers makes it rest exactly under the active
+  // glyph; the previous hard-coded travel (0 → 40) left the wider keyboard
+  // glyph sitting a few px right of the knob's centre.
+  const halfTrackWidth = (styles.slider.width as number) / 2;
+  const knobInset = (halfTrackWidth - (styles.knob.width as number)) / 2;
+
   const knobTranslate = knobAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 40],
+    outputRange: [knobInset, halfTrackWidth + knobInset],
   });
 
   return (
@@ -41,8 +49,12 @@ const ModeToggleBarComponent = (props: ModeToggleBarProps) => {
       <View style={styles.slider}>
         <Animated.View style={[styles.knob, { left: knobTranslate }]} />
         <View style={styles.iconLayer}>
-          <FA5Icon name="keyboard" size={14} color={!toggleMode ? themeColors.keyText : themeColors.specialKeyText} />
-          <FA5Icon name="mouse-pointer" size={14} color={toggleMode ? themeColors.keyText : themeColors.specialKeyText} />
+          <View style={styles.iconSlot}>
+            <FA5Icon name="keyboard" size={14} color={!toggleMode ? themeColors.keyText : themeColors.specialKeyText} />
+          </View>
+          <View style={styles.iconSlot}>
+            <FA5Icon name="mouse-pointer" size={14} color={toggleMode ? themeColors.keyText : themeColors.specialKeyText} />
+          </View>
         </View>
       </View>
     </Pressable>

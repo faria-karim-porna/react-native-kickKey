@@ -205,10 +205,17 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     },
     iconLayer: {
       flexDirection: 'row',
-      justifyContent: 'space-around',
       alignItems: 'center',
       width: '100%',
       zIndex: 2,
+    },
+    // One glyph per half of the toggle track. Each slot centres its OWN glyph,
+    // so the keyboard icon lines up with the knob: `space-around` used to space
+    // the glyphs by their own widths and pushed the wider keyboard glyph right.
+    iconSlot: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     suggestionsContainer: {
       flex: 1,
@@ -226,6 +233,27 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       fontWeight: '600',
       flexShrink: 1,
       textAlign: 'center' as const,
+      // Match the key labels: Android's default font padding adds uneven space
+      // above/below the glyphs, which pushed the suggestion words off-centre.
+      includeFontPadding: false,
+    },
+    // Suggestion row: stretches to the full height of the strip so each word's
+    // touch target spans the strip and the label centres inside it (the old
+    // `height: '100%'` on each word resolved against an auto-height parent and
+    // left the words sitting above the strip's vertical centre).
+    suggestionRow: {
+      flex: 1,
+      alignSelf: 'stretch',
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    // Each word gets the full strip height as its touch target while the label
+    // itself stays centred inside that box.
+    suggestionItem: {
+      flex: 1,
+      alignSelf: 'stretch',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     suggestionSeparator: {
       width: 1,

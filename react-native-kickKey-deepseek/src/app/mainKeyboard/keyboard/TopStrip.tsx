@@ -156,17 +156,12 @@ const TopStripComponent = (props: TopStripProps) => {
     }
     if (suggestions.length > 0) {
       return (
-        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+        <View style={styles.suggestionRow}>
           {suggestions.slice(0, 3).map((word, index) => (
             <React.Fragment key={word + index}>
               {index > 0 && <View style={styles.suggestionSeparator} />}
               <TouchableOpacity
-                style={{
-                  flex: 1,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                }}
+                style={styles.suggestionItem}
                 onPress={() => onSuggestionPress?.(word)}
                 activeOpacity={0.6}
               >

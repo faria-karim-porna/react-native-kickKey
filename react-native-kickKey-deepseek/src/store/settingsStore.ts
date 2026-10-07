@@ -82,6 +82,14 @@ export const CURSOR_TYPES = [
 
 export type CursorType = (typeof CURSOR_TYPES)[number];
 
+/**
+ * Colour of a freshly installed cursor (the app accent, and the same value
+ * QyKeyModule.kt falls back to when the pref is unset). Exported so the
+ * settings palette can include it: a default that is not one of the palette
+ * swatches would leave a new install with no colour shown as selected.
+ */
+export const DEFAULT_CURSOR_COLOR = '#8594aa';
+
 export interface ThemeColors {
   keyboardBg: string;
   keyBg: string;
@@ -173,7 +181,7 @@ export const useSettingsStore = create<SettingsState>()(
       setFontSize: (fontSize) => set({ fontSize }),
 
       cursorType: 'cursor-pointer-classic',
-      cursorColor: '#8594aa',
+      cursorColor: DEFAULT_CURSOR_COLOR,
       cursorSize: 24,
       setCursorType: (cursorType) => set({ cursorType }),
       setCursorColor: (cursorColor) => set({ cursorColor }),
