@@ -10,6 +10,7 @@ import {
   FlatList,
   Pressable,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { Key } from '../Key';
 import { emojis, emojiCategories } from '../../../data/emojiData';
@@ -35,6 +36,30 @@ const COLUMNS = 6;
 // so FlatList `getItemLayout` scroll estimates stay accurate.
 const rowHeightFor = (keyHeight: number) => keyHeight + ROW_GAP_V;
 
+interface EmojiItemProps {
+  item: string;
+  onSelect?: (emoji: string) => void;
+  keyStyle: any;
+  keyPressedStyle: any;
+  textStyle: any;
+}
+
+const EmojiItem = React.memo(({ item, onSelect, keyStyle, keyPressedStyle, textStyle }: EmojiItemProps) => {
+  const handlePress = useCallback(() => {
+    onSelect?.(item);
+  }, [item, onSelect]);
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      unstable_pressDelay={60}
+      style={({ pressed }) => [keyStyle, pressed && keyPressedStyle]}
+    >
+      <Text style={textStyle}>{item}</Text>
+    </Pressable>
+  );
+});
+
 const EmojiBoardComponent = ({
   onEmojiSelect,
   onBackspace,
@@ -53,18 +78,22 @@ const EmojiBoardComponent = ({
 
   const currentEmojis = useMemo(() => emojis()[activeTab] || [], [activeTab]);
 
-  const handleEmojiPress = useCallback(
-    (emoji: string) => () => onEmojiSelect?.(emoji),
-    [onEmojiSelect],
+  const keyStyle = useMemo(
+    () => [styles.key, styles.emojiKey],
+    [styles.key, styles.emojiKey],
   );
 
   const renderEmojiItem = useCallback(
     ({ item }: { item: string }) => (
-      <Key style={styles.emojiKey} onPressHandler={handleEmojiPress(item)} themeColors={themeColors}>
-        <Text style={styles.emojiText}>{item}</Text>
-      </Key>
+      <EmojiItem
+        item={item}
+        onSelect={onEmojiSelect}
+        keyStyle={keyStyle}
+        keyPressedStyle={styles.keyPressed}
+        textStyle={styles.emojiText}
+      />
     ),
-    [handleEmojiPress, styles, themeColors],
+    [onEmojiSelect, keyStyle, styles.keyPressed, styles.emojiText],
   );
 
   const [showTooltipId, setShowTooltipId] = useState<string | null>(null);
@@ -144,10 +173,11 @@ const EmojiBoardComponent = ({
             offset: ROW_HEIGHT * Math.floor(index / COLUMNS),
             index,
           })}
-          initialNumToRender={COLUMNS * 3}
-          maxToRenderPerBatch={COLUMNS * 3}
-          windowSize={5}
-          updateCellsBatchingPeriod={50}
+          initialNumToRender={COLUMNS * 5}
+          maxToRenderPerBatch={COLUMNS * 4}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS === 'android'}
+          overScrollMode="never"
         />
       </View>
 
