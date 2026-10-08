@@ -137,6 +137,8 @@ export default function Keyboard() {
                 <EmojiBoard
                   onEmojiSelect={handleEmojiSelect}
                   onBackspace={handleBackspace}
+                  onRepeatStart={handleBackspaceRepeatStart}
+                  onRepeatEnd={handleBackspaceRepeatEnd}
                   themeColors={themeColors}
                 />
               ) : (

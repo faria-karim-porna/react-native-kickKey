@@ -9,6 +9,7 @@ import {
   Text,
   FlatList,
   Pressable,
+  Dimensions,
 } from 'react-native';
 import { Key } from '../Key';
 import { emojis, emojiCategories } from '../../../data/emojiData';
@@ -23,6 +24,8 @@ type EmojiBoardProps = {
   onEmojiSelect?: (emoji: string) => void;
   /** Backspace — same handler as the other keyboard pages. */
   onBackspace?: () => void;
+  onRepeatStart?: () => void;
+  onRepeatEnd?: () => void;
   themeColors: KeyboardThemeColors;
 };
 
@@ -32,10 +35,21 @@ const COLUMNS = 8;
 // so FlatList `getItemLayout` scroll estimates stay accurate.
 const rowHeightFor = (keyHeight: number) => keyHeight + ROW_GAP_V;
 
-const EmojiBoardComponent = ({ onEmojiSelect, onBackspace, themeColors }: EmojiBoardProps) => {
+const EmojiBoardComponent = ({
+  onEmojiSelect,
+  onBackspace,
+  onRepeatStart,
+  onRepeatEnd,
+  themeColors,
+}: EmojiBoardProps) => {
   const styles = useMemo(() => createKeyboardStyles(themeColors), [themeColors]);
   const ROW_HEIGHT = useMemo(() => rowHeightFor(themeColors.keyHeight), [themeColors.keyHeight]);
   const [activeTab, setActiveTab] = useState('people');
+  const [containerWidth, setContainerWidth] = useState(
+    () => Dimensions.get('window').width - 8,
+  );
+  const rightOffset = Math.max(0, (containerWidth - 348.25) / 2);
+  const topOffset = 4 * (themeColors.keyHeight + ROW_GAP_V);
 
   const currentEmojis = useMemo(() => emojis()[activeTab] || [], [activeTab]);
 
@@ -107,8 +121,11 @@ const EmojiBoardComponent = ({ onEmojiSelect, onBackspace, themeColors }: EmojiB
   };
 
   return (
-    <>
-      <View style={[styles.emojiBoardInset, styles.container]}>
+    <View
+      style={styles.container}
+      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+    >
+      <View style={styles.emojiBoardInset}>
         <View style={styles.tabBar}>{emojiCategories().map(renderTabItem)}</View>
 
         <View style={styles.emojiGridContainer}>
@@ -132,24 +149,32 @@ const EmojiBoardComponent = ({ onEmojiSelect, onBackspace, themeColors }: EmojiB
             updateCellsBatchingPeriod={50}
           />
         </View>
-
-        {/* Fixed backspace row — the key sits at the same x range as the
-            backspace on the letter/symbol/system pages. */}
-        <View style={styles.line}>
-          <View style={styles.emojiBackspaceRow}>
-            <Key
-              special
-              style={styles.wider}
-              isIcon
-              onPressHandler={onBackspace}
-              themeColors={themeColors}
-            >
-              <MDIIcon name="backspace-outline" size={16} color={themeColors.keyText} />
-            </Key>
-          </View>
-        </View>
       </View>
-    </>
+
+      {/* Fixed backspace key — matches width and position of SymbolKeys row 4 */}
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.emojiFixedBackspace,
+          {
+            top: topOffset,
+            right: rightOffset,
+          },
+        ]}
+      >
+        <Key
+          special
+          style={styles.wider}
+          isIcon
+          onPressHandler={onBackspace}
+          onRepeatStart={onRepeatStart}
+          onRepeatEnd={onRepeatEnd}
+          themeColors={themeColors}
+        >
+          <MDIIcon name="backspace-outline" size={16} color={themeColors.keyText} />
+        </Key>
+      </View>
+    </View>
   );
 };
 

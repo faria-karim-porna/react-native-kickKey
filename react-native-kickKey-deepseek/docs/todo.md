@@ -1,5 +1,5 @@
 Email: myselffariakarimporna@gmail.com
-Download Link: https://expo.dev/artifacts/eas/ZxQxwlmBZsn8MWOcr50RuRztpucHmDzKg9DzHdbwjdQ.apk
+Download Link: https://expo.dev/artifacts/eas/TMB6EM64U12JuGWWlmEwicfViPYCi3apcivi7OL_48I.apk
 Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme, Fix Customize Keyboard, Partially Fixed Folder Structure, Migration To QyKey, Fix Customized Cursor, Touchpad Button Functionality, Fix Color Selection, Keyboard Area
 
 
@@ -39,9 +39,16 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
     7. emoji, pointer, sym switching issue find
     8. [Done] add cross button in emoji keyboard
     9. (*) padding in emoji keyboard
-    10. [Done] keyboard icon alignment on 
-25. Fix Touchpad overlay size
-26. Fix Touchpad button event (#)
+    10. [Done] keyboard icon alignment on
+    11. Gap in the emoji keyboard for people
+    12. Tab of emoji keyboard overflows
+    13. UI of overlay alert and forward navigation alert
+    14. Forward navigation is not working
+    15. Windows button is working on double click
+    16. Make the overlay transparent
+    17. Test touchpad dragging work if not fix it
+25. [Done] Fix Touchpad overlay size
+26. [Done] Fix Touchpad button event
 27. Add Icons
 28. Refactor Code
 29. Write Documentation

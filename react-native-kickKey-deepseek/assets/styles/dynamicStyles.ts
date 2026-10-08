@@ -458,7 +458,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
     tabBar: {
       flexDirection: 'row',
       justifyContent: 'space-around',
-      marginBottom: 6,
+      marginBottom: Math.max(4, ROW_GAP_V - 7),
       backgroundColor: colors.specialKeyBg,
       borderRadius: Math.max(0, colors.keyBorderRadius + 2),
       paddingVertical: 2,
@@ -513,9 +513,13 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       paddingHorizontal: Math.max(2, Math.min(12, (width - 357) / 2)),
     },
     emojiGridContainer: {
-      // 5 rows (was 6): the freed row hosts the fixed backspace row below
-      // the board, keeping the keyboard's total height unchanged.
+      // 5 rows: the emoji board's height matches the 6-row keyboard (1 tab bar + 5 grid rows = 6 rows).
       height: 5 * colors.keyHeight + 5 * ROW_GAP_V,
+    },
+    emojiFixedBackspace: {
+      position: 'absolute',
+      zIndex: 20,
+      elevation: 20,
     },
     // Places the emoji board's backspace key at the exact same x range as
     // the backspace keys on the letter/symbol/system pages: as wide as
