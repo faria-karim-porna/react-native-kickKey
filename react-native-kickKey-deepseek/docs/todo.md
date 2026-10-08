@@ -41,7 +41,7 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
     9. (*) padding in emoji keyboard
     10. [Done] keyboard icon alignment on
     11. Gap in the emoji keyboard for people
-    12. Tab of emoji keyboard overflows
+    12. (*) Tab of emoji keyboard overflows
     13. UI of overlay alert and forward navigation alert
     14. Forward navigation is not working
     15. Windows button is working on double click
