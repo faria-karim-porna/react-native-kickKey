@@ -1,5 +1,5 @@
 Email: myselffariakarimporna@gmail.com
-Download Link: https://expo.dev/artifacts/eas/TMB6EM64U12JuGWWlmEwicfViPYCi3apcivi7OL_48I.apk
+Download Link: https://expo.dev/artifacts/eas/GtROySc4SK5OI97Q4k5NLjZHqPA4-MbfcYyffVmsH7E.apk
 Status: Add Qykey With Circuit Background, Speech Recognition, Partially Fix Emoji, Backspace Icon, Configuration Steps, Menus And Tabs, Overlay, Dark Theme, Fix Settings And Dictionary Issue, Fix Theme, Fix Customize Keyboard, Partially Fixed Folder Structure, Migration To QyKey, Fix Customized Cursor, Touchpad Button Functionality, Fix Color Selection, Keyboard Area
 
 
@@ -33,15 +33,15 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
     1. [Done] Fix Color of the mic in the dark mode
     2. [Done] After installation why 3rd and 4th steps are not showing of on boarding
     3. [Done] Next and prev button position and x button position in next prev page
-    4. Vertical alignment of text after increasing key height
-    5. (*) Scroll of the emoji keyboard
-    6. After clicking accessibility should also force to on
-    7. emoji, pointer, sym switching issue find
-    8. [Done] add cross button in emoji keyboard
-    9. (*) padding in emoji keyboard
-    10. [Done] keyboard icon alignment on
-    11. Gap in the emoji keyboard for people
-    12. (*) Tab of emoji keyboard overflows
+    4. [Done] Scroll of the emoji keyboard
+    5. [Done] add cross button in emoji keyboard
+    6. [Done] padding in emoji keyboard
+    7. [Done] keyboard icon alignment on
+    8. [Done] Tab of emoji keyboard overflows
+    9. Vertical alignment of text after increasing key height
+    10. After clicking accessibility should also force to on
+    11. emoji, pointer, sym switching issue find
+    12. Gap in the emoji keyboard for people
     13. UI of overlay alert and forward navigation alert
     14. Forward navigation is not working
     15. Windows button is working on double click
@@ -53,3 +53,4 @@ Claude Planning: https://claude.ai/chat/e6deb938-fe18-4256-8196-806aa89ac08e
 28. Refactor Code
 29. Write Documentation
 30. Understand Code
+31. Decrease Screen size [if possible]
