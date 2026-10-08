@@ -513,6 +513,8 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       paddingHorizontal: Math.max(2, Math.min(12, (width - 357) / 2)),
     },
     emojiGridContainer: {
+      width: 254.25,
+      alignSelf: 'center',
       // 5 rows: the emoji board's height matches the 6-row keyboard (1 tab bar + 5 grid rows = 6 rows).
       height: 5 * colors.keyHeight + 5 * ROW_GAP_V,
     },
@@ -539,7 +541,7 @@ export function createKeyboardStyles(colors: KeyboardThemeColors) {
       marginBottom: ROW_GAP_V,
     },
     emojiKey: {
-      width: 42,
+      width: 39.5,
       height: colors.keyHeight,
       borderRadius: colors.keyBorderRadius,
       backgroundColor: emojiKeyBg,

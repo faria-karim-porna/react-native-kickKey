@@ -29,7 +29,7 @@ type EmojiBoardProps = {
   themeColors: KeyboardThemeColors;
 };
 
-const COLUMNS = 8;
+const COLUMNS = 6;
 // Actual rendered row height = emoji key height + vertical row gap.
 // Must match the `row` style (marginBottom: ROW_GAP_V) in dynamicStyles.ts
 // so FlatList `getItemLayout` scroll estimates stay accurate.
@@ -127,28 +127,28 @@ const EmojiBoardComponent = ({
     >
       <View style={styles.emojiBoardInset}>
         <View style={styles.tabBar}>{emojiCategories().map(renderTabItem)}</View>
+      </View>
 
-        <View style={styles.emojiGridContainer}>
-          <FlatList
-            data={currentEmojis}
-            renderItem={renderEmojiItem}
-            keyExtractor={(item, index) => `${index}-${item}`}
-            numColumns={COLUMNS}
-            columnWrapperStyle={styles.row}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            getItemLayout={(_, index) => ({
-              length: ROW_HEIGHT,
-              offset: ROW_HEIGHT * Math.floor(index / COLUMNS),
-              index,
-            })}
-            initialNumToRender={COLUMNS * 3}
-            maxToRenderPerBatch={COLUMNS * 3}
-            windowSize={5}
-            updateCellsBatchingPeriod={50}
-          />
-        </View>
+      <View style={styles.emojiGridContainer}>
+        <FlatList
+          data={currentEmojis}
+          renderItem={renderEmojiItem}
+          keyExtractor={(item, index) => `${index}-${item}`}
+          numColumns={COLUMNS}
+          columnWrapperStyle={styles.row}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          getItemLayout={(_, index) => ({
+            length: ROW_HEIGHT,
+            offset: ROW_HEIGHT * Math.floor(index / COLUMNS),
+            index,
+          })}
+          initialNumToRender={COLUMNS * 3}
+          maxToRenderPerBatch={COLUMNS * 3}
+          windowSize={5}
+          updateCellsBatchingPeriod={50}
+        />
       </View>
 
       {/* Fixed backspace key — matches width and position of SymbolKeys row 4 */}
